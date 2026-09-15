@@ -12,6 +12,7 @@ interface StaffAllocationModalProps {
     assignedClasses: string[];
     role: StaffMember['role'];
     formMasterOf?: string;
+    formDesignation?: 'Form Master' | 'Form Mistress';
     department: StaffMember['department'];
   }) => Promise<boolean>;
 }
@@ -26,6 +27,12 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
   const [selectedClasses, setSelectedClasses] = useState<string[]>(staff.assignedClasses || []);
   const [role, setRole] = useState<StaffMember['role']>(staff.role || 'Subject Tutor');
   const [formMasterOf, setFormMasterOf] = useState<string>(staff.formMasterOf || '');
+  const [formDesignation, setFormDesignation] = useState<'Form Master' | 'Form Mistress'>(
+    staff.formDesignation ||
+    (staff.role === 'Form Mistress' || staff.title === 'Mrs.' || staff.title === 'Miss' || staff.title === 'Lady'
+      ? 'Form Mistress'
+      : 'Form Master')
+  );
   const [department, setDepartment] = useState<StaffMember['department']>(staff.department || 'Sciences');
   const [customSubject, setCustomSubject] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -67,8 +74,9 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
     await onSave({
       subjectsTaught: selectedSubjects,
       assignedClasses: selectedClasses,
-      role: formMasterOf ? 'Class Master' : role,
+      role: formMasterOf ? formDesignation : role,
       formMasterOf: formMasterOf || undefined,
+      formDesignation: formMasterOf ? formDesignation : undefined,
       department,
     });
     setIsSaving(false);
@@ -101,7 +109,7 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
             Assign Subjects, Form Master & Classes
           </h2>
           <p className="text-xs text-blue-200/90 mt-1">
-            Configure faculty instructional workload, assigned class arms, and institutional roles.
+            Configure teacher instructional workload, assigned class arms, and institutional roles.
           </p>
 
           {/* Subtabs */}
@@ -147,7 +155,7 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
                     Assign Subjects to {staff.name}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Select the subjects this faculty member will teach and grade on their portal.
+                    Select the subjects this teacher will teach and grade on their portal.
                   </p>
                 </div>
                 <span className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-900">
@@ -275,14 +283,41 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
           {/* TAB 3: ROLES & FORM MASTER */}
           {activeTab === 'roles' && (
             <div className="space-y-5">
-              {/* Form Master Assignment Banner */}
+              {/* Form Master / Mistress Assignment Banner */}
               <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 space-y-3">
-                <div className="flex items-center gap-2 text-amber-900">
-                  <ShieldCheck className="w-5 h-5 text-amber-600" />
-                  <span className="text-sm font-bold">Designate as Form Master</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-900">
+                    <ShieldCheck className="w-5 h-5 text-amber-600" />
+                    <span className="text-sm font-bold">Designate as Form Master or Form Mistress</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950">
+                      <input
+                        type="radio"
+                        name="modalFormDesignation"
+                        value="Form Master"
+                        checked={formDesignation === 'Form Master'}
+                        onChange={() => setFormDesignation('Form Master')}
+                        className="text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>Form Master</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950">
+                      <input
+                        type="radio"
+                        name="modalFormDesignation"
+                        value="Form Mistress"
+                        checked={formDesignation === 'Form Mistress'}
+                        onChange={() => setFormDesignation('Form Mistress')}
+                        className="text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>Form Mistress</span>
+                    </label>
+                  </div>
                 </div>
+
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  Assigning a staff member as Form Master grants them oversight of that class's morning attendance, terminal conduct evaluation, and prints their name on student report cards.
+                  Assigning a staff member as Form Master or Form Mistress grants them oversight of that class's morning attendance, terminal conduct evaluation, and prints their name on student report cards.
                 </p>
 
                 <div className="space-y-1">
@@ -295,7 +330,7 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
                       const val = e.target.value;
                       setFormMasterOf(val);
                       if (val) {
-                        setRole('Class Master');
+                        setRole(formDesignation);
                         if (!selectedClasses.includes(val)) {
                           setSelectedClasses((prev) => [...prev, val]);
                         }
@@ -303,7 +338,7 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
                     }}
                     className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30"
                   >
-                    <option value="">-- None (Not a Form Master) --</option>
+                    <option value="">-- None (Not a Form Master/Mistress) --</option>
                     {SCHOOL_CLASSES_LIST.map((c) => (
                       <option key={c} value={c}>
                         {c} (Currently: {classes.find((cl) => cl.name === c)?.classMaster || 'Unassigned'})

@@ -10,6 +10,7 @@ import {
   Edit2,
   CheckCircle2,
   UserCheck,
+  UserMinus,
   Plus,
   ArrowRight,
   FileSpreadsheet,
@@ -82,7 +83,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   // Handle Add Subject to Class Curriculum
   const handleAddSubjectToClass = async () => {
     if (!newSubjectName.trim()) return;
-    const defaultTeacher = staffList[0]?.name || 'Faculty Member';
+    const defaultTeacher = staffList[0]?.name || 'Teacher';
     await onAssignSubjectTeacher(schoolClass.name, newSubjectName.trim(), defaultTeacher);
     setNewSubjectName('');
     setSuccessNotice(`Added ${newSubjectName.trim()} to ${schoolClass.name} curriculum.`);
@@ -196,7 +197,9 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   Designated Form Master
                 </span>
                 <span className="text-sm font-bold text-slate-900">
-                  {schoolClass.classMaster}
+                  {schoolClass.classMaster && schoolClass.classMaster !== 'Unassigned'
+                    ? schoolClass.classMaster
+                    : 'Not Assigned Yet'}
                 </span>
                 <span className="text-[11px] text-amber-800/80 block">
                   Oversees attendance register, conduct evaluation & terminal report card signing.
@@ -204,12 +207,13 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 value={selectedFormMaster}
                 onChange={(e) => setSelectedFormMaster(e.target.value)}
                 className="px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30"
               >
+                <option value="Unassigned">-- Select Teacher --</option>
                 {staffList.map((staff) => (
                   <option key={staff.id} value={staff.name}>
                     {staff.title} {staff.name} ({staff.department})
@@ -221,8 +225,29 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 disabled={isUpdatingMaster || selectedFormMaster === schoolClass.classMaster}
                 className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-40"
               >
-                {isUpdatingMaster ? 'Updating...' : 'Assign'}
+                {isUpdatingMaster
+                  ? 'Updating...'
+                  : schoolClass.classMaster && schoolClass.classMaster !== 'Unassigned'
+                  ? 'Change Form Master'
+                  : 'Make Form Teacher'}
               </button>
+              {schoolClass.classMaster && schoolClass.classMaster !== 'Unassigned' && (
+                <button
+                  onClick={async () => {
+                    setIsUpdatingMaster(true);
+                    await onAssignFormMaster(schoolClass.name, 'Unassigned');
+                    setSelectedFormMaster('Unassigned');
+                    setIsUpdatingMaster(false);
+                    setSuccessNotice(`Removed Form Master designation from ${schoolClass.name}.`);
+                    setTimeout(() => setSuccessNotice(null), 3000);
+                  }}
+                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors flex items-center gap-1"
+                  title="Remove Form Master"
+                >
+                  <UserMinus className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -365,7 +390,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     Curriculum & Subject Teacher Allocations for {schoolClass.name}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Assign specific faculty members to teach each subject in this class arm.
+                    Assign specific teachers to teach each subject in this class arm.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -392,13 +417,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     <tr>
                       <th className="py-3 px-4">Subject Course</th>
                       <th className="py-3 px-4">Subject Category</th>
-                      <th className="py-3 px-4">Assigned Subject Teacher</th>
-                      <th className="py-3 px-4 text-right">Reassign Teacher</th>
+                      <th className="py-3 px-4">Assigned Teacher</th>
+                      <th className="py-3 px-4 text-right">Teacher Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {curriculumList.map((subj) => {
                       const assignedTeacher = schoolClass.subjectTeachers?.[subj] || 'Unassigned';
+                      const isAssigned = assignedTeacher && assignedTeacher !== 'Unassigned';
                       return (
                         <tr key={subj} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-3.5 px-4 font-bold text-slate-900">
@@ -413,22 +439,62 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                               ? 'Commercial'
                               : 'General Curriculum'}
                           </td>
-                          <td className="py-3.5 px-4 font-semibold text-blue-950">
-                            {assignedTeacher}
+                          <td className="py-3.5 px-4">
+                            {isAssigned ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-950 font-bold text-xs border border-blue-200">
+                                <UserCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                                <span>{assignedTeacher}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-medium text-xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                <span>No Teacher Assigned</span>
+                              </span>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <select
-                              value={assignedTeacher}
-                              onChange={(e) => handleTeacherChange(subj, e.target.value)}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-800/20"
-                            >
-                              <option value="Unassigned">-- Select Faculty --</option>
-                              {staffList.map((st) => (
-                                <option key={st.id} value={st.name}>
-                                  {st.title} {st.name} ({st.department})
-                                </option>
-                              ))}
-                            </select>
+                            {isAssigned ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <select
+                                  value={assignedTeacher}
+                                  onChange={(e) => handleTeacherChange(subj, e.target.value)}
+                                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-800/20 cursor-pointer"
+                                  title="Change Subject Teacher"
+                                >
+                                  <option value={assignedTeacher}>Change: {assignedTeacher}</option>
+                                  {staffList
+                                    .filter((st) => st.name !== assignedTeacher)
+                                    .map((st) => (
+                                      <option key={st.id} value={st.name}>
+                                        {st.title} {st.name} ({st.department})
+                                      </option>
+                                    ))}
+                                </select>
+                                <button
+                                  onClick={() => handleTeacherChange(subj, 'Unassigned')}
+                                  className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs rounded-xl flex items-center gap-1 transition-colors"
+                                  title="Remove Teacher from this Subject"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                  <span>Remove Teacher</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end">
+                                <select
+                                  value=""
+                                  onChange={(e) => handleTeacherChange(subj, e.target.value)}
+                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
+                                >
+                                  <option value="">+ Assign Subject</option>
+                                  {staffList.map((st) => (
+                                    <option key={st.id} value={st.name}>
+                                      {st.title} {st.name} ({st.department})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

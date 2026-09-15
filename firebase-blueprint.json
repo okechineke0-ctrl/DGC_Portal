@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "StudentProfile": {
+      "title": "Student Profile",
+      "description": "Comprehensive student academic, biodata, and bursary record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "admissionNo": { "type": "string" },
+        "classArm": { "type": "string" },
+        "level": { "type": "string" },
+        "stream": { "type": "string" },
+        "gender": { "type": "string" },
+        "session": { "type": "string" },
+        "term": { "type": "string" },
+        "termGpa": { "type": "number" },
+        "termRank": { "type": "string" },
+        "attendanceRate": { "type": "number" },
+        "feeStatus": { "type": "string" },
+        "resultHeld": { "type": "boolean" },
+        "dateOfBirth": { "type": "string" },
+        "guardianName": { "type": "string" },
+        "guardianPhone": { "type": "string" }
+      },
+      "required": ["name", "admissionNo", "classArm"]
+    },
+    "StaffMember": {
+      "title": "Staff Member",
+      "description": "Faculty tutor, form master, or institutional administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "role": { "type": "string" },
+        "department": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["name", "role", "email"]
+    },
+    "SchoolClass": {
+      "title": "School Class Definition",
+      "description": "Academic class arm definition with form master and student count",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "level": { "type": "string" },
+        "arm": { "type": "string" },
+        "stream": { "type": "string" },
+        "classMaster": { "type": "string" },
+        "studentsCount": { "type": "number" },
+        "capacity": { "type": "number" },
+        "room": { "type": "string" }
+      },
+      "required": ["name", "level", "arm"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Official college announcement from the Principal or Director",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "author": { "type": "string" },
+        "badge": { "type": "string" },
+        "body": { "type": "string" }
+      },
+      "required": ["title", "date", "body"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "StudentProfile",
+      "description": "Collection of all enrolled student profiles and academic results"
+    },
+    "/staff/{staffId}": {
+      "schema": "StaffMember",
+      "description": "Collection of teaching and administrative staff members"
+    },
+    "/classes/{classId}": {
+      "schema": "SchoolClass",
+      "description": "Collection of the 14 standard academic class arms"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Collection of institutional notices and circulars"
+    }
+  }
+}

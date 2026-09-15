@@ -19,12 +19,14 @@ interface GatewayModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectRole: (role: 'staff' | 'ceo', staffData?: StaffMember) => void;
+  staffList?: StaffMember[];
 }
 
 export const GatewayModal: React.FC<GatewayModalProps> = ({
   isOpen,
   onClose,
   onSelectRole,
+  staffList,
 }) => {
   const [activeTab, setActiveTab] = useState<'select' | 'staff_verify' | 'ceo_auth'>('select');
   const [staffNameInput, setStaffNameInput] = useState<string>('');
@@ -146,7 +148,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-base group-hover:text-blue-900">
-                        Staff / Faculty Portal
+                        Staff & Teacher Portal
                       </h3>
                       <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                         Input scores for Quiz, Homework, Tests 1 & 2, Exam, and manage student continuous assessment files.
@@ -247,10 +249,10 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
               {/* Quick Staff Selection for Immediate Testing */}
               <div className="pt-2 border-t border-slate-100">
                 <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">
-                  Quick Select from Admin Uploaded Faculty (Click to auto-fill):
+                  Quick Select from Admin Uploaded Teachers (Click to auto-fill):
                 </p>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
-                  {INITIAL_STAFF_MEMBERS.map((s) => (
+                  {(staffList && staffList.length > 0 ? staffList : INITIAL_STAFF_MEMBERS).map((s) => (
                     <button
                       key={s.id}
                       onClick={() => {

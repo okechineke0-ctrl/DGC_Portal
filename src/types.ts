@@ -68,11 +68,13 @@ export interface StaffMember {
   title: string;
   email: string;
   phone: string;
-  role: 'Subject Tutor' | 'Class Master' | 'Head of Department' | 'Vice Principal' | 'Principal' | 'CEO' | 'Guidance Counselor' | 'Dean of Studies' | 'Examination Officer';
+  role: 'Subject Tutor' | 'Class Master' | 'Form Master' | 'Form Mistress' | 'Head of Department' | 'Vice Principal' | 'Principal' | 'CEO' | 'Guidance Counselor' | 'Dean of Studies' | 'Examination Officer';
   department: 'Sciences' | 'Arts' | 'Commercial' | 'General' | 'Administration';
   subjectsTaught: string[];
   assignedClasses: string[];
-  formMasterOf?: string; // Class arm they are Form Master of, e.g., "SS 3 Science"
+  formMasterOf?: string; // Class arm they are Form Master or Mistress of, e.g., "SS 3 Science"
+  formDesignation?: 'Form Master' | 'Form Mistress';
+  qualification?: string;
   status: 'Active' | 'On Leave';
   dateJoined: string;
 }
@@ -122,6 +124,36 @@ export interface StudentProfile {
   lga?: string;
   formMasterRemark?: string; // Official Form Master conduct remark on report card
   principalRemark?: string;  // Principal/Administration endorsement
+  formTeacherComment?: string;
+  principalComment?: string;
+  nextTermBegins?: string;
+  timesSchoolOpened?: number;
+  timesPresent?: number;
+  timesPunctual?: number;
+  // Comprehensive Admission & Registration Profiling Fields
+  surname?: string;
+  firstName?: string;
+  middleName?: string;
+  religion?: string;
+  nationality?: string;
+  bloodGroup?: string;
+  genotype?: string;
+  medicalConditions?: string;
+  allergies?: string;
+  guardianRelationship?: string;
+  guardianAltPhone?: string;
+  guardianOccupation?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  previousSchool?: string;
+  lastClassPassed?: string;
+  boardingStatus?: 'Day Student' | 'Boarder';
+  houseAllocation?: string;
+  scholarshipStatus?: string;
+  tellerNumber?: string;
+  entranceExamScore?: number;
+  affectiveDomain?: Record<string, number>;
+  psychomotorDomain?: Record<string, number>;
   subjects: SubjectScore[];
 }
 

@@ -14,7 +14,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { DGCLogo } from './DGCLogo';
-import { ANNOUNCEMENTS, CURRENT_SESSION, CURRENT_TERM } from '../data/mockData';
+import { ANNOUNCEMENTS, CURRENT_SESSION, CURRENT_TERM } from '../data/originalData';
 
 interface TopNavbarProps {
   onOpenMobileMenu: () => void;
@@ -22,8 +22,10 @@ interface TopNavbarProps {
   setPortalMode: (mode: 'director' | 'student') => void;
   onOpenAnnouncements: () => void;
   onOpenGateway?: () => void;
+  onLogoTripleClick?: () => void;
   currentRole?: 'portal' | 'staff' | 'ceo';
   isLoggedOut?: boolean;
+  isDbLive?: boolean;
   currentStudent?: {
     name: string;
     classArm: string;
@@ -38,8 +40,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   setPortalMode,
   onOpenAnnouncements,
   onOpenGateway,
+  onLogoTripleClick,
   currentRole = 'portal',
   isLoggedOut = false,
+  isDbLive = true,
   currentStudent,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -65,7 +69,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
           {/* Logo on mobile/top bar */}
           <div className="lg:hidden">
-            <DGCLogo size="sm" showText={false} onClick={onOpenGateway} />
+            <DGCLogo size="sm" showText={false} onClick={onLogoTripleClick || onOpenGateway} />
           </div>
 
           <div className="flex flex-col">
@@ -88,7 +92,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               )}
               {currentRole === 'staff' && !isLoggedOut && (
                 <span className="px-1.5 py-0.2 bg-blue-100 text-blue-900 text-[9px] font-extrabold rounded-md uppercase">
-                  Faculty
+                  Teacher
                 </span>
               )}
             </div>
@@ -102,7 +106,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   : currentRole === 'staff'
                   ? 'Continuous Assessment Grading Console'
                   : portalMode === 'director'
-                  ? 'Student Directory & Broadsheet Records'
+                  ? 'Student Directory & Academic Records'
                   : 'Terminal Academic & Result Portal'}
               </span>
               <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full">
@@ -114,12 +118,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
         {/* Right Controls: Gateway Quick Button, Session Info, Notification, Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Gateway Button if in standard portal mode */}
-          {currentRole === 'portal' && onOpenGateway && (
+          {/* Quick Gateway Button if in standard portal mode (hidden when logged out) */}
+          {currentRole === 'portal' && !isLoggedOut && onOpenGateway && (
             <button
               onClick={onOpenGateway}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-semibold transition-all shadow-2xs"
-              title="Faculty & Administration Portal Access"
+              title="Teachers & Administration Portal Access"
             >
               <Lock className="w-3.5 h-3.5 text-slate-600" />
               <span>Staff / Admin</span>
@@ -133,6 +137,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">CURRENT SESSION</span>
               <span className="text-slate-800 font-bold leading-tight">{CURRENT_SESSION} · {CURRENT_TERM}</span>
             </div>
+          </div>
+
+          {/* Database Live Cloud Indicator */}
+          <div
+            className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold bg-emerald-50/80 border-emerald-200/90 text-emerald-800"
+            title="Active Google Cloud Firestore Database Connection"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Live Firestore DB</span>
           </div>
 
           {/* Notifications Trigger */}
@@ -233,7 +246,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   : currentRole === 'ceo'
                   ? 'Governing Council'
                   : currentRole === 'staff'
-                  ? 'Faculty Member'
+                  ? 'Teaching Staff'
                   : portalMode === 'director'
                   ? 'registrar@dgc.edu.ng'
                   : currentStudent

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar,
   Users,
@@ -17,6 +17,11 @@ import {
   Award,
   LogOut,
   AlertCircle,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  KeyRound,
+  CheckCircle2,
 } from 'lucide-react';
 import { DGCLogo } from './components/DGCLogo';
 import { Sidebar } from './components/Sidebar';
@@ -27,6 +32,8 @@ import { GatewayModal } from './components/GatewayModal';
 import { StaffDashboard } from './components/StaffDashboard';
 import { CeoDashboard } from './components/CeoDashboard';
 import { StudentSettingsView } from './components/StudentSettingsView';
+import { CheckRegNumberModal } from './components/CheckRegNumberModal';
+import { StudentRegistrationModal } from './components/StudentRegistrationModal';
 import {
   TODAY_DATE,
   CURRENT_SESSION,
@@ -38,7 +45,18 @@ import {
   INITIAL_STAFF_MEMBERS,
   SCHOOL_CLASSES_DEFINITIONS,
   ANNOUNCEMENTS,
-} from './data/mockData';
+} from './data/originalData';
+import {
+  testFirestoreConnection,
+  getLiveStudents,
+  getLiveStaff,
+  getLiveClasses,
+  saveLiveStudent,
+  deleteLiveStudent,
+  saveLiveStaff,
+  deleteLiveStaff,
+  saveLiveClass,
+} from './lib/firebase';
 import { StudentProfile, StaffMember, SubjectScore, SchoolClassDefinition } from './types';
 
 export default function App() {
@@ -48,9 +66,20 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState<boolean>(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
-  const [isLoggedOut, setIsLoggedOut] = useState<boolean>(false);
-  const [admissionInput, setAdmissionInput] = useState<string>('');
+  const [isDbLive, setIsDbLive] = useState<boolean>(true);
+  // Default isLoggedOut to true: students have no sidebar access until authenticated
+  const [isLoggedOut, setIsLoggedOut] = useState<boolean>(true);
+  const [regNumberInput, setRegNumberInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
+  const [isCheckRegModalOpen, setIsCheckRegModalOpen] = useState<boolean>(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
+
+  // Triple-click logo trigger for administration gateway access
+  const [logoClickCount, setLogoClickCount] = useState<number>(0);
+  const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [adminToast, setAdminToast] = useState<string | null>(null);
 
   // Workspaces: 'portal' (Standard Student & Guardian Portal), 'staff' (Tutor Continuous Assessment), 'ceo' (CEO & Principal Governance)
   const [activeRole, setActiveRole] = useState<'portal' | 'staff' | 'ceo'>('portal');
@@ -63,8 +92,13 @@ export default function App() {
   const [classes, setClasses] = useState<SchoolClassDefinition[]>(SCHOOL_CLASSES_DEFINITIONS);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile>(INITIAL_STUDENTS[0]);
 
-  // Initial fetch from backend API
+  // Initial fetch from backend API & live Firestore verification
   useEffect(() => {
+    testFirestoreConnection().then((connected) => {
+      setIsDbLive(connected);
+      console.log(`[Dominion Stars Global College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
+    });
+
     fetch('/api/students')
       .then((res) => res.json())
       .then((data) => {
@@ -74,7 +108,12 @@ export default function App() {
         }
       })
       .catch(() => {
-        // Fallback to initial mock data
+        getLiveStudents().then((liveStd) => {
+          if (liveStd && liveStd.length > 0) {
+            setStudents(liveStd);
+            setSelectedStudent(liveStd[0]);
+          }
+        });
       });
 
     fetch('/api/staff')
@@ -85,7 +124,11 @@ export default function App() {
         }
       })
       .catch(() => {
-        // Fallback to initial mock data
+        getLiveStaff().then((liveStaff) => {
+          if (liveStaff && liveStaff.length > 0) {
+            setStaffList(liveStaff);
+          }
+        });
       });
 
     fetch('/api/classes')
@@ -96,7 +139,11 @@ export default function App() {
         }
       })
       .catch(() => {
-        // Fallback to initial mock data
+        getLiveClasses().then((liveClasses) => {
+          if (liveClasses && liveClasses.length > 0) {
+            setClasses(liveClasses);
+          }
+        });
       });
   }, []);
 
@@ -114,6 +161,103 @@ export default function App() {
 
   const handleOpenGateway = () => {
     setIsGatewayOpen(true);
+  };
+
+  // Triple-click on the DGC Logo/Icon opens the Administration Gateway
+  const handleLogoTripleClick = () => {
+    const nextCount = logoClickCount + 1;
+    setLogoClickCount(nextCount);
+
+    if (logoClickTimeoutRef.current) {
+      clearTimeout(logoClickTimeoutRef.current);
+    }
+
+    if (nextCount >= 3) {
+      setLogoClickCount(0);
+      setAdminToast('Administrative Authority Verified: Opening Institutional Gateway...');
+      setTimeout(() => setAdminToast(null), 3500);
+      setIsGatewayOpen(true);
+    } else {
+      if (nextCount === 2) {
+        setAdminToast('Admin Access: 1 more click to unlock Institutional Gateway...');
+        setTimeout(() => setAdminToast(null), 1800);
+      }
+      logoClickTimeoutRef.current = setTimeout(() => {
+        setLogoClickCount(0);
+      }, 2500);
+    }
+  };
+
+  // Student Authentication: Reg Number and Password (which is also the Reg Number)
+  const handleStudentLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+
+    const cleanReg = regNumberInput.trim();
+    const cleanPass = passwordInput.trim();
+
+    if (!cleanReg) {
+      setAuthError('Please enter your official College Registration Number.');
+      return;
+    }
+
+    if (!cleanPass) {
+      setAuthError('Please enter your Password (your default password is your Registration Number).');
+      return;
+    }
+
+    // 1. Match student in database state by official Registration / Admission Number
+    let match = students.find(
+      (s) => s.admissionNo.toLowerCase() === cleanReg.toLowerCase()
+    );
+
+    // 2. If not found in memory, query the live backend / Firestore database
+    if (!match) {
+      try {
+        const res = await fetch(`/api/students/${encodeURIComponent(cleanReg)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.student) {
+            match = data.student;
+            setStudents((prev) => [data.student, ...prev.filter((p) => p.id !== data.student.id)]);
+          }
+        }
+      } catch {
+        // live lookup fallback
+      }
+    }
+
+    if (!match) {
+      setAuthError(
+        `No student record found for Registration Number "${cleanReg}". If you do not remember your Reg Number, click "Check Reg Number" below to find yours.`
+      );
+      return;
+    }
+
+    // Explicit User Rule: "the login should only ask for reg number and password which is your reg number for the both"
+    const passMatches =
+      cleanPass.toLowerCase() === cleanReg.toLowerCase() ||
+      cleanPass.toLowerCase() === match.admissionNo.toLowerCase();
+
+    if (!passMatches) {
+      setAuthError(
+        'Incorrect password. Your default portal password is the exact same as your Registration Number.'
+      );
+      return;
+    }
+
+    // Successful student login
+    setSelectedStudent(match);
+    setIsLoggedOut(false);
+    setAuthError('');
+  };
+
+  // Autofill login credentials when student finds their account via Check Reg Number
+  const handleSelectFoundStudent = (regNo: string) => {
+    setRegNumberInput(regNo);
+    setPasswordInput(regNo);
+    setAuthError('');
+    setIsCheckRegModalOpen(false);
   };
 
   const handleSelectRoleFromGateway = (role: 'staff' | 'ceo', staffData?: StaffMember) => {
@@ -354,6 +498,7 @@ export default function App() {
       ],
     };
 
+    saveLiveStudent(fallbackStudent).catch((e) => console.warn('Firestore direct write failed:', e));
     setStudents((prev) => [fallbackStudent, ...prev]);
     return true;
   };
@@ -379,13 +524,19 @@ export default function App() {
     }
 
     setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, ...updatedData } : s))
+      prev.map((s) => {
+        if (s.id !== studentId) return s;
+        const updated = { ...s, ...updatedData };
+        saveLiveStudent(updated).catch(() => {});
+        return updated;
+      })
     );
     return true;
   };
 
   // 6. Delete Student
   const handleDeleteStudent = async (studentId: string): Promise<boolean> => {
+    deleteLiveStudent(studentId).catch(() => {});
     try {
       await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
     } catch {
@@ -407,6 +558,13 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setStaffList((prev) => [...prev, data.staff]);
+        if (data.staff.formMasterOf) {
+          setClasses((prev) =>
+            prev.map((c) =>
+              c.name === data.staff.formMasterOf ? { ...c, classMaster: data.staff.name } : c
+            )
+          );
+        }
         return true;
       }
     } catch {
@@ -415,29 +573,88 @@ export default function App() {
 
     const newSt: StaffMember = {
       id: `staff-${Date.now()}`,
-      name: staffData.name || 'New Faculty',
+      name: staffData.name || 'New Teacher',
       title: staffData.title || 'Mr.',
-      email: staffData.email || 'faculty@dgc.edu.ng',
+      email: staffData.email || 'teacher@dgc.edu.ng',
       phone: staffData.phone || '+234 800 000 0000',
-      role: staffData.role || 'Subject Tutor',
+      role: staffData.role || (staffData.formMasterOf ? (staffData.formDesignation || 'Class Master') : 'Subject Tutor'),
       department: staffData.department || 'Sciences',
       subjectsTaught: staffData.subjectsTaught || ['Mathematics'],
       assignedClasses: staffData.assignedClasses || ['SS 2 Science'],
+      formMasterOf: staffData.formMasterOf,
+      formDesignation: staffData.formDesignation,
+      qualification: staffData.qualification || 'B.Sc (Ed)',
       status: 'Active',
-      dateJoined: '2026-09-01',
+      dateJoined: new Date().toISOString().split('T')[0],
     };
+    saveLiveStaff(newSt).catch(() => {});
+    if (newSt.formMasterOf) {
+      setClasses((prev) =>
+        prev.map((c) =>
+          c.name === newSt.formMasterOf ? { ...c, classMaster: newSt.name } : c
+        )
+      );
+    }
     setStaffList((prev) => [...prev, newSt]);
     return true;
   };
 
   // 8. Delete Staff
   const handleDeleteStaff = async (staffId: string): Promise<boolean> => {
+    deleteLiveStaff(staffId).catch(() => {});
     try {
       await fetch(`/api/staff/${staffId}`, { method: 'DELETE' });
     } catch {
       // ignore
     }
+    const targetStaff = staffList.find((s) => s.id === staffId);
+    if (targetStaff) {
+      setClasses((prev) =>
+        prev.map((c) => {
+          const updated = { ...c };
+          if (updated.classMaster === targetStaff.name) {
+            updated.classMaster = 'Unassigned';
+          }
+          if (updated.subjectTeachers) {
+            const newSubjs = { ...updated.subjectTeachers };
+            Object.keys(newSubjs).forEach((subj) => {
+              if (newSubjs[subj] === targetStaff.name) {
+                delete newSubjs[subj];
+              }
+            });
+            updated.subjectTeachers = newSubjs;
+          }
+          return updated;
+        })
+      );
+    }
     setStaffList((prev) => prev.filter((s) => s.id !== staffId));
+    return true;
+  };
+
+  // 8b. Update / Change Staff details
+  const handleUpdateStaff = async (staffId: string, updatedData: Partial<StaffMember>): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/staff/${staffId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+      if (res.ok) {
+        const [clsRes, stfRes] = await Promise.all([fetch('/api/classes'), fetch('/api/staff')]);
+        const clsData = await clsRes.json();
+        const stfData = await stfRes.json();
+        if (clsData.classes) setClasses(clsData.classes);
+        if (stfData.staff) setStaffList(stfData.staff);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+
+    setStaffList((prev) =>
+      prev.map((s) => (s.id === staffId ? { ...s, ...updatedData } : s))
+    );
     return true;
   };
 
@@ -466,6 +683,16 @@ export default function App() {
     );
     setStaffList((prev) =>
       prev.map((s) => {
+        if (!staffName || staffName === 'Unassigned') {
+          if (s.formMasterOf === className) {
+            return {
+              ...s,
+              formMasterOf: undefined,
+              role: s.role === 'Class Master' ? 'Subject Tutor' : s.role,
+            };
+          }
+          return s;
+        }
         if (s.name === staffName || s.id === staffId) {
           return {
             ...s,
@@ -506,12 +733,15 @@ export default function App() {
     setClasses((prev) =>
       prev.map((c) => {
         if (c.name !== className) return c;
+        const newSubjs = { ...(c.subjectTeachers || {}) };
+        if (!teacherName || teacherName === 'Unassigned') {
+          delete newSubjs[subjectName];
+        } else {
+          newSubjs[subjectName] = teacherName;
+        }
         return {
           ...c,
-          subjectTeachers: {
-            ...(c.subjectTeachers || {}),
-            [subjectName]: teacherName,
-          },
+          subjectTeachers: newSubjs,
         };
       })
     );
@@ -608,6 +838,58 @@ export default function App() {
     return true;
   };
 
+  // 13. Mark & Sync Class Attendance (Teacher / Form Master Action)
+  const handleUpdateStudentAttendance = async (
+    className: string,
+    records: Array<{
+      studentId: string;
+      status: 'Present' | 'Absent' | 'Late' | 'Excused';
+      remarks?: string;
+      newAttendanceRate?: number;
+    }>
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/attendance/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          className,
+          date: new Date().toISOString().split('T')[0],
+          records,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.students) {
+          setStudents(data.students);
+          return true;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    setStudents((prev) =>
+      prev.map((s) => {
+        const match = records.find((r) => r.studentId === s.id);
+        if (!match) return s;
+        let rate = s.attendanceRate ?? 95;
+        if (match.newAttendanceRate !== undefined) {
+          rate = match.newAttendanceRate;
+        } else if (match.status === 'Absent') {
+          rate = Math.max(50, Math.round((rate - 1.5) * 10) / 10);
+        } else if (match.status === 'Present') {
+          rate = Math.min(100, Math.round((rate + 0.3) * 10) / 10);
+        }
+        return {
+          ...s,
+          attendanceRate: rate,
+        };
+      })
+    );
+    return true;
+  };
+
   // Filter students based on search query
   const filteredStudents = students.filter((std) => {
     if (!searchQuery.trim()) return true;
@@ -643,8 +925,10 @@ export default function App() {
           setPortalMode={() => {}}
           onOpenAnnouncements={() => setIsAnnouncementsOpen(true)}
           onOpenGateway={handleOpenGateway}
+          onLogoTripleClick={handleLogoTripleClick}
           currentRole={activeRole}
           isLoggedOut={isLoggedOut}
+          isDbLive={isDbLive}
           currentStudent={selectedStudent}
         />
 
@@ -662,7 +946,7 @@ export default function App() {
                 <strong className={activeRole === 'ceo' ? 'text-amber-300' : 'text-blue-300'}>
                   {activeRole === 'ceo'
                     ? 'Chief Executive Officer (CEO) Administration'
-                    : `Faculty Portal (${activeStaff?.name || 'Authorized Staff'})`}
+                    : `Teacher Portal (${activeStaff?.name || 'Authorized Teacher'})`}
                 </strong>
               </span>
             </div>
@@ -679,7 +963,7 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {/* 1. STAFF WORKSPACE (Grading Console, Form Master Oversight, Faculty Workload) */}
+          {/* 1. STAFF WORKSPACE (Grading Console, Form Master Oversight, Teaching Workload) */}
           {activeRole === 'staff' && activeStaff && (
             <StaffDashboard
               staff={activeStaff}
@@ -688,6 +972,7 @@ export default function App() {
               classes={classes}
               onUpdateStudentScore={handleUpdateStudentScore}
               onUpdateStudentRemarks={handleUpdateStudentRemarks}
+              onUpdateStudentAttendance={handleUpdateStudentAttendance}
             />
           )}
 
@@ -708,6 +993,7 @@ export default function App() {
               onAssignFormMaster={handleAssignFormMaster}
               onAssignSubjectTeacher={handleAssignSubjectTeacher}
               onAssignStaffAllocations={handleAssignStaffAllocations}
+              onUpdateStaff={handleUpdateStaff}
             />
           )}
 
@@ -715,19 +1001,51 @@ export default function App() {
           {activeRole === 'portal' && (
             <>
               {isLoggedOut ? (
-                <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-md max-w-xl mx-auto my-8 text-center space-y-6">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-950 text-amber-300 mx-auto flex items-center justify-center font-bold text-2xl shadow-sm">
-                    <DGCLogo size="md" showText={false} />
+                <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
+                  {/* Admin Toast feedback */}
+                  {adminToast && (
+                    <div className="p-3 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold rounded-xl flex items-center justify-center gap-2 animate-bounce">
+                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>{adminToast}</span>
+                    </div>
+                  )}
+
+                  {/* Dominican Grace College Logo Icon with Triple-Click Administration Shortcut */}
+                  <div className="relative inline-block mx-auto">
+                    <div
+                      onClick={handleLogoTripleClick}
+                      className="w-20 h-20 rounded-3xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-2xl shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group"
+                      title="Dominion Stars Global College (Administration Authority: Click 3 times to unlock gateway)"
+                    >
+                      <DGCLogo size="md" showText={false} />
+                    </div>
+                    {logoClickCount > 0 && (
+                      <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-amber-400 text-blue-950 font-black text-[9px] rounded-full shadow-xs whitespace-nowrap animate-pulse">
+                        {logoClickCount}/3 Admin Clicks
+                      </span>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
                       Dominion Stars Global College
                     </span>
                     <h2 className="text-2xl font-bold font-serif-title text-slate-900">
                       Student Academic Portal Sign-In
                     </h2>
                     <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-                      Enter your College Admission Number or choose your registered student profile below to securely view your terminal report card, continuous assessment records, and bursary dues clearance.
+                      Official portal for returning and newly enrolled students. Log in using your College Registration Number and Password.
+                    </p>
+                  </div>
+
+                  {/* Portal Security Note */}
+                  <div className="p-3.5 bg-blue-50/80 border border-blue-200/90 rounded-2xl text-left text-xs text-blue-950 space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-blue-950">
+                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
+                      <span>Authentication Notice</span>
+                    </div>
+                    <p className="text-[11px] text-blue-900 leading-relaxed">
+                      Your default portal password is your <strong>Registration Number</strong> (the exact same value for both). Students cannot register accounts online; accounts are provisioned exclusively by the College Administration.
                     </p>
                   </div>
 
@@ -738,107 +1056,84 @@ export default function App() {
                     </div>
                   )}
 
-                  <div className="space-y-4 pt-1 text-left">
-                    {/* Admission Number Entry */}
+                  <form onSubmit={handleStudentLogin} className="space-y-4 pt-1 text-left">
+                    {/* Reg Number Input */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 block">
-                        College Admission Number (e.g. DGC/2026/0142):
+                        Registration Number (Reg No):
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          value={admissionInput}
+                          value={regNumberInput}
                           onChange={(e) => {
-                            setAdmissionInput(e.target.value);
+                            setRegNumberInput(e.target.value);
                             setAuthError('');
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const trimmed = admissionInput.trim().toUpperCase();
-                              if (!trimmed) {
-                                setAuthError('Please enter an Admission Number or pick from the list.');
-                                return;
-                              }
-                              const match = students.find(
-                                (s) => s.admissionNo.toUpperCase() === trimmed || s.name.toUpperCase().includes(trimmed)
-                              );
-                              if (match) {
-                                setSelectedStudent(match);
-                                setIsLoggedOut(false);
-                                setAuthError('');
-                              } else {
-                                setAuthError(`No student registered with admission number "${trimmed}".`);
-                              }
-                            }
-                          }}
-                          placeholder="DGC/2026/0142"
-                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 uppercase"
+                          placeholder="e.g. DGC/2026/0142"
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 uppercase font-mono"
                         />
                       </div>
                     </div>
 
-                    <div className="relative flex py-1 items-center">
-                      <div className="grow border-t border-slate-200"></div>
-                      <span className="shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Or select account</span>
-                      <div className="grow border-t border-slate-200"></div>
+                    {/* Password Input */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700 block">
+                          Password:
+                        </label>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          (Default: Your Reg Number)
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordInput}
+                          onChange={(e) => {
+                            setPasswordInput(e.target.value);
+                            setAuthError('');
+                          }}
+                          placeholder="Enter your Reg Number as password"
+                          className="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-slate-500" />}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Quick Select Profile */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Registered Student Profile:
-                      </label>
-                      <select
-                        value={selectedStudent?.id}
-                        onChange={(e) => {
-                          const target = students.find((s) => s.id === e.target.value);
-                          if (target) {
-                            setSelectedStudent(target);
-                            setAdmissionInput(target.admissionNo);
-                            setAuthError('');
-                          }
-                        }}
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
+                    {/* Check Reg Number Link */}
+                    <div className="pt-0.5 flex items-center justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setIsCheckRegModalOpen(true)}
+                        className="text-blue-950 hover:text-blue-800 font-bold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
                       >
-                        {students.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} ({s.admissionNo} · {s.classArm})
-                          </option>
-                        ))}
-                      </select>
+                        <Search className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Don&apos;t know your Reg Number? Check Reg Number</span>
+                      </button>
                     </div>
 
                     <button
-                      onClick={() => {
-                        const trimmed = admissionInput.trim().toUpperCase();
-                        if (trimmed) {
-                          const match = students.find(
-                            (s) => s.admissionNo.toUpperCase() === trimmed || s.name.toUpperCase().includes(trimmed)
-                          );
-                          if (match) {
-                            setSelectedStudent(match);
-                            setIsLoggedOut(false);
-                            setAuthError('');
-                            return;
-                          }
-                        }
-                        // Default to selected student
-                        if (selectedStudent) {
-                          setIsLoggedOut(false);
-                          setAuthError('');
-                        }
-                      }}
-                      className="w-full py-3 px-4 bg-blue-950 hover:bg-blue-900 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
+                      type="submit"
+                      className="w-full py-3.5 px-4 bg-blue-950 hover:bg-blue-900 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 mt-2 cursor-pointer"
                     >
-                      <span>Access Student Portal</span>
+                      <span>Sign In to Student Portal</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
-                  </div>
+                  </form>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Senior Academic Division</span>
-                    <span>2026/2027 Academic Session</span>
+                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+                    <span>Senior Academic Division · 2026/2027</span>
+                    <span className="text-[10px] text-slate-400 text-center sm:text-right">
+                      Administrator: Click crest logo 3 times above to access gateway
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -1054,7 +1349,7 @@ export default function App() {
               <button
                 onClick={handleOpenGateway}
                 className="text-slate-600 font-semibold hover:text-blue-950 flex items-center gap-1.5 transition-colors"
-                title="Faculty and Institutional Administration Portal"
+                title="Teachers and Institutional Administration Portal"
               >
                 <Lock className="w-3 h-3 text-slate-500" />
                 <span>Institutional Portal</span>
@@ -1069,6 +1364,7 @@ export default function App() {
         isOpen={isGatewayOpen}
         onClose={() => setIsGatewayOpen(false)}
         onSelectRole={handleSelectRoleFromGateway}
+        staffList={staffList}
       />
 
       {/* Log Out Confirmation Dialog */}
@@ -1119,6 +1415,26 @@ export default function App() {
         isOpen={isAnnouncementsOpen}
         onClose={() => setIsAnnouncementsOpen(false)}
       />
+
+      {/* Check Registration Number Lookup Modal (Fuzzy & Multi-token Name Matcher) */}
+      {isCheckRegModalOpen && (
+        <CheckRegNumberModal
+          isOpen={isCheckRegModalOpen}
+          onClose={() => setIsCheckRegModalOpen(false)}
+          students={students}
+          onSelectStudent={(regNo) => handleSelectFoundStudent(regNo)}
+        />
+      )}
+
+      {/* Official Administration Student Registration Form Modal */}
+      {isRegisterModalOpen && (
+        <StudentRegistrationModal
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          onRegisterStudent={handleRegisterStudent}
+          classes={classes}
+        />
+      )}
     </div>
   );
 }

@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'report_card',
       label: 'Print Report Card',
-      subtitle: 'Terminal academic broadsheet & result',
+      subtitle: 'Official terminal grades & result sheet',
       icon: Printer,
       badge: 'Official',
     },
@@ -221,14 +221,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-900 group-hover:text-blue-950 truncate block">
-                    {currentStudent?.name || 'Chidera Okonkwo'}
+                    {currentStudent?.name || 'No student selected'}
                   </span>
                   <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-900 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
-                  <span className="truncate">{currentStudent?.admissionNo || 'DGC/2026/0142'}</span>
+                  <span className="truncate">{currentStudent?.admissionNo || '—'}</span>
                   <span>•</span>
-                  <span className="font-semibold text-blue-900">{currentStudent?.classArm || 'SS 3 Science'}</span>
+                  <span className="font-semibold text-blue-900">{currentStudent?.classArm || 'No Class'}</span>
                 </div>
               </div>
             </div>

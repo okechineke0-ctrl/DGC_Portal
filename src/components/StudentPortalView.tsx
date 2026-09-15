@@ -951,7 +951,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
                 <div>
                   <span className="font-bold text-slate-800 block">1. Tuition & Academic Instruction</span>
-                  <span className="text-[11px] text-slate-500">Core academic curriculum & faculty instruction</span>
+                  <span className="text-[11px] text-slate-500">Core academic curriculum & teacher instruction</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900">₦85,000.00</span>
               </div>

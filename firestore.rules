@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if current user is admin
+    function isAdmin() {
+      return request.auth != null && (request.auth.token.email == "okechineke0@gmail.com" || request.auth.token.admin == true);
+    }
+
+    // Connection validation endpoint
+    match /test/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /system/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Students collection: records, terminal results, continuous assessment
+    match /students/{studentId} {
+      allow read, write: if true;
+    }
+
+    // Staff roster: faculty and form masters
+    match /staff/{staffId} {
+      allow read, write: if true;
+    }
+
+    // Academic class arms
+    match /classes/{classId} {
+      allow read, write: if true;
+    }
+
+    // Institutional notices and announcements
+    match /announcements/{announcementId} {
+      allow read, write: if true;
+    }
+
+    // Daily attendance roll calls
+    match /attendance/{attendanceId} {
+      allow read, write: if true;
+    }
+  }
+}
