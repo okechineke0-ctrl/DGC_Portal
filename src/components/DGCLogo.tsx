@@ -30,7 +30,7 @@ export const DGCLogo: React.FC<DGCLogoProps> = ({
     >
       {/* Official Dominion Global College Crest Logo */}
       <img
-        src="/logo.svg"
+        src="/1789397544433.jpg"
         alt="Dominion Global College Crest Logo"
         width={box}
         height={box}
