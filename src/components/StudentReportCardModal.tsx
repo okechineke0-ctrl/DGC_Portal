@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Printer, ShieldCheck, Award } from 'lucide-react';
 import { StudentProfile, SchoolClassDefinition } from '../types';
+import { printDocument } from '../lib/print';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 
@@ -25,32 +26,40 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Terminal broadsheet for ${student.name}`}
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        id="student-report-card-modal"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[96vh] sm:max-h-[92vh] my-auto overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="no-print p-3 sm:p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-blue-950 uppercase tracking-wider">
               Terminal Broadsheet
             </span>
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-slate-300 break-words min-w-0">
               {student.name} ({student.admissionNo}) · {student.classArm}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => window.print()}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs transition-colors flex items-center gap-1 px-2.5"
+              onClick={() => printDocument('student-report-card-modal')}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs transition-colors flex items-center gap-1 px-2.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="Close report card"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -58,14 +67,12 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
         </div>
 
         {/* Report Card Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 bg-slate-50/50">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/50">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-8 space-y-6">
             {/* School Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-200 text-center sm:text-left">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-2xl shadow-sm">
-                  <DGCLogo size="md" showText={false} />
-                </div>
+                <DGCLogo size="lg" showText={false} />
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-slate-900 tracking-tight">
                     {SCHOOL_NAME}
@@ -78,7 +85,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                   </p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-center sm:text-right shrink-0">
                 <span className="text-xs text-slate-500 block">Academic Session</span>
                 <span className="text-sm font-bold text-slate-900 block font-mono">{CURRENT_SESSION}</span>
                 <span className="text-xs font-bold text-blue-900 block font-mono">{CURRENT_TERM}</span>
@@ -106,8 +113,8 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
             </div>
 
             {/* Academic Results Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-              <table className="w-full text-left text-xs">
+            <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-2xs">
+              <table className="w-full min-w-[48rem] text-left text-xs">
                 <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
                   <tr>
                     <th className="py-2.5 px-3">Subject</th>
@@ -125,7 +132,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                 <tbody className="divide-y divide-slate-100">
                   {student.subjects.map((s) => (
                     <tr key={s.code} className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">{s.name}</td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-900 break-words">{s.name}</td>
                       <td className="py-2.5 px-2 text-center font-mono">{s.homework ?? 8}</td>
                       <td className="py-2.5 px-2 text-center font-mono">{s.test1 ?? 8}</td>
                       <td className="py-2.5 px-2 text-center font-mono">{s.test2 ?? 8}</td>
@@ -173,11 +180,11 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                 <span className="text-[10px] font-extrabold uppercase text-slate-400 block">
                   Class Master's Official Evaluation
                 </span>
-                <p className="text-slate-800 italic">
+                <p className="text-slate-800 italic break-words">
                   "{formMasterRemark}"
                 </p>
-                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-200/60 mt-2">
-                  <span>Class Master: <strong>{assignedFormMaster}</strong></span>
+                <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-500 pt-2 border-t border-slate-200/60 mt-2">
+                  <span className="break-words">Class Master: <strong>{assignedFormMaster}</strong></span>
                   <span className="text-emerald-700 font-bold">Signature: Verified</span>
                 </div>
               </div>

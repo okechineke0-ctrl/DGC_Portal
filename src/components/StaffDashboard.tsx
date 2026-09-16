@@ -31,6 +31,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { StaffMember, StudentProfile, SubjectScore, SchoolClassDefinition } from '../types';
+import { printDocument } from '../lib/print';
 import {
   SCHOOL_CLASSES_LIST,
   ALL_SCHOOL_SUBJECTS,
@@ -727,9 +728,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
           </div>
 
           {/* Grade Entry Table */}
-          <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
+          <div id="staff-grade-sheet-print-root" className="bg-white rounded-3xl shadow-xs border border-slate-200/80 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
                 <h3 className="font-bold text-slate-900 text-base">
                   {selectedClass} · {selectedSubject} Continuous Assessment & Exam Sheet
                 </h3>
@@ -738,8 +739,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 </p>
               </div>
               <button
-                onClick={() => window.print()}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                onClick={() => printDocument('staff-grade-sheet-print-root')}
+                className="no-print p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer shrink-0"
                 title="Print Class Broad Sheet"
               >
                 <Printer className="w-4 h-4" />

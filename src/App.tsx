@@ -1158,10 +1158,10 @@ export default function App() {
                   <div className="relative inline-block mx-auto">
                     <div
                       onClick={handleLogoTripleClick}
-                      className="w-20 h-20 rounded-3xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-2xl shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group"
+                      className="rounded-3xl bg-blue-950 p-2.5 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group inline-flex"
                       title="Dominion Stars Global College (Administration Authority: Click 3 times to unlock gateway)"
                     >
-                      <DGCLogo size="md" showText={false} />
+                      <DGCLogo size="lg" showText={false} />
                     </div>
                     {logoClickCount > 0 && (
                       <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-amber-400 text-blue-950 font-black text-[9px] rounded-full shadow-xs whitespace-nowrap animate-pulse">

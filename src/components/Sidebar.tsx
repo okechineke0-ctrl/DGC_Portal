@@ -58,7 +58,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Check Attendance',
       subtitle: 'Term roll call & punctuality record',
       icon: CalendarCheck,
-      badge: currentStudent ? `${currentStudent.attendanceRate}%` : '58/60 Days',
+      badge:
+        currentStudent && typeof currentStudent.attendanceRate === 'number'
+          ? `${currentStudent.attendanceRate}%`
+          : 'Roll Call',
     },
     {
       id: 'fees',
