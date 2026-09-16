@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Users,
@@ -28,6 +28,10 @@ import {
   Layers,
   Award,
   UserCheck,
+  CalendarCheck,
+  Clock,
+  Check,
+  CreditCard,
 } from 'lucide-react';
 import { StudentProfile, StaffMember, SchoolClassDefinition } from '../types';
 import {
@@ -40,6 +44,7 @@ import { ClassDetailModal } from './ClassDetailModal';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { StudentRegistrationModal } from './StudentRegistrationModal';
 import { TeacherManagementModal } from './TeacherManagementModal';
+import { SchoolFeesManagement } from './SchoolFeesManagement';
 
 interface CeoDashboardProps {
   onExit: () => void;
@@ -63,6 +68,17 @@ interface CeoDashboardProps {
     department?: StaffMember['department'];
   }) => Promise<boolean>;
   onUpdateStaff?: (staffId: string, updatedData: Partial<StaffMember>) => Promise<boolean>;
+  onUpdateStudentFeeStatus?: (
+    studentId: string,
+    feeStatus: 'Cleared' | 'Pending',
+    amountPaid?: number,
+    remarks?: string
+  ) => Promise<boolean>;
+  onBulkUpdateStudentFeeStatus?: (
+    studentIds: string[] | null,
+    classArm: string | null,
+    feeStatus: 'Cleared' | 'Pending'
+  ) => Promise<boolean>;
 }
 
 export const CeoDashboard: React.FC<CeoDashboardProps> = ({
@@ -81,11 +97,19 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   onAssignSubjectTeacher,
   onAssignStaffAllocations,
   onUpdateStaff,
+  onUpdateStudentFeeStatus,
+  onBulkUpdateStudentFeeStatus,
 }) => {
   // Navigation Tabs (Secondary School Administration)
   const [activeTab, setActiveTab] = useState<
-    'classes' | 'staff' | 'curriculum' | 'students'
+    'classes' | 'staff' | 'curriculum' | 'students' | 'attendance' | 'fees'
   >('classes');
+
+  // Attendance oversight state
+  const [allAttendanceLogs, setAllAttendanceLogs] = useState<any[]>([]);
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
+  const [attClassFilter, setAttClassFilter] = useState<string>('ALL');
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,6 +227,29 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   const totalClassesCount = classes.length;
   const assignedFormMastersCount = classes.filter((c) => c.classMaster && c.classMaster !== 'Unassigned').length;
 
+  // Fetch live attendance registers from Firestore when tab is active
+  useEffect(() => {
+    if (activeTab === 'attendance') {
+      setIsLoadingAttendance(true);
+      fetch('/api/attendance')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && Array.isArray(data.attendanceRecords)) {
+            setAllAttendanceLogs(data.attendanceRecords);
+          }
+        })
+        .catch((err) => console.error('Failed to load attendance logs:', err))
+        .finally(() => setIsLoadingAttendance(false));
+    }
+  }, [activeTab]);
+
+  // Overall attendance rate across entire student body (derived mathematically from student profiles)
+  const overallAvgAttendance = students.length > 0
+    ? Math.round((students.reduce((acc, s) => acc + (s.attendanceRate !== undefined ? s.attendanceRate : 100), 0) / students.length) * 10) / 10
+    : 100;
+  const studentsMeetingRequirement = students.filter((s) => (s.attendanceRate !== undefined ? s.attendanceRate : 100) >= 75).length;
+  const studentsBelowRequirement = students.length - studentsMeetingRequirement;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* CEO Executive Control Header Banner */}
@@ -233,6 +280,16 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setIsRegisterStudentOpen(true)}
+              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-emerald-400 cursor-pointer"
+              id="admin-register-student-header-btn"
+              title="Register New Student: JSS 1 to SS 3 with full bio-data & subjects"
+            >
+              <UserPlus className="w-4 h-4 text-white" />
+              <span>+ Register Student</span>
+            </button>
+
             <button
               onClick={() => setIsTeacherManagerOpen(true)}
               className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-amber-300 cursor-pointer"
@@ -289,43 +346,57 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Enrolled Students
-          </span>
-          <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{totalStudentsCount}</div>
-          <span className="text-[11px] text-emerald-600 font-semibold mt-0.5 block">
-            {releasedCount} Released · {heldCount} Held
-          </span>
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Enrolled Students
+            </span>
+            <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{totalStudentsCount}</div>
+            <span className={`text-[11px] font-semibold mt-0.5 block ${totalStudentsCount === 0 ? 'text-slate-400' : 'text-blue-900'}`}>
+              {totalStudentsCount === 0 ? 'No data yet' : `${releasedCount} Released · ${heldCount} Held`}
+            </span>
+          </div>
+          <button
+            onClick={() => setIsRegisterStudentOpen(true)}
+            className="mt-3 w-full py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-950 border border-blue-200 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+            id="metric-card-register-student-btn"
+          >
+            <UserPlus className="w-3.5 h-3.5 text-blue-800" />
+            <span>+ Register Student</span>
+          </button>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-              Teaching & Academic Staff
+              School Fees & Bursary
             </span>
-            <div className="text-2xl font-black text-amber-600 mt-1 font-mono">{staffList.length} Teachers</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Across 5 Academic Depts</span>
+            <div className="text-2xl font-black text-blue-950 mt-1 font-mono">
+              {students.filter(s => s.feeStatus === 'Cleared').length} / {totalStudentsCount}
+            </div>
+            <span className="text-[11px] text-blue-800 font-semibold mt-0.5 block">
+              Scholars Cleared · {students.filter(s => s.feeStatus !== 'Cleared').length} Outstanding
+            </span>
           </div>
           <button
-            onClick={() => setIsTeacherManagerOpen(true)}
-            className="mt-3 w-full py-1.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-            id="metric-card-manage-teachers-btn"
+            onClick={() => setActiveTab('fees')}
+            className="mt-3 w-full py-1.5 px-3 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+            id="metric-card-manage-fees-btn"
           >
-            <UserCheck className="w-3.5 h-3.5 text-amber-700" />
-            <span>Manage Teachers & Roles →</span>
+            <CreditCard className="w-3.5 h-3.5 text-blue-300" />
+            <span>Manage Fees & Clearance →</span>
           </button>
         </div>
       </div>
 
-      {/* Main Administrative Navigation Tabs */}
+      {/* Main Administrative Navigation Tabs (Mature White & Blue) */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('classes')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'classes'
-              ? 'bg-blue-950 text-amber-300 shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Building className="w-4 h-4" />
@@ -334,10 +405,10 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('staff')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'staff'
-              ? 'bg-blue-950 text-amber-300 shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Briefcase className="w-4 h-4" />
@@ -346,10 +417,10 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('curriculum')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'curriculum'
-              ? 'bg-blue-950 text-amber-300 shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -358,15 +429,54 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('students')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'students'
-              ? 'bg-blue-950 text-amber-300 shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Users className="w-4 h-4" />
           <span>6-Year Student Roll ({totalStudentsCount})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('attendance')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'attendance'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+          }`}
+          id="admin-tab-attendance-btn"
+        >
+          <CalendarCheck className="w-4 h-4" />
+          <span>Attendance Oversight</span>
+        </button>
+
+        {/* New Dedicated School Fees & Bursary Tab */}
+        <button
+          onClick={() => setActiveTab('fees')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'fees'
+              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+          }`}
+          id="admin-tab-school-fees-btn"
+        >
+          <CreditCard className="w-4 h-4 text-blue-400" />
+          <span>School Fees & Bursary</span>
+        </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setIsRegisterStudentOpen(true)}
+            className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-blue-950 hover:bg-blue-900 text-white shadow-xs flex items-center gap-2 transition-all cursor-pointer border border-blue-900"
+            id="admin-register-student-tabbar-btn"
+            title="Register New Student"
+          >
+            <UserPlus className="w-4 h-4 text-white" />
+            <span>+ Register Student</span>
+          </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -384,22 +494,33 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               </p>
             </div>
 
-            {/* Quick Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400">Level Filter:</span>
-              <select
-                value={filterLevel}
-                onChange={(e) => setFilterLevel(e.target.value)}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
+            {/* Quick Filter and Register Action */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsRegisterStudentOpen(true)}
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                <option value="ALL">All Levels</option>
-                <option value="JSS 1">JSS 1</option>
-                <option value="JSS 2">JSS 2</option>
-                <option value="JSS 3">JSS 3</option>
-                <option value="SS 1">SS 1</option>
-                <option value="SS 2">SS 2</option>
-                <option value="SS 3">SS 3</option>
-              </select>
+                <UserPlus className="w-3.5 h-3.5 text-white" />
+                <span>+ Register Student</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400">Level:</span>
+                <select
+                  value={filterLevel}
+                  onChange={(e) => setFilterLevel(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
+                >
+                  <option value="ALL">All Levels</option>
+                  <option value="JSS 1">JSS 1</option>
+                  <option value="JSS 2">JSS 2</option>
+                  <option value="JSS 3">JSS 3</option>
+                  <option value="SS 1">SS 1</option>
+                  <option value="SS 2">SS 2</option>
+                  <option value="SS 3">SS 3</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -412,7 +533,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 const classHeld = classStudents.filter((s) => s.resultHeld).length;
                 const classAvg = classStudents.length > 0
                   ? (classStudents.reduce((acc, s) => acc + (s.termGpa || 0), 0) / classStudents.length).toFixed(1)
-                  : '82.0';
+                  : null;
 
                 return (
                   <div
@@ -530,7 +651,9 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
                         <div>
                           <span className="text-[10px] text-slate-400 block font-semibold">Average GPA</span>
-                          <span className="font-mono font-bold text-slate-900">{classAvg}%</span>
+                          <span className="font-mono font-bold text-slate-900">
+                            {classAvg !== null ? `${classAvg}%` : 'No data yet'}
+                          </span>
                         </div>
                         <div className="text-right">
                           <span className="text-[10px] text-slate-400 block font-semibold">Held Results</span>
@@ -635,7 +758,36 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStaff.map((staff) => {
+                {filteredStaff.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 px-4 text-center">
+                      <div className="max-w-md mx-auto space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-900 flex items-center justify-center mx-auto">
+                          <GraduationCap className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          {staffSearchQuery || staffDeptFilter !== 'ALL'
+                            ? 'No staff found matching current filters'
+                            : 'No data yet (0 teachers registered)'}
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          {staffSearchQuery || staffDeptFilter !== 'ALL'
+                            ? 'Try resetting the department filter or clearing the search box.'
+                            : 'No teachers or staff members have been added to the college directory yet. Click "+ Add Teacher" to configure teaching personnel.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsTeacherManagerOpen(true)}
+                          className="mt-2 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-blue-950 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>+ Add Teacher</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStaff.map((staff) => {
                   const designation =
                     staff.formDesignation ||
                     (staff.role === 'Form Mistress' ||
@@ -751,7 +903,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>
@@ -897,7 +1049,36 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStudents.map((student) => (
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 px-4 text-center">
+                      <div className="max-w-md mx-auto space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-950 flex items-center justify-center mx-auto">
+                          <Users className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          {searchQuery || filterClass !== 'ALL' || filterHoldStatus !== 'ALL'
+                            ? 'No students found matching your criteria'
+                            : 'No data yet (0 students registered)'}
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          {searchQuery || filterClass !== 'ALL' || filterHoldStatus !== 'ALL'
+                            ? 'Try clearing the search box or selecting "All 14 Classes".'
+                            : 'No students have been registered in the college database yet. Click the "+ Register Student" button below to enroll new students.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsRegisterStudentOpen(true)}
+                          className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>+ Register Student</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStudents.map((student) => (
                   <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-slate-800">
                       {student.admissionNo}
@@ -964,11 +1145,308 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       </div>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: COLLEGE ATTENDANCE OVERSIGHT (Institutional Registers & Tracking)   */}
+      {/* ========================================================================= */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-6">
+          {/* High-Level Attendance Metrics (Mature White & Blue) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white border border-blue-200/80 shadow-xs">
+              <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
+                College Average Rate
+              </span>
+              <div className="text-2xl font-black text-blue-950 mt-1 font-mono">{overallAvgAttendance}%</div>
+              <span className="text-[11px] text-blue-700 font-semibold mt-0.5 block">
+                {overallAvgAttendance >= 75 ? 'Statutory Minimum Satisfied' : 'Attention Required'}
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Eligible for Exams (≥75%)
+              </span>
+              <div className="text-2xl font-black text-blue-950 mt-1 font-mono">{studentsMeetingRequirement} Students</div>
+              <span className="text-[11px] text-slate-500 mt-0.5 block">
+                {students.length > 0 ? `${Math.round((studentsMeetingRequirement / students.length) * 100)}% of Student Body` : 'No data'}
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Attendance Deficit (&lt;75%)
+              </span>
+              <div className={`text-2xl font-black mt-1 font-mono ${studentsBelowRequirement > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
+                {studentsBelowRequirement} Students
+              </div>
+              <span className="text-[11px] text-slate-500 mt-0.5 block">Requires counseling & warning</span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-blue-200/80 shadow-xs">
+              <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
+                Registers In Cloud Database
+              </span>
+              <div className="text-2xl font-black text-blue-950 mt-1 font-mono">{allAttendanceLogs.length} Records</div>
+              <span className="text-[11px] text-blue-700 font-semibold mt-0.5 block">Live Cloud Firestore</span>
+            </div>
+          </div>
+
+          {/* Class-by-Class Attendance Summary */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Class Arms Attendance Roster (14 Academic Arms)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Real-time statutory roll verification across all junior and senior divisions
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium">Filter Arm:</span>
+                <select
+                  value={attClassFilter}
+                  onChange={(e) => setAttClassFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                >
+                  <option value="ALL">All 14 Classes</option>
+                  {SCHOOL_CLASSES_LIST.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 uppercase font-extrabold text-[10px]">
+                    <th className="py-2.5 px-3">Class Arm</th>
+                    <th className="py-2.5 px-3">Form Master</th>
+                    <th className="py-2.5 px-3">Enrolled</th>
+                    <th className="py-2.5 px-3">Average Rate</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {classes
+                    .filter((cls) => attClassFilter === 'ALL' || cls.name === attClassFilter)
+                    .map((cls) => {
+                      const classStdList = students.filter((s) => s.classArm === cls.name);
+                      const classAvg = classStdList.length > 0
+                        ? Math.round((classStdList.reduce((acc, s) => acc + (s.attendanceRate !== undefined ? s.attendanceRate : 100), 0) / classStdList.length) * 10) / 10
+                        : 0;
+                      return (
+                        <tr key={cls.id} className="hover:bg-slate-50/60">
+                          <td className="py-3 px-3 font-bold text-slate-900">{cls.name}</td>
+                          <td className="py-3 px-3 text-slate-700">
+                            {cls.classMaster || <span className="text-slate-400 italic font-medium">Unassigned</span>}
+                          </td>
+                          <td className="py-3 px-3 font-mono">{classStdList.length} Students</td>
+                          <td className="py-3 px-3 font-bold font-mono text-slate-800">
+                            {classStdList.length > 0 ? `${classAvg}%` : 'N/A'}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              classAvg >= 75
+                                ? 'bg-blue-950 text-white'
+                                : 'bg-slate-200 text-slate-800'
+                            }`}>
+                              {classStdList.length === 0 ? 'No Enrollees' : classAvg >= 75 ? 'Cleared (≥75%)' : 'Deficit (<75%)'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <button
+                              onClick={() => {
+                                setFilterClass(cls.name);
+                                setActiveTab('students');
+                              }}
+                              className="text-blue-900 hover:underline font-bold text-[11px]"
+                            >
+                              View Students →
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Daily Registers Logged to Database */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Cloud Firestore Official Attendance Records
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Persistent attendance roll entries logged by Form Masters & Tutors
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsLoadingAttendance(true);
+                  fetch('/api/attendance')
+                    .then((r) => r.json())
+                    .then((data) => {
+                      if (data && Array.isArray(data.attendanceRecords)) {
+                        setAllAttendanceLogs(data.attendanceRecords);
+                      }
+                    })
+                    .finally(() => setIsLoadingAttendance(false));
+                }}
+                className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <span>{isLoadingAttendance ? 'Refreshing...' : '↻ Refresh Registers'}</span>
+              </button>
+            </div>
+
+            {allAttendanceLogs.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs space-y-1">
+                <CalendarCheck className="w-8 h-8 text-slate-400 mx-auto stroke-1" />
+                <p className="font-bold text-slate-700">No attendance registers submitted yet.</p>
+                <p>When Form Masters submit morning rolls from the Teacher Console, records will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {allAttendanceLogs.map((log) => {
+                  const isExpanded = expandedLogId === log.id;
+                  const records: any[] = Array.isArray(log.records) ? log.records : [];
+                  const presentCount = records.filter((r) => r.status === 'Present').length;
+                  const absentCount = records.filter((r) => r.status === 'Absent').length;
+                  const lateCount = records.filter((r) => r.status === 'Late').length;
+
+                  return (
+                    <div key={log.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-all">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-blue-900 text-white flex items-center justify-center font-black text-xs shrink-0">
+                            {log.className ? log.className.substring(0, 3) : 'DGC'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-sm">{log.className}</span>
+                              <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                {log.date}
+                              </span>
+                            </div>
+                            <span className="text-xs text-slate-500 block">
+                              Marked by <strong>{log.markedBy || 'Form Master'}</strong> · {log.sessionPeriod || 'Morning Assembly'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="px-2 py-0.5 bg-blue-950 text-white rounded font-bold text-[10px]">
+                              {presentCount} Present
+                            </span>
+                            {absentCount > 0 && (
+                              <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-bold text-[10px]">
+                                {absentCount} Absent
+                              </span>
+                            )}
+                            {lateCount > 0 && (
+                              <span className="px-2 py-0.5 bg-blue-700 text-white rounded font-bold text-[10px]">
+                                {lateCount} Late
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                              className="px-3 py-1 bg-white border border-blue-200 hover:bg-blue-50 text-blue-950 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              {isExpanded ? 'Hide Roll ▲' : 'View Roll ▼'}
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (window.confirm(`Delete attendance register for ${log.className} on ${log.date}? This will recompute official attendance rates in the database.`)) {
+                                  try {
+                                    const res = await fetch(`/api/attendance/${encodeURIComponent(log.id)}`, { method: 'DELETE' });
+                                    if (res.ok) {
+                                      setAllAttendanceLogs((prev) => prev.filter((item) => item.id !== log.id));
+                                    }
+                                  } catch (err) {
+                                    console.error('Failed to delete attendance log:', err);
+                                  }
+                                }
+                              }}
+                              className="p-1.5 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-colors cursor-pointer"
+                              title="Delete this attendance register"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Roll Detail */}
+                      {isExpanded && (
+                        <div className="mt-4 pt-3 border-t border-slate-200/80">
+                          <h4 className="text-xs font-bold text-slate-700 mb-2">Detailed Roll Entries ({records.length} Students):</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {records.map((rec: any, rIdx: number) => {
+                              const std = students.find((s) => s.id === rec.studentId);
+                              return (
+                                <div key={rIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                                  <div className="truncate pr-2">
+                                    <span className="font-bold text-slate-900 block truncate">
+                                      {std ? std.name : rec.studentId}
+                                    </span>
+                                    {rec.remarks && (
+                                      <span className="text-[10px] text-slate-400 block truncate italic">
+                                        "{rec.remarks}"
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase shrink-0 ${
+                                    rec.status === 'Present'
+                                      ? 'bg-blue-950 text-white'
+                                      : rec.status === 'Late'
+                                      ? 'bg-blue-700 text-white'
+                                      : rec.status === 'Excused'
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-slate-800 text-white'
+                                  }`}>
+                                    {rec.status}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 6: SCHOOL FEES & BURSARY (Base Tuition, Project Fee & Whole Student Roll) */}
+      {/* ========================================================================= */}
+      {activeTab === 'fees' && (
+        <SchoolFeesManagement
+          students={students}
+          classes={classes}
+          onUpdateStudentFeeStatus={onUpdateStudentFeeStatus}
+          onBulkUpdateStudentFeeStatus={onBulkUpdateStudentFeeStatus}
+        />
       )}
 
       {/* ========================================================================= */}
@@ -1063,7 +1541,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. K. Okoli"
+                    placeholder="e.g. Teacher Full Name"
                     value={newStaff.name}
                     onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"

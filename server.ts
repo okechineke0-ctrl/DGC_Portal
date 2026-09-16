@@ -8,19 +8,18 @@ import {
   collection,
   getDocs,
   doc,
+  getDoc,
   setDoc,
   deleteDoc,
   writeBatch,
 } from 'firebase/firestore';
 import {
-  INITIAL_STUDENTS,
-  INITIAL_STAFF_MEMBERS,
   SCHOOL_CLASSES_DEFINITIONS,
   calculateGrade,
   computeCaTotal,
   recalculateClassRankings,
 } from './src/data/originalData';
-import { StudentProfile, StaffMember, SchoolClassDefinition } from './src/types';
+import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from './src/types';
 
 // Load provisioned Firebase Applet Configuration
 const firebaseConfig = JSON.parse(
@@ -82,25 +81,109 @@ async function dbSaveAttendance(recordId: string, record: any): Promise<void> {
   }
 }
 
+async function dbSaveFeeSchedule(schedule: CollegeFeeSchedule): Promise<void> {
+  try {
+    await setDoc(doc(db, 'system', 'fee_schedule'), schedule, { merge: true });
+  } catch (err) {
+    console.error('[Firestore Error] Failed to persist fee schedule:', err);
+  }
+}
+
+const DEFAULT_FEE_SCHEDULE: CollegeFeeSchedule = {
+  id: 'current_schedule',
+  session: '2026/2027',
+  term: 'First Term',
+  baseSchoolFee: 85000,
+  items: [
+    {
+      id: 'fee-tuition',
+      name: 'Base Tuition & Academic Instruction',
+      amount: 85000,
+      category: 'Tuition',
+      applicableLevel: 'All',
+      description: 'Approved statutory secondary curriculum instruction & scheme of work',
+      isMandatory: true,
+    },
+    {
+      id: 'fee-project',
+      name: 'Student Term Project & Vocational Exhibition',
+      amount: 15000,
+      category: 'Project',
+      applicableLevel: 'All',
+      description: 'Continuous assessment projects, practical workshops, and exhibition portfolios',
+      isMandatory: true,
+    },
+    {
+      id: 'fee-science-lab',
+      name: 'Science Laboratory Reagents & Practical Levy',
+      amount: 15000,
+      category: 'Laboratory',
+      applicableLevel: 'All',
+      description: 'Physics, Chemistry, Biology and Agricultural science laboratory equipment and consumables',
+      isMandatory: false,
+    },
+    {
+      id: 'fee-ict',
+      name: 'ICT, Computer Lab & Portal Maintenance',
+      amount: 10000,
+      category: 'General',
+      applicableLevel: 'All',
+      description: 'Campus internet infrastructure, computer laboratory sessions, and student portal server hosting',
+      isMandatory: true,
+    },
+    {
+      id: 'fee-dev',
+      name: 'Campus Development & Sports Facilities Levy',
+      amount: 25000,
+      category: 'Development',
+      applicableLevel: 'All',
+      description: 'Institutional facilities expansion, library resources, and sports arena maintenance',
+      isMandatory: false,
+    },
+    {
+      id: 'fee-pta',
+      name: 'Parents-Teachers Association (PTA) Term Levy',
+      amount: 5000,
+      category: 'General',
+      applicableLevel: 'All',
+      description: 'Approved statutory PTA welfare levy for student support and institutional development',
+      isMandatory: true,
+    },
+  ],
+  totalFee: 155000,
+  bankName: 'First Bank of Nigeria',
+  accountNumber: '3128940022',
+  accountName: 'Dominion Stars Global College Bursary Account',
+  paymentInstructions: 'Payment should be made through direct bank deposit or electronic bank transfer into the official Bursary account. Quote student registration number as payment narration.',
+  updatedAt: new Date().toISOString(),
+  updatedBy: 'College Administrator / Bursar',
+};
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+  // Serve static assets from public folder (including official school logo)
+  app.use(express.static(path.join(process.cwd(), 'public')));
 
   // Working memory cache kept in sync with Cloud Firestore
-  let students: StudentProfile[] = recalculateClassRankings([...INITIAL_STUDENTS]);
-  let staffMembers: StaffMember[] = [...INITIAL_STAFF_MEMBERS];
+  let students: StudentProfile[] = [];
+  let staffMembers: StaffMember[] = [];
   let schoolClasses: SchoolClassDefinition[] = JSON.parse(JSON.stringify(SCHOOL_CLASSES_DEFINITIONS));
+  let attendanceRecordsList: any[] = [];
+  let collegeFeeSchedule: CollegeFeeSchedule = JSON.parse(JSON.stringify(DEFAULT_FEE_SCHEDULE));
 
   // Initialize and synchronize with live Cloud Firestore
   try {
     console.log('[Firestore] Synchronizing database state...');
-    const [stdSnap, stfSnap, clsSnap] = await Promise.all([
+    const [stdSnap, stfSnap, clsSnap, attSnap, feeSnap] = await Promise.all([
       getDocs(collection(db, 'students')),
       getDocs(collection(db, 'staff')),
       getDocs(collection(db, 'classes')),
+      getDocs(collection(db, 'attendance')),
+      getDoc(doc(db, 'system', 'fee_schedule')),
     ]);
 
     if (!stdSnap.empty) {
@@ -109,11 +192,8 @@ async function startServer() {
       students = recalculateClassRankings(loadedStudents);
       console.log(`[Firestore] Synchronized ${students.length} real students.`);
     } else {
-      console.log('[Firestore] Seeding original student records...');
-      const batch = writeBatch(db);
-      INITIAL_STUDENTS.forEach((s) => batch.set(doc(db, 'students', s.id), s));
-      await batch.commit();
-      students = recalculateClassRankings([...INITIAL_STUDENTS]);
+      console.log('[Firestore] No student records in database. Ready for student registration.');
+      students = [];
     }
 
     if (!stfSnap.empty) {
@@ -122,11 +202,8 @@ async function startServer() {
       staffMembers = loadedStaff;
       console.log(`[Firestore] Synchronized ${staffMembers.length} real staff.`);
     } else {
-      console.log('[Firestore] Seeding original staff roster...');
-      const batch = writeBatch(db);
-      INITIAL_STAFF_MEMBERS.forEach((s) => batch.set(doc(db, 'staff', s.id), s));
-      await batch.commit();
-      staffMembers = [...INITIAL_STAFF_MEMBERS];
+      console.log('[Firestore] No staff records in database. Ready for teacher additions.');
+      staffMembers = [];
     }
 
     if (!clsSnap.empty) {
@@ -141,8 +218,67 @@ async function startServer() {
       await batch.commit();
       schoolClasses = JSON.parse(JSON.stringify(SCHOOL_CLASSES_DEFINITIONS));
     }
+
+    if (!attSnap.empty) {
+      const loadedAtt: any[] = [];
+      attSnap.forEach((d) => loadedAtt.push({ id: d.id, ...d.data() }));
+      loadedAtt.sort((a, b) => new Date(b.recordedAt || b.date).getTime() - new Date(a.recordedAt || a.date).getTime());
+      attendanceRecordsList = loadedAtt;
+      console.log(`[Firestore] Synchronized ${attendanceRecordsList.length} attendance register records.`);
+    } else {
+      console.log('[Firestore] No prior attendance records in database. Checking if enrolled students need term attendance seeding...');
+    }
+
+    if (feeSnap.exists()) {
+      collegeFeeSchedule = feeSnap.data() as CollegeFeeSchedule;
+      console.log(`[Firestore] Synchronized fee schedule: Base ₦${collegeFeeSchedule.baseSchoolFee}, Total ₦${collegeFeeSchedule.totalFee}`);
+    } else {
+      console.log('[Firestore] Initializing baseline college fee schedule...');
+      await setDoc(doc(db, 'system', 'fee_schedule'), DEFAULT_FEE_SCHEDULE);
+      collegeFeeSchedule = JSON.parse(JSON.stringify(DEFAULT_FEE_SCHEDULE));
+    }
   } catch (initErr) {
     console.error('[Firestore] Initialization error (falling back to baseline records):', initErr);
+  }
+
+  // Recalculate a student's cumulative attendance statistics strictly from real recorded registers
+  function recalculateStudentAttendanceFromRegisters(studentId: string) {
+    let openCount = 0;
+    let presentCount = 0;
+    let punctualCount = 0;
+    let lateCount = 0;
+    let excusedCount = 0;
+    let absentCount = 0;
+
+    attendanceRecordsList.forEach((r) => {
+      const match = (r.records || []).find((entry: any) => entry.studentId === studentId);
+      if (match) {
+        openCount++;
+        if (match.status === 'Present') {
+          presentCount++;
+          punctualCount++;
+        } else if (match.status === 'Late') {
+          presentCount++;
+          lateCount++;
+        } else if (match.status === 'Excused') {
+          excusedCount++;
+        } else if (match.status === 'Absent') {
+          absentCount++;
+        }
+      }
+    });
+
+    const rate = openCount > 0 ? Math.round((presentCount / openCount) * 100) : 100;
+
+    return {
+      openCount,
+      presentCount,
+      punctualCount,
+      lateCount,
+      excusedCount,
+      absentCount,
+      rate,
+    };
   }
 
   // ============================================================================
@@ -947,44 +1083,458 @@ async function startServer() {
     return res.json({ success: true, count: scores.length, students: affectedStudents });
   });
 
-  // Daily Class Attendance Endpoint
-  app.post('/api/attendance/mark', (req, res) => {
+  // --- ATTENDANCE REGISTERS & LOGS ENDPOINTS (100% Real Cloud Firestore) ---
+  app.get('/api/attendance', (req, res) => {
+    const { className, date, limit, studentId } = req.query;
+
+    let filtered = [...attendanceRecordsList];
+
+    if (className && className !== 'All') {
+      filtered = filtered.filter((a) => a.className === className);
+    }
+    if (date) {
+      filtered = filtered.filter((a) => a.date === date);
+    }
+    if (studentId) {
+      filtered = filtered.filter((a) => (a.records || []).some((r: any) => r.studentId === studentId));
+    }
+
+    if (limit) {
+      filtered = filtered.slice(0, Number(limit));
+    }
+
+    const currentMatch = filtered.length > 0 ? filtered[0] : null;
+
+    return res.json({
+      success: true,
+      attendanceRecords: filtered,
+      total: filtered.length,
+      current: currentMatch,
+    });
+  });
+
+  // Dedicated Student Attendance Transcript & Real Database Roll History Endpoint
+  app.get('/api/attendance/student/:studentId', (req, res) => {
+    const { studentId } = req.params;
+    const student = students.find((s) => s.id === studentId || s.admissionNo.toLowerCase() === studentId.toLowerCase());
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found in institutional roster' });
+    }
+
+    // Find all real attendance records for this student
+    const studentRecords: Array<{
+      date: string;
+      day: string;
+      status: 'Present' | 'Absent' | 'Late' | 'Excused';
+      time: string;
+      remarks: string;
+      markedBy: string;
+      sessionPeriod: string;
+    }> = [];
+
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    attendanceRecordsList.forEach((att) => {
+      const match = (att.records || []).find((r: any) => r.studentId === student.id);
+      if (match) {
+        const d = new Date(att.date + 'T12:00:00Z');
+        studentRecords.push({
+          date: att.date,
+          day: isNaN(d.getTime()) ? 'School Day' : weekdays[d.getUTCDay()],
+          status: match.status,
+          time: match.time || (match.status === 'Late' ? '08:05 AM' : match.status === 'Present' ? '07:45 AM' : '—'),
+          remarks: match.remarks || (match.status === 'Present' ? 'Punctual & inspected' : match.status === 'Late' ? 'Late arrival' : match.status === 'Excused' ? 'Medical/Authorized Permit' : 'Unexcused absence'),
+          markedBy: att.markedBy || 'Form Master',
+          sessionPeriod: att.sessionPeriod || 'Morning Assembly (8:00 AM)',
+        });
+      }
+    });
+
+    // Sort chronologically ascending
+    studentRecords.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const cls = schoolClasses.find((c) => c.name === student.classArm);
+    const assignedFormMaster = cls?.classMaster && cls.classMaster !== 'Unassigned'
+      ? cls.classMaster
+      : 'Class Form Master';
+
+    // If no records have been taken yet in the database for this student
+    if (studentRecords.length === 0) {
+      return res.json({
+        success: true,
+        student: {
+          id: student.id,
+          name: student.name,
+          admissionNo: student.admissionNo,
+          classArm: student.classArm,
+          level: student.level,
+          session: student.session,
+          term: student.term,
+        },
+        summary: {
+          openDays: 0,
+          presentDays: 0,
+          absentDays: 0,
+          punctualDays: 0,
+          lateDays: 0,
+          excusedDays: 0,
+          attendanceRate: 100,
+          isCleared: true,
+          assignedFormMaster,
+        },
+        weeks: [],
+        recentLogs: [],
+        totalRecords: 0,
+      });
+    }
+
+    // Real mathematical calculations from actual records
+    const openDays = studentRecords.length;
+    const presentCount = studentRecords.filter((r) => r.status === 'Present').length;
+    const lateCount = studentRecords.filter((r) => r.status === 'Late').length;
+    const excusedCount = studentRecords.filter((r) => r.status === 'Excused').length;
+    const absentCount = studentRecords.filter((r) => r.status === 'Absent').length;
+    const totalPresent = presentCount + lateCount;
+    const rate = Math.round((totalPresent / openDays) * 100);
+
+    // Group the real records into authentic weekly cohorts (5 school days per group)
+    const weeks: any[] = [];
+    const chunkSize = 5;
+    const totalWeeks = Math.ceil(studentRecords.length / chunkSize);
+
+    for (let w = 0; w < totalWeeks; w++) {
+      const weekLogs = studentRecords.slice(w * chunkSize, (w + 1) * chunkSize);
+      const weekPresent = weekLogs.filter((r) => r.status === 'Present' || r.status === 'Late').length;
+      const weekTotal = weekLogs.length;
+      const weekRate = weekTotal > 0 ? Math.round((weekPresent / weekTotal) * 100) : 100;
+
+      weeks.push({
+        week: w + 1,
+        weekLabel: `Week ${w + 1}`,
+        startDate: weekLogs[0]?.date || `Week ${w + 1}`,
+        endDate: weekLogs[weekLogs.length - 1]?.date || `Week ${w + 1}`,
+        daysPresent: weekPresent,
+        daysTotal: weekTotal,
+        rate: weekRate,
+        days: weekLogs,
+      });
+    }
+
+    return res.json({
+      success: true,
+      student: {
+        id: student.id,
+        name: student.name,
+        admissionNo: student.admissionNo,
+        classArm: student.classArm,
+        level: student.level,
+        session: student.session,
+        term: student.term,
+      },
+      summary: {
+        openDays,
+        presentDays: totalPresent,
+        absentDays: absentCount,
+        punctualDays: presentCount,
+        lateDays: lateCount,
+        excusedDays: excusedCount,
+        attendanceRate: rate,
+        isCleared: rate >= 75,
+        assignedFormMaster,
+      },
+      weeks,
+      recentLogs: [...studentRecords].reverse().slice(0, 20),
+      totalRecords: studentRecords.length,
+    });
+  });
+
+  // Daily Class Attendance Marking Endpoint
+  app.post('/api/attendance/mark', async (req, res) => {
     const { className, date, sessionPeriod, markedBy, records } = req.body;
     if (!className || !records || !Array.isArray(records)) {
       return res.status(400).json({ error: 'Invalid attendance submission' });
     }
 
-    const attendanceId = `att_${className.replace(/\s+/g, '_')}_${(date || new Date().toISOString().split('T')[0]).replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const markDate = date || new Date().toISOString().split('T')[0];
+    const attendanceId = `att_${className.replace(/\s+/g, '_')}_${markDate.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    records.forEach((rec: { studentId: string; status: 'Present' | 'Absent' | 'Late' | 'Excused'; remarks?: string; newAttendanceRate?: number }) => {
-      const studentIndex = students.findIndex((s) => s.id === rec.studentId);
-      if (studentIndex !== -1) {
-        let currentRate = students[studentIndex].attendanceRate ?? 95;
-        if (rec.newAttendanceRate !== undefined) {
-          currentRate = rec.newAttendanceRate;
-        } else if (rec.status === 'Absent') {
-          currentRate = Math.max(50, Math.round((currentRate - 1.5) * 10) / 10);
-        } else if (rec.status === 'Present') {
-          currentRate = Math.min(100, Math.round((currentRate + 0.3) * 10) / 10);
-        }
-        students[studentIndex].attendanceRate = currentRate;
-        dbSaveStudent(students[studentIndex]);
-      }
-    });
-
-    dbSaveAttendance(attendanceId, {
+    const newRecord = {
+      id: attendanceId,
       className,
-      date: date || new Date().toISOString().split('T')[0],
-      sessionPeriod: sessionPeriod || 'Morning Assembly',
+      date: markDate,
+      sessionPeriod: sessionPeriod || 'Morning Assembly (8:00 AM)',
       markedBy: markedBy || 'Form Master',
       records,
       recordedAt: new Date().toISOString(),
+    };
+
+    const existingIdx = attendanceRecordsList.findIndex(
+      (a) => a.id === attendanceId || (a.className === className && a.date === markDate)
+    );
+    if (existingIdx !== -1) {
+      attendanceRecordsList[existingIdx] = newRecord;
+    } else {
+      attendanceRecordsList.unshift(newRecord);
+    }
+
+    // Persist attendance to Firestore
+    await dbSaveAttendance(attendanceId, newRecord);
+
+    // Recalculate each student's official attendance counts from real records
+    for (const rec of records) {
+      const sIdx = students.findIndex((s) => s.id === rec.studentId);
+      if (sIdx !== -1) {
+        const stats = recalculateStudentAttendanceFromRegisters(rec.studentId);
+        students[sIdx].timesSchoolOpened = stats.openCount;
+        students[sIdx].timesPresent = stats.presentCount;
+        students[sIdx].timesPunctual = stats.punctualCount;
+        students[sIdx].attendanceRate = stats.rate;
+
+        await dbSaveStudent(students[sIdx]);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Attendance for ${className} on ${markDate} recorded and verified into Firestore database.`,
+      recordsCount: records.length,
+      attendance: newRecord,
+      students,
+    });
+  });
+
+  // Delete an attendance register entry from Firestore and in-memory list
+  app.delete('/api/attendance/:id', async (req, res) => {
+    const { id } = req.params;
+    const targetIdx = attendanceRecordsList.findIndex((a) => a.id === id);
+    if (targetIdx === -1) {
+      return res.status(404).json({ error: 'Attendance register not found' });
+    }
+
+    const removed = attendanceRecordsList.splice(targetIdx, 1)[0];
+    try {
+      await deleteDoc(doc(db, 'attendance', id));
+    } catch (delErr) {
+      console.error(`[Firestore Error] Failed to delete attendance register ${id}:`, delErr);
+    }
+
+    // Re-synchronize student stats for students in this register
+    if (removed.records && Array.isArray(removed.records)) {
+      for (const rec of removed.records) {
+        const sIdx = students.findIndex((s) => s.id === rec.studentId);
+        if (sIdx !== -1) {
+          const stats = recalculateStudentAttendanceFromRegisters(rec.studentId);
+          students[sIdx].timesSchoolOpened = stats.openCount;
+          students[sIdx].timesPresent = stats.presentCount;
+          students[sIdx].timesPunctual = stats.punctualCount;
+          students[sIdx].attendanceRate = stats.rate;
+          await dbSaveStudent(students[sIdx]);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Attendance register ${id} deleted.`,
+      totalRemaining: attendanceRecordsList.length,
+      students,
+    });
+  });
+
+  // Clear all attendance registers (e.g. for institutional reset or clearing test registers)
+  app.post('/api/attendance/clear', async (req, res) => {
+    try {
+      const batch = writeBatch(db);
+      attendanceRecordsList.forEach((a) => {
+        batch.delete(doc(db, 'attendance', a.id));
+      });
+      await batch.commit();
+
+      attendanceRecordsList = [];
+
+      // Reset all students' attendance stats
+      for (const st of students) {
+        st.timesSchoolOpened = 0;
+        st.timesPresent = 0;
+        st.timesPunctual = 0;
+        st.attendanceRate = 100;
+        await dbSaveStudent(st);
+      }
+
+      return res.json({
+        success: true,
+        message: 'All attendance registers have been cleared from Cloud Firestore.',
+        students,
+      });
+    } catch (clearErr: any) {
+      return res.status(500).json({ error: clearErr?.message || 'Failed to clear attendance' });
+    }
+  });
+
+  // --- SCHOOL FEES & BURSARY CLEARANCE ENDPOINTS ---
+  app.get('/api/fees/schedule', (req, res) => {
+    return res.json({
+      success: true,
+      schedule: collegeFeeSchedule,
+    });
+  });
+
+  app.post('/api/fees/schedule', (req, res) => {
+    const {
+      baseSchoolFee,
+      items,
+      bankName,
+      accountNumber,
+      accountName,
+      paymentInstructions,
+      session,
+      term,
+      updatedBy,
+    } = req.body;
+
+    const validBase = Number(baseSchoolFee) >= 0 ? Number(baseSchoolFee) : (collegeFeeSchedule.baseSchoolFee || 85000);
+
+    let processedItems: FeeItem[] = Array.isArray(items) ? [...items] : [...collegeFeeSchedule.items];
+
+    // Ensure the primary Tuition entry stays synced with baseSchoolFee
+    const tuitionIdx = processedItems.findIndex((it) => it.id === 'fee-tuition' || it.category === 'Tuition');
+    if (tuitionIdx !== -1) {
+      processedItems[tuitionIdx] = {
+        ...processedItems[tuitionIdx],
+        amount: validBase,
+      };
+    } else {
+      processedItems.unshift({
+        id: 'fee-tuition',
+        name: 'Base School Fees & Tuition',
+        amount: validBase,
+        category: 'Tuition',
+        applicableLevel: 'All',
+        description: 'Approved statutory secondary academic instruction and teacher scheme',
+        isMandatory: true,
+      });
+    }
+
+    const computedTotal = processedItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+
+    collegeFeeSchedule = {
+      ...collegeFeeSchedule,
+      session: session || collegeFeeSchedule.session,
+      term: term || collegeFeeSchedule.term,
+      baseSchoolFee: validBase,
+      items: processedItems,
+      totalFee: computedTotal,
+      bankName: bankName !== undefined ? bankName : collegeFeeSchedule.bankName,
+      accountNumber: accountNumber !== undefined ? accountNumber : collegeFeeSchedule.accountNumber,
+      accountName: accountName !== undefined ? accountName : collegeFeeSchedule.accountName,
+      paymentInstructions: paymentInstructions !== undefined ? paymentInstructions : collegeFeeSchedule.paymentInstructions,
+      updatedAt: new Date().toISOString(),
+      updatedBy: updatedBy || 'College Administrator / Bursar',
+    };
+
+    dbSaveFeeSchedule(collegeFeeSchedule);
+
+    // Also update totalFeeDue for students in memory
+    students = students.map((std) => ({
+      ...std,
+      totalFeeDue: computedTotal,
+      amountPaid: std.feeStatus === 'Cleared' ? computedTotal : (std.amountPaid || 0),
+    }));
+
+    return res.json({
+      success: true,
+      message: 'Official School Fees Schedule updated and persisted to Cloud Firestore.',
+      schedule: collegeFeeSchedule,
+    });
+  });
+
+  // Mark single student fee status (Paid / Not Paid / Cleared / Pending)
+  app.put('/api/students/:id/fee-status', (req, res) => {
+    const { id } = req.params;
+    const { feeStatus, amountPaid, remarks, receiptNo } = req.body;
+    const index = students.findIndex((s) => s.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const current = students[index];
+    const isCleared = feeStatus === 'Cleared' || feeStatus === 'Paid';
+    const newStatus: 'Cleared' | 'Pending' | 'Partial' = isCleared
+      ? 'Cleared'
+      : (feeStatus === 'Partial' ? 'Partial' : 'Pending');
+
+    const totalDue = collegeFeeSchedule.totalFee || 155000;
+    const now = new Date().toISOString();
+
+    let newAmountPaid = 0;
+    if (amountPaid !== undefined) {
+      newAmountPaid = Number(amountPaid);
+    } else if (newStatus === 'Cleared') {
+      newAmountPaid = totalDue;
+    } else {
+      newAmountPaid = 0;
+    }
+
+    const genReceipt = receiptNo || current.feeReceiptNo || `DGC-BUR-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const updatedStudent: StudentProfile = {
+      ...current,
+      feeStatus: newStatus,
+      amountPaid: newAmountPaid,
+      totalFeeDue: totalDue,
+      feePaymentDate: newStatus === 'Cleared' ? (current.feePaymentDate || now) : undefined,
+      feeReceiptNo: newStatus === 'Cleared' ? genReceipt : undefined,
+      feeRemarks: remarks || (newStatus === 'Cleared' ? 'Official Bursary Clearance Verified' : 'Outstanding Bursary Dues'),
+      // Automatically unlock report card hold if it was held for fees
+      resultHeld: newStatus === 'Cleared' && current.holdReason?.toLowerCase().includes('fee') ? false : current.resultHeld,
+      holdReason: newStatus === 'Cleared' && current.holdReason?.toLowerCase().includes('fee') ? undefined : current.holdReason,
+    };
+
+    students[index] = updatedStudent;
+    dbSaveStudent(updatedStudent);
+
+    return res.json({
+      success: true,
+      message: `Student ${updatedStudent.name} marked as ${newStatus === 'Cleared' ? 'PAID' : 'NOT PAID'}.`,
+      student: updatedStudent,
+    });
+  });
+
+  // Bulk update fee status across students / class arms
+  app.post('/api/students/bulk-fee-status', (req, res) => {
+    const { studentIds, classArm, feeStatus, remarks } = req.body;
+    const isCleared = feeStatus === 'Cleared' || feeStatus === 'Paid';
+    const newStatus: 'Cleared' | 'Pending' = isCleared ? 'Cleared' : 'Pending';
+    const totalDue = collegeFeeSchedule.totalFee || 155000;
+    const now = new Date().toISOString();
+
+    let affectedCount = 0;
+    students = students.map((s) => {
+      const match = (Array.isArray(studentIds) && studentIds.includes(s.id)) ||
+                    (classArm && (classArm === 'ALL' || s.classArm === classArm));
+      if (!match) return s;
+
+      affectedCount++;
+      const updated: StudentProfile = {
+        ...s,
+        feeStatus: newStatus,
+        amountPaid: newStatus === 'Cleared' ? totalDue : 0,
+        totalFeeDue: totalDue,
+        feePaymentDate: newStatus === 'Cleared' ? (s.feePaymentDate || now) : undefined,
+        feeReceiptNo: newStatus === 'Cleared' ? (s.feeReceiptNo || `DGC-BUR-${Math.floor(100000 + Math.random() * 900000)}`) : undefined,
+        feeRemarks: remarks || (newStatus === 'Cleared' ? 'Batch Bursary Clearance' : 'Pending Payment'),
+        resultHeld: newStatus === 'Cleared' && s.holdReason?.toLowerCase().includes('fee') ? false : s.resultHeld,
+        holdReason: newStatus === 'Cleared' && s.holdReason?.toLowerCase().includes('fee') ? undefined : s.holdReason,
+      };
+      dbSaveStudent(updated);
+      return updated;
     });
 
     return res.json({
       success: true,
-      message: `Attendance for ${className} on ${date || 'today'} recorded successfully into Firestore database.`,
-      recordsCount: records.length,
+      message: `Batch updated ${affectedCount} students to ${newStatus === 'Cleared' ? 'PAID' : 'NOT PAID'}.`,
+      affectedCount,
       students,
     });
   });
@@ -994,6 +1544,11 @@ async function startServer() {
     const totalStudents = students.length;
     const heldResultsCount = students.filter((s) => s.resultHeld).length;
     const feeClearedCount = students.filter((s) => s.feeStatus === 'Cleared').length;
+    const feePendingCount = students.filter((s) => s.feeStatus !== 'Cleared').length;
+    const totalExpectedRevenue = totalStudents * (collegeFeeSchedule.totalFee || 155000);
+    const totalFeesCollected = students.reduce((sum, s) => sum + (s.amountPaid || (s.feeStatus === 'Cleared' ? (collegeFeeSchedule.totalFee || 155000) : 0)), 0);
+    const outstandingBursary = Math.max(0, totalExpectedRevenue - totalFeesCollected);
+
     const averageScore = Number(
       (students.reduce((sum, s) => sum + s.termGpa, 0) / Math.max(1, students.length)).toFixed(1)
     );
@@ -1002,6 +1557,12 @@ async function startServer() {
       totalStudents,
       heldResultsCount,
       feeClearedCount,
+      feePendingCount,
+      totalExpectedRevenue,
+      totalFeesCollected,
+      outstandingBursary,
+      totalFeePerStudent: collegeFeeSchedule.totalFee,
+      baseSchoolFee: collegeFeeSchedule.baseSchoolFee,
       averageScore,
       totalStaff: staffMembers.length,
       classesCount: schoolClasses.length,

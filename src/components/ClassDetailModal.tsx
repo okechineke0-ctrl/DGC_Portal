@@ -295,7 +295,22 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredClassStudents.map((student) => (
+                    {filteredClassStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-10 px-4 text-center">
+                          <div className="max-w-sm mx-auto space-y-2">
+                            <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                            <h4 className="text-xs font-bold text-slate-700">
+                              {searchStudent ? 'No student found matching search' : `No data yet (0 students enrolled in ${schoolClass.name})`}
+                            </h4>
+                            <p className="text-[11px] text-slate-400">
+                              {searchStudent ? 'Try searching with a different name or admission number.' : 'Register new students and assign them to this class from the Administration Dashboard.'}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredClassStudents.map((student) => (
                       <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-3 font-mono text-[11px] font-bold text-slate-800">
                           {student.admissionNo}
@@ -367,14 +382,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           </div>
                         </td>
                       </tr>
-                    ))}
-                    {filteredClassStudents.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="py-8 text-center text-slate-400">
-                          No students found matching your search.
-                        </td>
-                      </tr>
-                    )}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -541,22 +549,37 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {classStudents.map((s) => (
+                    {classStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 px-4 text-center">
+                          <div className="max-w-md mx-auto space-y-2">
+                            <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                            <h4 className="text-xs font-bold text-slate-700">
+                              No data yet (0 students in {schoolClass.name})
+                            </h4>
+                            <p className="text-[11px] text-slate-400">
+                              No students are enrolled in this class arm yet. Register students to view their broad sheet.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      classStudents.map((s) => (
                       <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-900">{s.termRank}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-blue-900">{s.termRank || '—'}</td>
                         <td className="py-3 px-3 font-mono text-slate-700">{s.admissionNo}</td>
                         <td className="py-3 px-3 font-bold text-slate-900">{s.name}</td>
                         <td className="py-3 px-2 text-center font-mono">
-                          {s.subjects[0]?.caTotal || 32}
+                          {s.subjects[0]?.caTotal ?? '—'}
                         </td>
                         <td className="py-3 px-2 text-center font-mono">
-                          {s.subjects[0]?.exam || 51}
+                          {s.subjects[0]?.exam ?? '—'}
                         </td>
                         <td className="py-3 px-2 text-center font-mono font-bold">
-                          {s.subjects[0]?.total || 83}
+                          {s.subjects[0]?.total ?? '—'}
                         </td>
                         <td className="py-3 px-2 text-center font-mono font-bold text-slate-950">
-                          {s.termGpa}%
+                          {s.termGpa ?? 0}%
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span
@@ -568,7 +591,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>

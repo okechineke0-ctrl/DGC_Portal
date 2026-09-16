@@ -44,7 +44,30 @@ interface StaffDashboardProps {
   students: StudentProfile[];
   classes?: SchoolClassDefinition[];
   onUpdateStudentScore: (studentId: string, scoreData: Partial<SubjectScore>) => Promise<boolean>;
-  onUpdateStudentRemarks?: (studentId: string, remarks: { formMasterRemark?: string; principalRemark?: string }) => Promise<boolean>;
+  onBulkUpdateStudentScores?: (
+    classArm: string,
+    subjectCode: string,
+    subjectName: string,
+    scores: Array<{
+      studentId: string;
+      homework?: number;
+      test1?: number;
+      test2?: number;
+      practical?: number;
+      exam?: number;
+    }>
+  ) => Promise<boolean>;
+  onUpdateStudentRemarks?: (
+    studentId: string,
+    remarks: {
+      formMasterRemark?: string;
+      formTeacherComment?: string;
+      principalRemark?: string;
+      principalComment?: string;
+      affectiveDomain?: any;
+      psychomotorDomain?: any;
+    }
+  ) => Promise<boolean>;
   onUpdateStudentAttendance?: (
     className: string,
     records: Array<{
@@ -52,7 +75,8 @@ interface StaffDashboardProps {
       status: 'Present' | 'Absent' | 'Late' | 'Excused';
       remarks?: string;
       newAttendanceRate?: number;
-    }>
+    }>,
+    date?: string
   ) => Promise<boolean>;
 }
 
@@ -62,6 +86,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   students,
   classes = [],
   onUpdateStudentScore,
+  onBulkUpdateStudentScores,
   onUpdateStudentRemarks,
   onUpdateStudentAttendance,
 }) => {
@@ -220,35 +245,56 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   const handleSaveAllClassScores = async () => {
     setSavingId('ALL');
     let count = 0;
-    for (const s of classStudents) {
-      const input = scoreInputs[s.id];
-      if (input) {
-        const hw = input.homework !== '' ? Number(input.homework) : 0;
-        const t1 = input.test1 !== '' ? Number(input.test1) : 0;
-        const t2 = input.test2 !== '' ? Number(input.test2) : 0;
-        const prac = input.practical !== '' ? Number(input.practical) : 0;
-        const ex = input.exam !== '' ? Number(input.exam) : 0;
+    if (onBulkUpdateStudentScores) {
+      const scoresPayload = classStudents.map((s) => {
+        const input = scoreInputs[s.id] || { homework: 0, test1: 0, test2: 0, practical: 0, exam: 0 };
+        return {
+          studentId: s.id,
+          homework: input.homework !== '' ? Number(input.homework) : 0,
+          test1: input.test1 !== '' ? Number(input.test1) : 0,
+          test2: input.test2 !== '' ? Number(input.test2) : 0,
+          practical: input.practical !== '' ? Number(input.practical) : 0,
+          exam: input.exam !== '' ? Number(input.exam) : 0,
+        };
+      });
+      await onBulkUpdateStudentScores(
+        selectedClass,
+        `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
+        selectedSubject,
+        scoresPayload
+      );
+      count = classStudents.length;
+    } else {
+      for (const s of classStudents) {
+        const input = scoreInputs[s.id];
+        if (input) {
+          const hw = input.homework !== '' ? Number(input.homework) : 0;
+          const t1 = input.test1 !== '' ? Number(input.test1) : 0;
+          const t2 = input.test2 !== '' ? Number(input.test2) : 0;
+          const prac = input.practical !== '' ? Number(input.practical) : 0;
+          const ex = input.exam !== '' ? Number(input.exam) : 0;
 
-        const ca = computeCaTotal(hw, t1, t2, prac);
-        const tot = Math.min(100, ca + ex);
-        const { grade, remark } = calculateGrade(tot);
+          const ca = computeCaTotal(hw, t1, t2, prac);
+          const tot = Math.min(100, ca + ex);
+          const { grade, remark } = calculateGrade(tot);
 
-        await onUpdateStudentScore(s.id, {
-          name: selectedSubject,
-          code: `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
-          homework: hw,
-          test1: t1,
-          test2: t2,
-          practical: prac,
-          quiz: prac,
-          caTotal: ca,
-          exam: ex,
-          total: tot,
-          grade,
-          remark,
-          updatedBy: staff.name,
-        });
-        count++;
+          await onUpdateStudentScore(s.id, {
+            name: selectedSubject,
+            code: `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
+            homework: hw,
+            test1: t1,
+            test2: t2,
+            practical: prac,
+            quiz: prac,
+            caTotal: ca,
+            exam: ex,
+            total: tot,
+            grade,
+            remark,
+            updatedBy: staff.name,
+          });
+          count++;
+        }
       }
     }
     setSavingId(null);
@@ -261,7 +307,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     if (!onUpdateStudentRemarks) return;
     setSavingRemarkId(studentId);
     const remark = formMasterRemarks[studentId] || '';
-    const success = await onUpdateStudentRemarks(studentId, { formMasterRemark: remark });
+    const success = await onUpdateStudentRemarks(studentId, {
+      formMasterRemark: remark,
+      formTeacherComment: remark,
+    });
     setSavingRemarkId(null);
     if (success) {
       setSaveSuccessMsg(`Form Master conduct remark verified & saved for student.`);
@@ -277,21 +326,58 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   // Attendance derived states and helper logic
   const attendanceClassStudents = students.filter((s) => s.classArm === selectedAttendanceClass);
 
-  // Initialize attendance records whenever class or students change
+  // Initialize and load attendance records from Firestore whenever class, date or students change
   useEffect(() => {
-    setAttendanceRecords((prev) => {
-      const updated = { ...prev };
-      attendanceClassStudents.forEach((st) => {
-        if (!updated[st.id]) {
-          updated[st.id] = {
-            status: 'Present',
-            remarks: '',
-          };
+    let isSubscribed = true;
+    fetch(`/api/attendance?className=${encodeURIComponent(selectedAttendanceClass)}&date=${encodeURIComponent(attendanceDate)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!isSubscribed) return;
+        if (data && data.current && Array.isArray(data.current.records) && data.current.records.length > 0) {
+          const loaded: Record<string, { status: 'Present' | 'Absent' | 'Late' | 'Excused'; remarks: string }> = {};
+          data.current.records.forEach((rec: { studentId: string; status: 'Present' | 'Absent' | 'Late' | 'Excused'; remarks?: string }) => {
+            loaded[rec.studentId] = {
+              status: rec.status,
+              remarks: rec.remarks || '',
+            };
+          });
+          setAttendanceRecords(loaded);
+          setAttendanceSuccessMsg(`Loaded verified database attendance register for ${attendanceDate}`);
+          setTimeout(() => setAttendanceSuccessMsg(null), 3000);
+        } else {
+          setAttendanceRecords((prev) => {
+            const updated = { ...prev };
+            attendanceClassStudents.forEach((st) => {
+              if (!updated[st.id]) {
+                updated[st.id] = {
+                  status: 'Present',
+                  remarks: '',
+                };
+              }
+            });
+            return updated;
+          });
         }
+      })
+      .catch(() => {
+        setAttendanceRecords((prev) => {
+          const updated = { ...prev };
+          attendanceClassStudents.forEach((st) => {
+            if (!updated[st.id]) {
+              updated[st.id] = {
+                status: 'Present',
+                remarks: '',
+              };
+            }
+          });
+          return updated;
+        });
       });
-      return updated;
-    });
-  }, [selectedAttendanceClass, students]);
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [selectedAttendanceClass, attendanceDate, students]);
 
   const handleMarkAllPresent = () => {
     setAttendanceRecords((prev) => {
@@ -350,22 +436,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
     const recordsArray = attendanceClassStudents.map((st) => {
       const rec = attendanceRecords[st.id] || { status: 'Present', remarks: '' };
-      let newRate = st.attendanceRate;
-      if (rec.status === 'Absent') {
-        newRate = Math.max(50, Math.round((newRate - 1.5) * 10) / 10);
-      } else if (rec.status === 'Present') {
-        newRate = Math.min(100, Math.round((newRate + 0.3) * 10) / 10);
-      }
       return {
         studentId: st.id,
         status: rec.status,
         remarks: rec.remarks,
-        newAttendanceRate: newRate,
       };
     });
 
     if (onUpdateStudentAttendance) {
-      await onUpdateStudentAttendance(selectedAttendanceClass, recordsArray);
+      await onUpdateStudentAttendance(selectedAttendanceClass, recordsArray, attendanceDate);
     }
 
     setIsSavingAttendance(false);
@@ -685,7 +764,24 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.map((student) => {
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="py-12 px-4 text-center">
+                        <div className="max-w-md mx-auto space-y-2">
+                          <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                          <h4 className="text-xs font-bold text-slate-700">
+                            {searchQuery ? 'No student found matching search' : `No data yet (0 students enrolled in ${selectedClass})`}
+                          </h4>
+                          <p className="text-[11px] text-slate-400">
+                            {searchQuery
+                              ? 'Try searching with a different name or admission number.'
+                              : `No students are registered in ${selectedClass} yet. Please register students via the Administration Dashboard.`}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredStudents.map((student) => {
                     const input = scoreInputs[student.id] || { homework: '', test1: '', test2: '', practical: '', exam: '' };
                     const hw = Number(input.homework) || 0;
                     const t1 = Number(input.test1) || 0;
@@ -799,7 +895,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -857,7 +953,20 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
             </div>
 
             <div className="divide-y divide-slate-100">
-              {formClassStudents.map((student) => (
+              {formClassStudents.length === 0 ? (
+                <div className="py-12 px-4 text-center">
+                  <div className="max-w-md mx-auto space-y-2">
+                    <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                    <h4 className="text-xs font-bold text-slate-700">
+                      No data yet (0 students in {formClass})
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      There are currently no students registered in your designated form class. Once students are enrolled, you can record terminal conduct remarks here.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                formClassStudents.map((student) => (
                 <div key={student.id} className="p-5 hover:bg-slate-50/60 transition-colors space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
@@ -943,7 +1052,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>
@@ -1108,29 +1217,29 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   <button
                     type="button"
                     onClick={handleMarkAllPresent}
-                    className="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-2.5 py-2 bg-blue-900 hover:bg-blue-950 text-white border border-blue-900 rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                     id="mark-all-present-btn"
                   >
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <Check className="w-3.5 h-3.5 text-blue-200" />
                     <span>All Present</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleMarkAllAbsent}
-                    className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-2.5 py-2 bg-slate-800 hover:bg-slate-900 text-white border border-slate-700 rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                     id="mark-all-absent-btn"
                   >
-                    <UserX className="w-3.5 h-3.5 text-rose-600" />
+                    <UserX className="w-3.5 h-3.5 text-slate-300" />
                     <span>All Absent</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Quick KPI Stat Cards */}
+            {/* Quick KPI Stat Cards (Mature White & Blue) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Enrolled Students
                 </span>
                 <span className="text-xl font-extrabold text-slate-900 mt-0.5 block">
@@ -1139,43 +1248,43 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 <span className="text-[10px] text-slate-500">Official Class Arm Roll</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
-                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+              <div className="p-3.5 rounded-2xl bg-white border border-blue-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
                   Present Today
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-extrabold text-emerald-900">{presentCount}</span>
-                  <span className="text-xs font-bold text-emerald-700">
+                  <span className="text-xl font-extrabold text-blue-950">{presentCount}</span>
+                  <span className="text-xs font-bold text-blue-800">
                     ({totalInAttendanceClass > 0 ? Math.round((presentCount / totalInAttendanceClass) * 100) : 0}%)
                   </span>
                 </div>
-                <span className="text-[10px] text-emerald-600">In assembly & class</span>
+                <span className="text-[10px] text-blue-700">In morning assembly</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
-                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
+              <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Absent Today
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-extrabold text-rose-900">{absentCount}</span>
-                  <span className="text-xs font-bold text-rose-700">
+                  <span className="text-xl font-extrabold text-slate-800">{absentCount}</span>
+                  <span className="text-xs font-bold text-slate-600">
                     ({totalInAttendanceClass > 0 ? Math.round((absentCount / totalInAttendanceClass) * 100) : 0}%)
                   </span>
                 </div>
-                <span className="text-[10px] text-rose-600">Unexcused or missing</span>
+                <span className="text-[10px] text-slate-400">Unexcused or missing</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200">
-                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
+              <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
                   Late & Excused
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-extrabold text-amber-950">{lateCount + excusedCount}</span>
-                  <span className="text-xs text-amber-700">
+                  <span className="text-xl font-extrabold text-blue-950">{lateCount + excusedCount}</span>
+                  <span className="text-xs font-bold text-blue-800">
                     ({lateCount} L / {excusedCount} E)
                   </span>
                 </div>
-                <span className="text-[10px] text-amber-700">Permit or late pass</span>
+                <span className="text-[10px] text-blue-700 font-medium">Permit / excused pass</span>
               </div>
             </div>
           </div>
@@ -1185,7 +1294,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
             <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <ClipboardCheck className="w-5 h-5 text-emerald-600" />
+                  <ClipboardCheck className="w-5 h-5 text-blue-900" />
                   <span>Student Roll Call Roster · {selectedAttendanceClass}</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1202,7 +1311,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     placeholder="Search student or admission #..."
                     value={attendanceSearchQuery}
                     onChange={(e) => setAttendanceSearchQuery(e.target.value)}
-                    className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-48 sm:w-56"
+                    className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-900 w-48 sm:w-56"
                   />
                 </div>
 
@@ -1212,7 +1321,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     onClick={() => setAttendanceFilter('all')}
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       attendanceFilter === 'all'
-                        ? 'bg-white text-slate-900 shadow-xs'
+                        ? 'bg-blue-950 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -1223,8 +1332,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     onClick={() => setAttendanceFilter('present')}
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       attendanceFilter === 'present'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-emerald-700 hover:bg-emerald-50'
+                        ? 'bg-blue-900 text-white shadow-xs'
+                        : 'text-blue-900 hover:bg-blue-50'
                     }`}
                   >
                     Present ({presentCount})
@@ -1234,8 +1343,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     onClick={() => setAttendanceFilter('absent')}
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       attendanceFilter === 'absent'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'text-rose-700 hover:bg-rose-50'
+                        ? 'bg-slate-800 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     Absent ({absentCount})
@@ -1245,8 +1354,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     onClick={() => setAttendanceFilter('late')}
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       attendanceFilter === 'late'
-                        ? 'bg-amber-500 text-white shadow-xs'
-                        : 'text-amber-700 hover:bg-amber-50'
+                        ? 'bg-blue-700 text-white shadow-xs'
+                        : 'text-blue-800 hover:bg-blue-50'
                     }`}
                   >
                     Late ({lateCount})
@@ -1268,7 +1377,26 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredAttendanceStudents.map((student, idx) => {
+                  {filteredAttendanceStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 px-4 text-center">
+                        <div className="max-w-md mx-auto space-y-2">
+                          <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                          <h4 className="text-xs font-bold text-slate-700">
+                            {attendanceSearchQuery
+                              ? 'No students found matching search'
+                              : `No data yet (0 students enrolled in ${selectedAttendanceClass})`}
+                          </h4>
+                          <p className="text-[11px] text-slate-400">
+                            {attendanceSearchQuery
+                              ? 'Try searching with a different name or admission number.'
+                              : `No students are registered in ${selectedAttendanceClass} yet. Enrolled students will appear here for daily roll call.`}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAttendanceStudents.map((student, idx) => {
                     const rec = attendanceRecords[student.id] || { status: 'Present', remarks: '' };
                     const status = rec.status;
 
@@ -1281,7 +1409,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                         {/* Student Name and Info */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-900 text-amber-300 font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                            <div className="w-9 h-9 rounded-xl bg-blue-900 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
                               {student.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div>
@@ -1305,10 +1433,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                                 student.attendanceRate >= 90
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-blue-950 text-white'
                                   : student.attendanceRate >= 75
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-rose-100 text-rose-800'
+                                  ? 'bg-blue-100 text-blue-950'
+                                  : 'bg-slate-200 text-slate-800'
                               }`}
                             >
                               {student.attendanceRate}%
@@ -1319,7 +1447,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                           </div>
                         </td>
 
-                        {/* Interactive Status Selector */}
+                        {/* Interactive Status Selector in Mature White & Blue */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* Present */}
@@ -1328,8 +1456,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                               onClick={() => handleSetStudentAttendanceStatus(student.id, 'Present')}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                 status === 'Present'
-                                  ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-300'
-                                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                                  ? 'bg-blue-950 text-white shadow-xs ring-2 ring-blue-300'
+                                  : 'bg-blue-50 text-blue-950 hover:bg-blue-100 border border-blue-200'
                               }`}
                               title="Mark Present"
                             >
@@ -1343,8 +1471,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                               onClick={() => handleSetStudentAttendanceStatus(student.id, 'Late')}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                 status === 'Late'
-                                  ? 'bg-amber-500 text-white shadow-xs ring-2 ring-amber-300'
-                                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                                  ? 'bg-blue-800 text-white shadow-xs ring-2 ring-blue-300'
+                                  : 'bg-slate-50 text-blue-900 hover:bg-blue-50 border border-slate-200'
                               }`}
                               title="Mark Late"
                             >
@@ -1358,8 +1486,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                               onClick={() => handleSetStudentAttendanceStatus(student.id, 'Excused')}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                 status === 'Excused'
-                                  ? 'bg-sky-600 text-white shadow-xs ring-2 ring-sky-300'
-                                  : 'bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200'
+                                  ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-200'
+                                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
                               }`}
                               title="Mark Excused"
                             >
@@ -1373,8 +1501,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                               onClick={() => handleSetStudentAttendanceStatus(student.id, 'Absent')}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                 status === 'Absent'
-                                  ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-300'
-                                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                                  ? 'bg-slate-800 text-white shadow-xs ring-2 ring-slate-400'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
                               }`}
                               title="Mark Absent"
                             >
@@ -1400,7 +1528,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                                   ? 'Reason for absence...'
                                   : 'Punctual...'
                               }
-                              className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-900"
                             />
                             {rec.remarks && (
                               <button
@@ -1416,27 +1544,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                         </td>
                       </tr>
                     );
-                  })}
-
-                  {filteredAttendanceStudents.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="py-10 text-center text-slate-400 text-xs">
-                        No students found matching your criteria.
-                      </td>
-                    </tr>
-                  )}
+                  }))}
                 </tbody>
               </table>
             </div>
 
-            {/* Register Summary Footer */}
+            {/* Register Summary Footer with Blue Button */}
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-slate-600">
                 <span className="font-bold text-slate-800">
                   Certification Authority:
                 </span>
                 <span>
-                  {staff.title} {staff.name} ({staff.role}, {staff.department}) · Dominican Grace College
+                  {staff.title} {staff.name} ({staff.role}, {staff.department}) · Dominion Global College
                 </span>
               </div>
 
@@ -1445,10 +1565,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   type="button"
                   onClick={handleSaveAttendance}
                   disabled={isSavingAttendance || attendanceClassStudents.length === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  id="certify-save-attendance-btn"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{isSavingAttendance ? 'Saving...' : 'Certify & Save Register'}</span>
+                  <span>{isSavingAttendance ? 'Saving to Database...' : 'Certify & Save Register'}</span>
                 </button>
               </div>
             </div>

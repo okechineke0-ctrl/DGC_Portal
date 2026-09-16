@@ -170,7 +170,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                 Enter your name in any order to look up your account.
               </p>
               <p className="text-blue-800/80 text-[11px] mt-0.5">
-                Whether you enter your surname first or last (e.g. <em>"Okonkwo Emmanuel"</em> or <em>"Emmanuel Okonkwo"</em> or partial names), our portal will find your registered student profile and display your official College Registration Number.
+                Whether you enter your surname first or last (or partial names), our portal will find your registered student profile and display your official College Registration Number.
               </p>
             </div>
           </div>
@@ -187,7 +187,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                 autoFocus
                 value={nameQuery}
                 onChange={(e) => setNameQuery(e.target.value)}
-                placeholder="e.g. Okonkwo Emmanuel or Emma Okonkwo"
+                placeholder="Enter your registered name or surname..."
                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:bg-white transition-all shadow-inner"
               />
               {nameQuery && (
@@ -314,7 +314,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                   </p>
                 </div>
               )
-            ) : (
+            ) : students.length > 0 ? (
               /* Sample/Quick Pick Guide for returning students */
               <div className="space-y-2">
                 <p className="text-[11px] text-slate-400">
@@ -340,6 +340,12 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+                <p className="text-xs text-slate-500">
+                  No student records registered yet in the database. An administrator can register students from the Administration Dashboard.
+                </p>
               </div>
             )}
           </div>

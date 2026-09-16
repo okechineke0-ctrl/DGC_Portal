@@ -41,8 +41,6 @@ import {
   SCHOOL_NAME,
   SCHOOL_LOCATION,
   SCHOOL_MOTTO,
-  INITIAL_STUDENTS,
-  INITIAL_STAFF_MEMBERS,
   SCHOOL_CLASSES_DEFINITIONS,
   ANNOUNCEMENTS,
 } from './data/originalData';
@@ -86,11 +84,11 @@ export default function App() {
   const [isGatewayOpen, setIsGatewayOpen] = useState<boolean>(false);
   const [activeStaff, setActiveStaff] = useState<StaffMember | null>(null);
 
-  // Application Data States
-  const [students, setStudents] = useState<StudentProfile[]>(INITIAL_STUDENTS);
-  const [staffList, setStaffList] = useState<StaffMember[]>(INITIAL_STAFF_MEMBERS);
+  // Application Data States (Pure live data from Firestore / API)
+  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [classes, setClasses] = useState<SchoolClassDefinition[]>(SCHOOL_CLASSES_DEFINITIONS);
-  const [selectedStudent, setSelectedStudent] = useState<StudentProfile>(INITIAL_STUDENTS[0]);
+  const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
 
   // Initial fetch from backend API & live Firestore verification
   useEffect(() => {
@@ -102,16 +100,26 @@ export default function App() {
     fetch('/api/students')
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.students && data.students.length > 0) {
+        if (data && Array.isArray(data.students)) {
           setStudents(data.students);
-          setSelectedStudent(data.students[0]);
+          setSelectedStudent((prev) => {
+            if (prev && data.students.some((s: StudentProfile) => s.id === prev.id)) {
+              return data.students.find((s: StudentProfile) => s.id === prev.id) || null;
+            }
+            return data.students.length > 0 ? data.students[0] : null;
+          });
         }
       })
       .catch(() => {
         getLiveStudents().then((liveStd) => {
-          if (liveStd && liveStd.length > 0) {
+          if (Array.isArray(liveStd)) {
             setStudents(liveStd);
-            setSelectedStudent(liveStd[0]);
+            setSelectedStudent((prev) => {
+              if (prev && liveStd.some((s: StudentProfile) => s.id === prev.id)) {
+                return liveStd.find((s: StudentProfile) => s.id === prev.id) || null;
+              }
+              return liveStd.length > 0 ? liveStd[0] : null;
+            });
           }
         });
       });
@@ -119,13 +127,13 @@ export default function App() {
     fetch('/api/staff')
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.staff && data.staff.length > 0) {
+        if (data && Array.isArray(data.staff)) {
           setStaffList(data.staff);
         }
       })
       .catch(() => {
         getLiveStaff().then((liveStaff) => {
-          if (liveStaff && liveStaff.length > 0) {
+          if (Array.isArray(liveStaff)) {
             setStaffList(liveStaff);
           }
         });
@@ -153,7 +161,13 @@ export default function App() {
       const updated = students.find((s) => s.id === selectedStudent.id);
       if (updated) {
         setSelectedStudent(updated);
+      } else if (students.length > 0) {
+        setSelectedStudent(students[0]);
+      } else {
+        setSelectedStudent(null);
       }
+    } else if (students.length > 0) {
+      setSelectedStudent(students[0]);
     }
   }, [students]);
 
@@ -810,10 +824,17 @@ export default function App() {
     return true;
   };
 
-  // 12. Form Master / Principal Remarks update for student terminal reports
+  // 12. Form Master / Principal Remarks & Domain ratings update for student terminal reports
   const handleUpdateStudentRemarks = async (
     studentId: string,
-    remarks: { formMasterRemark?: string; principalRemark?: string }
+    remarks: {
+      formMasterRemark?: string;
+      formTeacherComment?: string;
+      principalRemark?: string;
+      principalComment?: string;
+      affectiveDomain?: any;
+      psychomotorDomain?: any;
+    }
   ): Promise<boolean> => {
     try {
       const res = await fetch(`/api/students/${studentId}`, {
@@ -838,6 +859,48 @@ export default function App() {
     return true;
   };
 
+  // 12b. Bulk Class Scores update (Single database transaction for entire class)
+  const handleBulkUpdateStudentScores = async (
+    classArm: string,
+    subjectCode: string,
+    subjectName: string,
+    scores: Array<{
+      studentId: string;
+      homework?: number;
+      test1?: number;
+      test2?: number;
+      practical?: number;
+      exam?: number;
+    }>
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/students/bulk-scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classArm,
+          subjectCode,
+          subjectName,
+          scores,
+          updatedBy: activeStaff?.name || 'Staff Tutor',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.students)) {
+          setStudents((prev) => {
+            const map = new Map(data.students.map((s: StudentProfile) => [s.id, s]));
+            return prev.map((s) => (map.has(s.id) ? (map.get(s.id) as StudentProfile) : s));
+          });
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to bulk update scores:', err);
+    }
+    return false;
+  };
+
   // 13. Mark & Sync Class Attendance (Teacher / Form Master Action)
   const handleUpdateStudentAttendance = async (
     className: string,
@@ -846,7 +909,8 @@ export default function App() {
       status: 'Present' | 'Absent' | 'Late' | 'Excused';
       remarks?: string;
       newAttendanceRate?: number;
-    }>
+    }>,
+    date?: string
   ): Promise<boolean> => {
     try {
       const res = await fetch('/api/attendance/mark', {
@@ -854,7 +918,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           className,
-          date: new Date().toISOString().split('T')[0],
+          date: date || new Date().toISOString().split('T')[0],
           records,
         }),
       });
@@ -873,20 +937,97 @@ export default function App() {
       prev.map((s) => {
         const match = records.find((r) => r.studentId === s.id);
         if (!match) return s;
-        let rate = s.attendanceRate ?? 95;
-        if (match.newAttendanceRate !== undefined) {
-          rate = match.newAttendanceRate;
-        } else if (match.status === 'Absent') {
-          rate = Math.max(50, Math.round((rate - 1.5) * 10) / 10);
-        } else if (match.status === 'Present') {
-          rate = Math.min(100, Math.round((rate + 0.3) * 10) / 10);
-        }
+        const opened = (s.timesSchoolOpened || 0) + 1;
+        const present = (s.timesPresent || 0) + (match.status === 'Present' || match.status === 'Late' ? 1 : 0);
+        const rate = opened > 0 ? Math.round((present / opened) * 100) : 100;
         return {
           ...s,
+          timesSchoolOpened: opened,
+          timesPresent: present,
           attendanceRate: rate,
         };
       })
     );
+    return true;
+  };
+
+  // 13. Update student fee status (Paid / Cleared vs Not Paid / Pending)
+  const handleUpdateStudentFeeStatus = async (
+    studentId: string,
+    feeStatus: 'Cleared' | 'Pending',
+    amountPaid?: number
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/students/${studentId}/fee-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeStatus, amountPaid }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.student) {
+          setStudents((prev) =>
+            prev.map((s) => (s.id === studentId ? { ...s, ...data.student } : s))
+          );
+          if (selectedStudent && selectedStudent.id === studentId) {
+            setSelectedStudent((prev) => (prev ? { ...prev, ...data.student } : null));
+          }
+          return true;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id === studentId) {
+          const updated = {
+            ...s,
+            feeStatus,
+            amountPaid: amountPaid !== undefined ? amountPaid : (feeStatus === 'Cleared' ? 155000 : 0),
+          };
+          if (selectedStudent && selectedStudent.id === studentId) {
+            setSelectedStudent(updated);
+          }
+          return updated;
+        }
+        return s;
+      })
+    );
+    return true;
+  };
+
+  // 14. Bulk update student fee status by class or list
+  const handleBulkUpdateStudentFeeStatus = async (
+    studentIds: string[],
+    feeStatus: 'Cleared' | 'Pending'
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/students/bulk-fee-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentIds, feeStatus }),
+      });
+      if (res.ok) {
+        setStudents((prev) =>
+          prev.map((s) => (studentIds.includes(s.id) ? { ...s, feeStatus } : s))
+        );
+        if (selectedStudent && studentIds.includes(selectedStudent.id)) {
+          setSelectedStudent((prev) => (prev ? { ...prev, feeStatus } : null));
+        }
+        return true;
+      }
+    } catch {
+      // Fallback
+    }
+
+    setStudents((prev) =>
+      prev.map((s) => (studentIds.includes(s.id) ? { ...s, feeStatus } : s))
+    );
+    if (selectedStudent && studentIds.includes(selectedStudent.id)) {
+      setSelectedStudent((prev) => (prev ? { ...prev, feeStatus } : null));
+    }
     return true;
   };
 
@@ -971,6 +1112,7 @@ export default function App() {
               students={students}
               classes={classes}
               onUpdateStudentScore={handleUpdateStudentScore}
+              onBulkUpdateStudentScores={handleBulkUpdateStudentScores}
               onUpdateStudentRemarks={handleUpdateStudentRemarks}
               onUpdateStudentAttendance={handleUpdateStudentAttendance}
             />
@@ -994,6 +1136,8 @@ export default function App() {
               onAssignSubjectTeacher={handleAssignSubjectTeacher}
               onAssignStaffAllocations={handleAssignStaffAllocations}
               onUpdateStaff={handleUpdateStaff}
+              onUpdateStudentFeeStatus={handleUpdateStudentFeeStatus}
+              onBulkUpdateStudentFeeStatus={handleBulkUpdateStudentFeeStatus}
             />
           )}
 
@@ -1198,7 +1342,22 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {filteredStudents.map((std) => (
+                        {filteredStudents.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="py-12 px-4 text-center">
+                              <div className="max-w-md mx-auto space-y-2">
+                                <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                                <h4 className="text-xs font-bold text-slate-700">
+                                  {searchQuery ? 'No student found matching query' : 'No data yet (0 students registered)'}
+                                </h4>
+                                <p className="text-[11px] text-slate-400">
+                                  {searchQuery ? 'Try adjusting your search query.' : 'No students have been enrolled in the college database yet. Go to Administration to register students.'}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredStudents.map((std) => (
                           <tr key={std.id} className="hover:bg-slate-50 transition-colors">
                             <td className="py-3 px-3 font-mono font-bold text-slate-900">
                               {std.admissionNo}
@@ -1244,7 +1403,7 @@ export default function App() {
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        )))}
                       </tbody>
                     </table>
                   </div>

@@ -216,34 +216,19 @@ export async function recordLiveAttendance(
 // SEEDING THE ORIGINAL INSTITUTIONAL DATA ON FIRST INITIALIZATION
 // =========================================================================
 export async function seedOriginalCollegeDataIfEmpty(
-  originalStudents: StudentProfile[],
-  originalStaff: StaffMember[],
+  _originalStudents: StudentProfile[],
+  _originalStaff: StaffMember[],
   originalClasses: SchoolClassDefinition[],
   originalAnnouncements: Announcement[]
 ): Promise<void> {
   try {
-    const studentsSnap = await getDocs(collection(db, 'students'));
-    if (studentsSnap.empty) {
-      console.log('Seeding original Dominion Stars Global College records to Firestore...');
-      
-      // Batch write initial students
-      const batch1 = writeBatch(db);
-      for (const std of originalStudents) {
-        batch1.set(doc(db, 'students', std.id), std);
-      }
-      await batch1.commit();
-
-      // Batch write staff roster
-      const batch2 = writeBatch(db);
-      for (const stf of originalStaff) {
-        batch2.set(doc(db, 'staff', stf.id), stf);
-      }
-      await batch2.commit();
-
+    const classesSnap = await getDocs(collection(db, 'classes'));
+    if (classesSnap.empty) {
+      console.log('Seeding official academic class structures to Firestore...');
       // Batch write class arms
       const batch3 = writeBatch(db);
       for (const cls of originalClasses) {
-        batch3.set(doc(db, 'classes', cls.id), cls);
+        batch3.set(doc(db, 'classes', cls.id), { ...cls, classMaster: 'Unassigned' });
       }
       await batch3.commit();
 
@@ -254,7 +239,7 @@ export async function seedOriginalCollegeDataIfEmpty(
       }
       await batch4.commit();
 
-      console.log('Institutional database successfully initialized with live Firestore records.');
+      console.log('Institutional classes successfully initialized.');
     }
   } catch (error) {
     console.error('Error during initial database seed:', error);

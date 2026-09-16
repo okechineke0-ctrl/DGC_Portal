@@ -111,6 +111,11 @@ export interface StudentProfile {
   termRank: string;
   attendanceRate: number;
   feeStatus: 'Cleared' | 'Pending' | 'Partial';
+  amountPaid?: number;
+  totalFeeDue?: number;
+  feePaymentDate?: string;
+  feeReceiptNo?: string;
+  feeRemarks?: string;
   resultHeld: boolean;
   holdReason?: string;
   dateOfBirth?: string;
@@ -170,5 +175,83 @@ export interface SchoolClassDefinition {
   actualCount?: number;
   curriculumSubjects?: string[];
   subjectTeachers?: Record<string, string>; // subjectName -> teacherName
+}
+
+export interface FeeItem {
+  id: string;
+  name: string; // e.g., "School Fee / Base Tuition", "Project Fee", "Practical Laboratory Fee", "ICT / Portal Levy"
+  amount: number; // in Naira (NGN)
+  category?: 'Tuition' | 'Project' | 'Laboratory' | 'Development' | 'Extracurricular' | 'Examination' | 'General';
+  applicableLevel?: 'All' | 'Junior' | 'Senior' | string;
+  description?: string;
+  isMandatory?: boolean;
+}
+
+export interface CollegeFeeSchedule {
+  id: string;
+  session: string; // "2026/2027"
+  term: string;    // "First Term"
+  baseSchoolFee: number; // Base tuition
+  items: FeeItem[];
+  totalFee: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  paymentInstructions: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface AttendanceStudentEntry {
+  studentId: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Excused';
+  time?: string;
+  remarks?: string;
+  newAttendanceRate?: number;
+}
+
+export interface AttendanceRegisterDoc {
+  id: string;
+  className: string;
+  date: string; // YYYY-MM-DD
+  sessionPeriod: string; // e.g., 'Morning Assembly (8:00 AM)'
+  markedBy: string;
+  records: AttendanceStudentEntry[];
+  recordedAt: string;
+}
+
+export interface StudentDailyAttendanceLog {
+  date: string;
+  day: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Excused';
+  time: string;
+  remarks: string;
+  markedBy: string;
+  sessionPeriod: string;
+}
+
+export interface WeeklyAttendanceGroup {
+  week: number;
+  weekLabel: string;
+  startDate: string;
+  endDate: string;
+  daysPresent: number;
+  daysTotal: number;
+  rate: number;
+  days: StudentDailyAttendanceLog[];
+}
+
+export interface StudentAttendanceFullData {
+  openDays: number;
+  presentDays: number;
+  absentDays: number;
+  punctualDays: number;
+  lateDays: number;
+  excusedDays: number;
+  attendanceRate: number;
+  isCleared: boolean;
+  assignedFormMaster: string;
+  weeks: WeeklyAttendanceGroup[];
+  recentLogs: StudentDailyAttendanceLog[];
 }
 

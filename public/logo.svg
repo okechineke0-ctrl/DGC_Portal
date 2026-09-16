@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Shield Gradient -->
+    <linearGradient id="shieldBg" x1="250" y1="50" x2="250" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#dbeafe" />
+      <stop offset="45%" stopColor="#bfdbfe" />
+      <stop offset="100%" stopColor="#93c5fd" />
+    </linearGradient>
+
+    <!-- Deep Blue Royal Shield Outline -->
+    <linearGradient id="shieldBorder" x1="50" y1="50" x2="450" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#1e3a8a" />
+      <stop offset="50%" stopColor="#172554" />
+      <stop offset="100%" stopColor="#1e40af" />
+    </linearGradient>
+
+    <!-- 3D Top Letter D Gradient -->
+    <linearGradient id="gradLetterD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#1e3a8a" />
+      <stop offset="60%" stopColor="#2563eb" />
+      <stop offset="100%" stopColor="#1d4ed8" />
+    </linearGradient>
+
+    <!-- 3D Top Letter G Globe Gradient -->
+    <radialGradient id="gradLetterGGlobe" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stopColor="#67e8f9" />
+      <stop offset="45%" stopColor="#06b6d4" />
+      <stop offset="85%" stopColor="#0891b2" />
+      <stop offset="100%" stopColor="#0e7490" />
+    </radialGradient>
+
+    <!-- 3D Top Letter C Gradient -->
+    <linearGradient id="gradLetterC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#1e3a8a" />
+      <stop offset="60%" stopColor="#2563eb" />
+      <stop offset="100%" stopColor="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Deep Navy Medallion Ring -->
+    <radialGradient id="navyMedallion" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stopColor="#172554" />
+      <stop offset="95%" stopColor="#1e3a8a" />
+      <stop offset="100%" stopColor="#1d4ed8" />
+    </radialGradient>
+
+    <!-- Mortarboard Cap Red -->
+    <linearGradient id="capRedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#ef4444" />
+      <stop offset="50%" stopColor="#dc2626" />
+      <stop offset="100%" stopColor="#991b1b" />
+    </linearGradient>
+
+    <!-- Golden Tassel Gradient -->
+    <linearGradient id="goldTassel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#fef08a" />
+      <stop offset="40%" stopColor="#facc15" />
+      <stop offset="80%" stopColor="#eab308" />
+      <stop offset="100%" stopColor="#ca8a04" />
+    </linearGradient>
+
+    <!-- Bottom Ribbon Parchment Gradient -->
+    <linearGradient id="ribbonBg" x1="250" y1="380" x2="250" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#fef3c7" />
+      <stop offset="50%" stopColor="#fde68a" />
+      <stop offset="100%" stopColor="#f59e0b" />
+    </linearGradient>
+
+    <!-- Filter for 3D Drop Shadow -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- 1. TOP 3D MONOGRAM "D G C" -->
+  <g filter="url(#dropShadow)">
+    <!-- Letter D (3D extrusions) -->
+    <path d="M 135 60 L 145 52 L 185 52 C 205 52 215 62 215 80 C 215 98 205 108 185 108 L 145 108 L 135 116 Z" fill="#0f172a" />
+    <!-- D Front Face -->
+    <path d="M 135 56 L 180 56 C 200 56 210 65 210 80 C 210 95 200 104 180 104 L 135 104 Z" fill="url(#gradLetterD)" stroke="#ffffff" stroke-width="2" />
+    <path d="M 152 70 L 174 70 C 182 70 188 74 188 80 C 188 86 182 90 174 90 L 152 90 Z" fill="#dbeafe" />
+
+    <!-- Letter G (Cyan Sphere / Globe Monogram) -->
+    <circle cx="250" cy="74" r="34" fill="url(#gradLetterGGlobe)" stroke="#1e3a8a" stroke-width="3" />
+    <!-- Globe coordinate lines / G Contour -->
+    <ellipse cx="250" cy="74" rx="32" ry="14" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.7" />
+    <ellipse cx="250" cy="74" rx="14" ry="32" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.7" />
+    <path d="M 270 65 C 265 54 248 50 236 56 C 224 62 222 80 234 90 C 246 98 266 94 270 82 L 252 82" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Letter C (3D Royal Blue Monogram) -->
+    <path d="M 365 60 L 375 52 C 345 50 315 65 315 82 C 315 100 345 115 375 112 L 365 104 Z" fill="#0f172a" />
+    <path d="M 365 56 C 340 54 320 66 320 80 C 320 94 340 106 365 104 L 360 92 C 345 92 336 86 336 80 C 336 74 345 68 360 68 Z" fill="url(#gradLetterC)" stroke="#ffffff" stroke-width="2" />
+  </g>
+
+  <!-- 2. HERALDIC SHIELD -->
+  <!-- Outer Decorative Blue Border -->
+  <path
+    d="M 250 82 
+       C 335 82 410 65 440 120 
+       C 440 220 425 330 250 420 
+       C 75 330 60 220 60 120 
+       C 90 65 165 82 250 82 Z"
+    fill="url(#shieldBg)"
+    stroke="url(#shieldBorder)"
+    stroke-width="14"
+    stroke-linejoin="round"
+    filter="url(#dropShadow)"
+  />
+
+  <!-- Inner Cyan Pin-stripe border line -->
+  <path
+    d="M 250 96 
+       C 330 96 398 82 424 128 
+       C 424 218 410 316 250 402 
+       C 90 316 76 218 76 128 
+       C 102 82 170 96 250 96 Z"
+    fill="none"
+    stroke="#38bdf8"
+    stroke-width="3"
+  />
+
+  <!-- 3. CENTRAL MEDALLION / RING -->
+  <!-- Navy Blue Outer Ring -->
+  <circle cx="250" cy="245" r="142" fill="url(#navyMedallion)" stroke="#ffffff" stroke-width="4" />
+  <!-- Inner White Border Ring -->
+  <circle cx="250" cy="245" r="137" fill="none" stroke="#e0f2fe" stroke-width="2" stroke-dasharray="6 3" />
+  <!-- Center Core Circle -->
+  <circle cx="250" cy="245" r="95" fill="#3b82f6" fill-opacity="0.18" stroke="#ffffff" stroke-width="3" />
+
+  <!-- 4. CIRCULAR LETTERING -->
+  <!-- Path for upper arc: "DOMINION GLOBAL COLLEGE" -->
+  <path id="circleTextUpper" d="M 124 245 A 126 126 0 0 1 376 245" fill="none" />
+  <text font-family="'Cinzel', 'Times New Roman', serif" font-weight="900" font-size="19" fill="#ffffff" letter-spacing="1.8">
+    <textPath href="#circleTextUpper" startOffset="50%" textAnchor="middle">
+      DOMINION GLOBAL COLLEGE
+    </textPath>
+  </text>
+
+  <!-- Path for lower arc: "AWGU-ENUGU" with red stars -->
+  <path id="circleTextLower" d="M 374 245 A 124 124 0 0 1 126 245" fill="none" />
+  <text font-family="'Cinzel', 'Arial', sans-serif" font-weight="900" font-size="17" fill="#ffffff" letter-spacing="2">
+    <textPath href="#circleTextLower" startOffset="50%" textAnchor="middle">
+      AWGU-ENUGU
+    </textPath>
+  </text>
+
+  <!-- Left Red 5-Point Star -->
+  <polygon points="144,302 147,311 156,311 149,317 151,326 144,320 137,326 139,317 132,311 141,311" fill="#ef4444" stroke="#ffffff" stroke-width="1" />
+  <!-- Right Red 5-Point Star -->
+  <polygon points="356,302 359,311 368,311 361,317 363,326 356,320 349,326 351,317 344,311 353,311" fill="#ef4444" stroke="#ffffff" stroke-width="1" />
+
+  <!-- 5. CENTER SYMBOLS: BOOKS, MORTARBOARD CAP, DIPLOMA SCROLL, TASSEL -->
+  <g id="centerInsignia">
+    <!-- Academic Books Stack -->
+    <!-- Book 1 (Bottom Dark Navy) -->
+    <path d="M 175 275 L 290 228 L 325 242 L 205 292 Z" fill="#0f172a" />
+    <path d="M 175 275 L 205 292 L 205 304 L 175 287 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+    <path d="M 205 304 L 325 254 L 325 242 L 205 292 Z" fill="#e2e8f0" />
+    <path d="M 175 287 L 205 304 L 205 307 L 175 290 Z" fill="#1e293b" />
+
+    <!-- Book 2 (Middle Slate Blue) -->
+    <path d="M 185 262 L 285 220 L 315 233 L 210 277 Z" fill="#1e3a8a" />
+    <path d="M 185 262 L 210 277 L 210 286 L 185 271 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 210 286 L 315 242 L 315 233 L 210 277 Z" fill="#f1f5f9" />
+
+    <!-- Book 3 (Top Black) -->
+    <path d="M 195 250 L 280 213 L 305 224 L 215 262 Z" fill="#090d16" />
+    <path d="M 195 250 L 215 262 L 215 270 L 195 258 Z" fill="#e2e8f0" />
+    <path d="M 215 270 L 305 232 L 305 224 L 215 262 Z" fill="#cbd5e1" />
+
+    <!-- Graduation Mortarboard Cap (Red) -->
+    <!-- Cap Skull Base -->
+    <path d="M 212 188 L 212 208 C 212 222 284 222 284 208 L 284 188 Z" fill="#7f1d1d" stroke="#500724" stroke-width="1.5" />
+    <!-- Cap Rhombus Top -->
+    <polygon points="248,154 322,185 248,206 174,185" fill="url(#capRedGrad)" stroke="#7f1d1d" stroke-width="2.5" />
+    <!-- Cap Central Gold Button -->
+    <circle cx="248" cy="180" r="4.5" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5" />
+
+    <!-- Golden Graduation Tassel with Ribbon Drape -->
+    <path d="M 248 180 C 275 182 305 200 310 228" fill="none" stroke="url(#goldTassel)" stroke-width="3.5" stroke-linecap="round" />
+    <!-- Tassel Head Band & Brush -->
+    <circle cx="310" cy="230" r="4" fill="#ca8a04" />
+    <path d="M 306 232 L 314 232 L 317 254 L 303 254 Z" fill="url(#goldTassel)" stroke="#ca8a04" stroke-width="1" />
+
+    <!-- Rolled Diploma Scroll (White with Red Ribbon) -->
+    <g transform="rotate(-18 250 280)">
+      <rect x="180" y="270" width="130" height="24" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+      <ellipse cx="180" cy="282" rx="4" ry="12" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" />
+      <!-- Red Ribbon Wrap -->
+      <rect x="238" y="268" width="16" height="28" rx="2" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5" />
+      <!-- Ribbon Hanging Ends -->
+      <path d="M 244 294 L 235 320 L 246 316 L 254 322 L 250 294 Z" fill="#dc2626" stroke="#991b1b" stroke-width="1" />
+    </g>
+  </g>
+
+  <!-- 6. BOTTOM MOTTO BANNER RIBBON -->
+  <g id="mottoBanner" filter="url(#dropShadow)">
+    <!-- Ribbon Left Fold -->
+    <polygon points="46,400 90,380 90,422 46,442 62,421" fill="#d97706" stroke="#172554" stroke-width="2" />
+    <!-- Ribbon Right Fold -->
+    <polygon points="454,400 410,380 410,422 454,442 438,421" fill="#d97706" stroke="#172554" stroke-width="2" />
+
+    <!-- Ribbon Main Arc Body -->
+    <path
+      d="M 58 408 
+         Q 250 460 442 408 
+         L 434 448 
+         Q 250 498 66 448 Z"
+      fill="url(#ribbonBg)"
+      stroke="#172554"
+      stroke-width="3"
+    />
+
+    <!-- Ribbon Inner Border Line -->
+    <path
+      d="M 68 415 
+         Q 250 464 432 415"
+      fill="none"
+      stroke="#ca8a04"
+      stroke-width="1.5"
+    />
+    <path
+      d="M 74 442 
+         Q 250 490 426 442"
+      fill="none"
+      stroke="#ca8a04"
+      stroke-width="1.5"
+    />
+
+    <!-- Motto Text in Bold Red -->
+    <text
+      x="250"
+      y="442"
+      font-family="'Arial Black', 'Impact', sans-serif"
+      font-weight="900"
+      font-size="14.5"
+      fill="#b91c1c"
+      text-anchor="middle"
+      letter-spacing="0.4"
+    >
+      MOTTO: STRIVING FOR THE CROWN OF EXCELLENCE
+    </text>
+  </g>
+</svg>

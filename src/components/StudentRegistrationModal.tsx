@@ -543,7 +543,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         required
                         value={surname}
                         onChange={(e) => setSurname(e.target.value)}
-                        placeholder="e.g. Okonkwo"
+                        placeholder="e.g. Surname"
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 focus:bg-white"
                       />
                     </div>
@@ -897,7 +897,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         required
                         value={guardianName}
                         onChange={(e) => setGuardianName(e.target.value)}
-                        placeholder="e.g. Dr. / Chief Anthony Okonkwo"
+                        placeholder="e.g. Guardian Full Name"
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
                       />
                     </div>
@@ -986,7 +986,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         type="text"
                         value={emergencyContactName}
                         onChange={(e) => setEmergencyContactName(e.target.value)}
-                        placeholder="e.g. Mrs. Ngozi Okonkwo (+234 802 ...)"
+                        placeholder="e.g. Contact Person Name & Phone"
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
                       />
                     </div>

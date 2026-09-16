@@ -16,7 +16,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
   onClose,
 }) => {
   const assignedFormMaster = classes.find((c) => c.name === student.classArm)?.classMaster
-    || (student.classArm.startsWith('SS 3') ? 'Engr. K. Okoli' : 'Class Master');
+    || 'Class Master';
 
   const formMasterRemark = student.formMasterRemark || (
     student.termGpa >= 75

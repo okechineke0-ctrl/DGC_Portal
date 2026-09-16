@@ -31,7 +31,7 @@ interface TopNavbarProps {
     classArm: string;
     admissionNo: string;
     photoUrl?: string;
-  };
+  } | null;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({

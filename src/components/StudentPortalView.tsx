@@ -18,6 +18,7 @@ import {
   Check,
   XCircle,
   FileCheck,
+  Copy,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,7 +32,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { DGCLogo } from './DGCLogo';
-import { StudentProfile, SchoolClassDefinition } from '../types';
+import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 
 interface StudentPortalViewProps {
@@ -40,6 +41,7 @@ interface StudentPortalViewProps {
   classes?: SchoolClassDefinition[];
   onSelectStudent?: (student: StudentProfile) => void;
   activeSubTab?: 'results' | 'analytics' | 'bursary' | 'report_card' | 'performance' | 'attendance' | 'fees';
+  feeSchedule?: CollegeFeeSchedule;
 }
 
 type TabKey = 'report_card' | 'performance' | 'attendance' | 'fees';
@@ -50,12 +52,32 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   classes,
   onSelectStudent,
   activeSubTab = 'report_card',
+  feeSchedule: initialFeeSchedule,
 }) => {
+  // Graceful empty state when no student profile is selected
+  if (!currentStudent || !currentStudent.id) {
+    return (
+      <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-slate-200 shadow-xs max-w-lg mx-auto my-12 space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-950 flex items-center justify-center mx-auto shadow-inner">
+          <GraduationCap className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold font-serif-title text-slate-900">
+            No Student Profile Selected
+          </h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            No student profile is currently loaded. Please sign in with your official College Registration Number, or an administrator can admit and register students in the Administration Dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const student = currentStudent;
 
   // Resolve assigned Form Master dynamically from class arm definition
   const assignedFormMaster = classes?.find((c) => c.name === student.classArm)?.classMaster
-    || (student.classArm.startsWith('SS 3') ? 'Engr. K. Okoli' : 'Class Master');
+    || 'Class Master';
 
   // Map incoming tab props to standard keys
   const getMappedTab = (tab: string): TabKey => {
@@ -68,10 +90,56 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
   const [activeTab, setActiveTab] = useState<TabKey>(getMappedTab(activeSubTab));
   const [selectedWeek, setSelectedWeek] = useState<number>(12);
+  const [copiedAccount, setCopiedAccount] = useState(false);
+  const [feeSchedule, setFeeSchedule] = useState<CollegeFeeSchedule | null>(
+    initialFeeSchedule || null
+  );
+  const [studentAttendance, setStudentAttendance] = useState<StudentAttendanceFullData | null>(null);
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState<boolean>(false);
 
   useEffect(() => {
     setActiveTab(getMappedTab(activeSubTab));
   }, [activeSubTab]);
+
+  useEffect(() => {
+    if (initialFeeSchedule) {
+      setFeeSchedule(initialFeeSchedule);
+    } else {
+      fetch('/api/fees/schedule')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.totalFee) {
+            setFeeSchedule(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialFeeSchedule]);
+
+  // Fetch real persistent attendance records from Cloud Firestore via API
+  useEffect(() => {
+    let isSubscribed = true;
+    setIsLoadingAttendance(true);
+    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isSubscribed) return;
+        if (data && data.success) {
+          setStudentAttendance(data);
+          if (data.weeks && data.weeks.length > 0) {
+            setSelectedWeek(data.weeks.length);
+          }
+        }
+      })
+      .catch((err) => console.error('[Attendance Error] Failed to fetch verified student attendance:', err))
+      .finally(() => {
+        if (isSubscribed) setIsLoadingAttendance(false);
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [student.id]);
 
   // Subject Chart Data
   const chartData = (student.subjects || []).map((sub) => ({
@@ -87,24 +155,6 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   const distinctionCount = (student.subjects || []).filter((s) => s.grade === 'A1' || s.grade === 'B2').length;
   const creditCount = (student.subjects || []).filter((s) => s.grade.startsWith('C') || s.grade === 'B3').length;
   const highestSubject = (student.subjects || []).reduce((prev, curr) => (curr.total > (prev?.total || 0) ? curr : prev), (student.subjects || [])[0]);
-
-  // Attendance weeks breakdown mock
-  const ATTENDANCE_WEEKS = Array.from({ length: 12 }, (_, i) => {
-    const weekNum = i + 1;
-    return {
-      week: weekNum,
-      daysPresent: weekNum === 7 ? 4 : 5, // 1 day sick leave in week 7
-      daysTotal: 5,
-      rate: weekNum === 7 ? 80 : 100,
-      days: [
-        { day: 'Mon', status: 'Present', time: '07:42 AM' },
-        { day: 'Tue', status: 'Present', time: '07:45 AM' },
-        { day: 'Wed', status: weekNum === 7 ? 'Excused' : 'Present', time: weekNum === 7 ? 'Medical Exemption' : '07:38 AM' },
-        { day: 'Thu', status: 'Present', time: '07:44 AM' },
-        { day: 'Fri', status: 'Present', time: '07:40 AM' },
-      ],
-    };
-  });
 
   const handlePrintReportCard = () => {
     if (student.resultHeld) {
@@ -213,13 +263,15 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               <span className="text-2xl sm:text-3xl font-black text-white font-mono">
                 {student.attendanceRate}%
               </span>
-              <span className="text-[10px] text-blue-200 block">58 / 60 Days</span>
+              <span className="text-[10px] text-blue-200 block">
+                {student.timesPresent !== undefined ? student.timesPresent : Math.round(((student.attendanceRate ?? 95) / 100) * (student.timesSchoolOpened || 60))} / {student.timesSchoolOpened || 60} Days
+              </span>
             </div>
             <div className="w-px h-10 bg-white/20" />
             <div className="text-center">
               <span className="text-[10px] uppercase font-bold text-blue-300 block">Fees Status</span>
-              <span className={`text-xs font-extrabold px-2.5 py-1 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                {student.feeStatus}
+              <span className={`text-xs font-extrabold px-2.5 py-1 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-white text-blue-950 shadow-xs' : 'bg-blue-900/60 text-white border border-blue-700'}`}>
+                {student.feeStatus === 'Cleared' ? 'PAID' : 'NOT PAID'}
               </span>
             </div>
           </div>
@@ -704,316 +756,649 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 3. CHECK ATTENDANCE VIEW                                                 */}
+      {/* 3. CHECK ATTENDANCE VIEW (Mature White & Blue Real Cloud Attendance)      */}
       {/* ========================================================================= */}
-      {activeTab === 'attendance' && (
-        <div className="space-y-6">
-          {/* Attendance High-Level Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase block">
-                College Open Days
-              </span>
-              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">
-                60 Days
-              </span>
-              <span className="text-[11px] text-slate-500">{CURRENT_TERM} Scheduled Days</span>
-            </div>
+      {activeTab === 'attendance' && (() => {
+        const openDays = studentAttendance?.summary?.openDays ?? (student.timesSchoolOpened ?? 0);
+        const presentDays = studentAttendance?.summary?.presentDays ?? (student.timesPresent ?? 0);
+        const absentDays = studentAttendance?.summary?.absentDays ?? Math.max(0, openDays - presentDays);
+        const punctualDays = studentAttendance?.summary?.punctualDays ?? presentDays;
+        const lateDays = studentAttendance?.summary?.lateDays ?? 0;
+        const rate = openDays > 0 ? (studentAttendance?.summary?.attendanceRate ?? student.attendanceRate ?? 100) : 100;
+        const isCleared = rate >= 75;
+        const weeks = studentAttendance?.weeks || [];
+        const currentWkData = weeks.length > 0
+          ? (weeks.find((w) => w.week === selectedWeek) || weeks[weeks.length - 1])
+          : null;
+        const recentLogs = studentAttendance?.recentLogs || [];
 
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] font-extrabold text-emerald-700 uppercase block">
-                Days Present
-              </span>
-              <span className="text-2xl font-black text-emerald-800 font-mono mt-1 block">
-                58 Days
-              </span>
-              <span className="text-[11px] text-emerald-700 font-medium">Punctual & Certified</span>
-            </div>
-
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] font-extrabold text-amber-700 uppercase block">
-                Days Absent
-              </span>
-              <span className="text-2xl font-black text-amber-800 font-mono mt-1 block">
-                2 Days
-              </span>
-              <span className="text-[11px] text-amber-700 font-medium">Approved Medical Exemption</span>
-            </div>
-
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] font-extrabold text-blue-800 uppercase block">
-                Attendance Rate
-              </span>
-              <span className="text-2xl font-black text-blue-950 font-mono mt-1 block">
-                {student.attendanceRate}%
-              </span>
-              <span className="text-[11px] text-emerald-700 font-bold">Meets 75% Requirement</span>
-            </div>
-          </div>
-
-          {/* Attendance Clearance & Form Master Endorsement */}
-          <div className="p-5 bg-emerald-50 rounded-3xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Check className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-base font-bold text-emerald-950">
-                  Attendance Status: Certified & Cleared
-                </h4>
-                <p className="text-xs text-emerald-800/90 leading-relaxed mt-0.5">
-                  <strong>{student.name}</strong> has maintained a <strong>{student.attendanceRate}%</strong> attendance record for the {CURRENT_TERM}, surpassing the statutory 75% minimum required by the Ministry of Education and College Academic Directorate.
-                </p>
-              </div>
-            </div>
-
-            <div className="shrink-0 text-right">
-              <span className="text-[10px] uppercase font-bold text-emerald-700 block">Class Master</span>
-              <span className="text-xs font-bold text-emerald-950">{assignedFormMaster}</span>
-            </div>
-          </div>
-
-          {/* 12-Week Interactive Roll Call Register */}
-          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Weekly Roll Call Register ({CURRENT_TERM})
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Inspection records from Form Teacher morning register (8:00 AM Daily)
-                </p>
-              </div>
-
-              {/* Week Switcher */}
-              <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1">
-                {ATTENDANCE_WEEKS.map((w) => (
-                  <button
-                    key={w.week}
-                    onClick={() => setSelectedWeek(w.week)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      selectedWeek === w.week
-                        ? 'bg-blue-950 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Wk {w.week}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Selected Week Detail */}
-            {(() => {
-              const currentWkData = ATTENDANCE_WEEKS.find((w) => w.week === selectedWeek) || ATTENDANCE_WEEKS[11];
-              return (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80 text-xs">
-                    <span className="font-bold text-slate-800">
-                      Week {currentWkData.week} Daily Attendance Summary
-                    </span>
-                    <span className="font-semibold text-blue-900 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100">
-                      {currentWkData.daysPresent} / {currentWkData.daysTotal} Days Present ({currentWkData.rate}%)
+        return (
+          <div className="space-y-6" id="student-portal-attendance-container">
+            {/* Top Toolbar / Status Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-950 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                  <CalendarCheck className="w-5 h-5 text-blue-200" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">
+                      Official College Attendance Transcript
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-950 border border-blue-200 font-mono">
+                      {student.session} · {student.term}
                     </span>
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Synchronized live with {SCHOOL_NAME} Cloud Firestore roll call register
+                  </p>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                    {currentWkData.days.map((d, i) => (
-                      <div
-                        key={i}
-                        className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 text-xs ${
-                          d.status === 'Present'
-                            ? 'bg-emerald-50/50 border-emerald-200/80'
-                            : 'bg-amber-50/70 border-amber-200'
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoadingAttendance(true);
+                    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}`)
+                      .then((res) => (res.ok ? res.json() : null))
+                      .then((data) => {
+                        if (data && data.success) {
+                          setStudentAttendance(data);
+                          if (data.weeks && data.weeks.length > 0) {
+                            setSelectedWeek(data.weeks.length);
+                          }
+                        }
+                      })
+                      .finally(() => setIsLoadingAttendance(false));
+                  }}
+                  className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  id="refresh-student-attendance-btn"
+                >
+                  <span>{isLoadingAttendance ? 'Syncing...' : '↻ Refresh Roll'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Attendance High-Level Metrics (Mature White & Blue) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase block tracking-wider">
+                  College Open Days
+                </span>
+                <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">
+                  {openDays} {openDays === 1 ? 'Day' : 'Days'}
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  {openDays > 0 ? `${CURRENT_TERM} Recorded` : 'Awaiting First Roll Call'}
+                </span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-blue-200/80 shadow-2xs">
+                <span className="text-[10px] font-extrabold text-blue-900 uppercase block tracking-wider">
+                  Days Present
+                </span>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl font-black text-blue-950 font-mono">
+                    {presentDays} {presentDays === 1 ? 'Day' : 'Days'}
+                  </span>
+                  {lateDays > 0 && (
+                    <span className="text-[11px] font-bold text-blue-800">
+                      ({lateDays} Late)
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-blue-700 font-medium">Certified on Morning Register</span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold text-slate-500 uppercase block tracking-wider">
+                  Days Absent
+                </span>
+                <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">
+                  {absentDays} {absentDays === 1 ? 'Day' : 'Days'}
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {absentDays === 0 ? 'Zero Unexcused Absences' : 'Leave / Excuse Noted'}
+                </span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-blue-200/80 shadow-2xs">
+                <span className="text-[10px] font-extrabold text-blue-900 uppercase block tracking-wider">
+                  Certified Rate
+                </span>
+                <span className="text-2xl font-black text-blue-950 font-mono mt-1 block">
+                  {rate}%
+                </span>
+                <span className="text-[11px] text-blue-800 font-bold">
+                  {openDays === 0 ? 'Clearance Pending First Roll' : isCleared ? 'Surpasses 75% Requirement' : 'Below 75% Minimum'}
+                </span>
+              </div>
+            </div>
+
+            {/* Attendance Clearance & Form Master Endorsement Banner */}
+            <div className="p-5 bg-blue-50/70 rounded-3xl border border-blue-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-950 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <ShieldCheck className="w-5 h-5 text-blue-200" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-bold text-blue-950">
+                      Institutional Roll Certification: {openDays === 0 ? 'Awaiting First Term Register' : isCleared ? 'Cleared & Verified' : 'Under Advisory Review'}
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-950 text-white font-mono">
+                      OFFICIAL
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed mt-0.5 max-w-2xl">
+                    {openDays > 0 ? (
+                      <>
+                        <strong>{student.name}</strong> holds an official cumulative attendance rate of <strong>{rate}%</strong> for the {CURRENT_TERM}. This record is certified by the Form Master and recorded in the college database, satisfying the Ministry of Education standard.
+                      </>
+                    ) : (
+                      <>
+                        Official daily morning attendance for <strong>{student.name}</strong> is recorded by the assigned Form Master ({assignedFormMaster}) during the morning roll call. All recorded registers are verified into Cloud Firestore in real time.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 sm:text-right border-t sm:border-t-0 border-blue-200 pt-2 sm:pt-0">
+                <span className="text-[10px] uppercase font-bold text-blue-900 block">Class Form Master</span>
+                <span className="text-xs font-bold text-blue-950 block">{assignedFormMaster}</span>
+                <span className="text-[10px] text-blue-700 font-medium">{SCHOOL_NAME}</span>
+              </div>
+            </div>
+
+            {/* If no attendance records have been logged yet */}
+            {weeks.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-slate-200 shadow-xs space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-950 flex items-center justify-center mx-auto border border-blue-200 shadow-xs">
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h4 className="text-base font-bold text-slate-900">
+                    No Daily Roll Call Records Logged Yet
+                  </h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    The Form Master ({assignedFormMaster}) has not yet certified morning roll calls for <strong>{student.classArm}</strong>. As soon as the teacher marks attendance in the Staff Dashboard, real-time clock-in times and weekly attendance percentages will display here automatically.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600">
+                  <span>Enrolled Class:</span>
+                  <span className="font-bold text-blue-950">{student.classArm}</span>
+                  <span>·</span>
+                  <span>Admission No:</span>
+                  <span className="font-mono font-bold text-slate-800">{student.admissionNo}</span>
+                </div>
+              </div>
+            ) : (
+              /* Real Weekly Roll Call Register */
+              <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Weekly Morning Roll Call Register ({CURRENT_TERM})
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Direct transcript from Form Teacher morning register (8:00 AM Daily)
+                    </p>
+                  </div>
+
+                  {/* Week Switcher with mature white and blue buttons */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1">
+                    {weeks.map((w) => (
+                      <button
+                        key={w.week}
+                        onClick={() => setSelectedWeek(w.week)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                          (currentWkData && currentWkData.week === w.week)
+                            ? 'bg-blue-950 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-900'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-900 text-sm">{d.day}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase ${
-                              d.status === 'Present'
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-amber-600 text-white'
-                            }`}
-                          >
-                            {d.status}
-                          </span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-200/50 text-[11px] text-slate-600">
-                          <span>Clock-in: <strong className="font-mono">{d.time}</strong></span>
-                        </div>
-                      </div>
+                        Wk {w.week}
+                      </button>
                     ))}
                   </div>
                 </div>
-              );
-            })()}
+
+                {/* Selected Week Detail Bar */}
+                {currentWkData && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-blue-50/60 p-3.5 rounded-2xl border border-blue-100 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-950">
+                          Week {currentWkData.week} Daily Roll Call Record
+                        </span>
+                        {currentWkData.startDate && (
+                          <span className="text-[11px] font-mono text-blue-800">
+                            ({currentWkData.startDate} ~ {currentWkData.endDate})
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-bold text-white bg-blue-950 px-3 py-1 rounded-xl text-xs self-start sm:self-center shadow-2xs">
+                        {currentWkData.daysPresent} of {currentWkData.daysTotal} Days Present ({currentWkData.rate}%)
+                      </span>
+                    </div>
+
+                    {/* Daily Cards in Mature White & Blue */}
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                      {currentWkData.days.map((d: any, i: number) => {
+                        const isPresent = d.status === 'Present';
+                        const isLate = d.status === 'Late';
+                        const isExcused = d.status === 'Excused';
+                        const isAbsent = d.status === 'Absent';
+
+                        return (
+                          <div
+                            key={i}
+                            className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 text-xs transition-all ${
+                              isPresent
+                                ? 'bg-white border-blue-200/90 shadow-2xs'
+                                : isLate
+                                ? 'bg-blue-50/50 border-blue-300 shadow-2xs'
+                                : isExcused
+                                ? 'bg-white border-blue-300 shadow-2xs'
+                                : 'bg-slate-50 border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="font-bold text-slate-900 block text-sm">{d.day}</span>
+                                {d.date && (
+                                  <span className="text-[10px] text-slate-500 font-mono">{d.date}</span>
+                                )}
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase ${
+                                  isPresent
+                                    ? 'bg-blue-950 text-white'
+                                    : isLate
+                                    ? 'bg-blue-800 text-white'
+                                    : isExcused
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-slate-700 text-white'
+                                }`}
+                              >
+                                {d.status}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1 pt-2 border-t border-slate-100 text-[11px]">
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>Clock-in:</span>
+                                <strong className="font-mono text-slate-900">{d.time || '07:45 AM'}</strong>
+                              </div>
+                              {d.remarks && (
+                                <p className="text-[10px] text-blue-900 font-medium italic pt-0.5 truncate" title={d.remarks}>
+                                  "{d.remarks}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Cloud Firestore Historical Roll Call Audit */}
+            {recentLogs.length > 0 && (
+              <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Recent Roll Entries Logged in Cloud Database
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Verifiable audit trail from Form Master daily submissions
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold rounded-xl self-start sm:self-center">
+                    {recentLogs.length} Verified Entries
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-extrabold text-[10px]">
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Session Period</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3">Clock-in Time</th>
+                        <th className="py-2.5 px-3">Teacher Observation / Notes</th>
+                        <th className="py-2.5 px-3 text-right">Certified By</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {recentLogs.map((log: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">
+                            {log.date}
+                          </td>
+                          <td className="py-3 px-3 text-slate-600">
+                            {log.sessionPeriod || 'Morning Assembly (8:00 AM)'}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                log.status === 'Present'
+                                  ? 'bg-blue-950 text-white'
+                                  : log.status === 'Late'
+                                  ? 'bg-blue-800 text-white'
+                                  : log.status === 'Excused'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-700 text-white'
+                              }`}
+                            >
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-700">
+                            {log.time}
+                          </td>
+                          <td className="py-3 px-3 text-slate-700 italic">
+                            {log.remarks ? `"${log.remarks}"` : 'Standard inspection'}
+                          </td>
+                          <td className="py-3 px-3 text-right font-medium text-slate-800">
+                            {log.markedBy || assignedFormMaster}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
-      {/* 4. CHECK SCHOOL FEES AND OTHER DUES                                      */}
+      {/* 4. CHECK SCHOOL FEES AND OTHER DUES (Mature White & Blue Bursary Oversight)*/}
       {/* ========================================================================= */}
-      {activeTab === 'fees' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-            <div>
-              <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
-                BURSARY CLEARANCE VERIFICATION
-              </span>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
-                School Fees & Dues Clearance Status
-              </h3>
-              <p className="text-xs text-slate-500">
-                Official verification of tuition, practical laboratory levies, ICT dues, and other college assessments
-              </p>
+      {activeTab === 'fees' && (() => {
+        const totalTermBill = feeSchedule?.totalFee ?? 155000;
+        const isPaid = student.feeStatus === 'Cleared';
+        const amountPaid = isPaid ? totalTermBill : (student.amountPaid ?? Math.round(totalTermBill * 0.45));
+        const outstandingBalance = isPaid ? 0 : Math.max(0, totalTermBill - amountPaid);
+
+        const handleCopyAccount = () => {
+          if (feeSchedule?.bankDetails.accountNumber) {
+            navigator.clipboard.writeText(feeSchedule.bankDetails.accountNumber);
+            setCopiedAccount(true);
+            setTimeout(() => setCopiedAccount(false), 2500);
+          }
+        };
+
+        return (
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-6" id="student-portal-fees-container">
+            {/* Header Strip */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-extrabold tracking-wider text-blue-900 uppercase">
+                  BURSARY & SCHOOL FEES OVERSIGHT
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
+                  Term Fee Obligation & Clearance Record
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Official college schedule of tuition, project levies, and verified bursary standing
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                    isPaid
+                      ? 'bg-blue-950 text-white border-blue-900 shadow-xs'
+                      : 'bg-slate-100 text-slate-800 border-slate-300'
+                  }`}
+                  id="student-clearance-status-badge"
+                >
+                  Clearance Status: {isPaid ? 'PAID' : 'NOT PAID'}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span
-                className={`px-3.5 py-1 rounded-full text-xs font-bold border ${
-                  student.feeStatus === 'Cleared'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-rose-50 text-rose-800 border-rose-200'
-                }`}
+            {/* Clearance Executive Notice Card */}
+            {isPaid ? (
+              <div className="p-5 bg-blue-50/70 rounded-2xl border border-blue-200 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-950 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <CheckCircle2 className="w-5 h-5 text-blue-300" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-blue-950">
+                    Bursary Clearance Verified (Paid in Full)
+                  </h4>
+                  <p className="text-xs text-blue-900 leading-relaxed">
+                    All prescribed school fees, tuition, project fees, and college dues for <strong>{student.name}</strong> ({student.admissionNo}) have been fully settled and endorsed for {CURRENT_TERM}. No outstanding balance is recorded on your portal ledger.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-300 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-950 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5 text-blue-300" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-slate-900">
+                    Payment Awaiting Clearance (Not Paid)
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Our bursary records indicate an outstanding balance of <strong>₦{outstandingBalance.toLocaleString()}</strong>. Please remit the remaining term dues to the college bank accounts detailed below or present your bank teller to the Accounts Office for prompt marking as Paid.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Financial Summary Cards (Mature White & Blue) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Total Fees You Will Pay
+                </span>
+                <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">
+                  ₦{totalTermBill.toLocaleString()}.00
+                </span>
+                <span className="text-[11px] text-slate-500">Tuition, Project Fee & Prescribed Dues</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
+                  Amount Cleared & Paid
+                </span>
+                <span className="text-2xl font-black text-blue-950 font-mono mt-1 block">
+                  ₦{amountPaid.toLocaleString()}.00
+                </span>
+                <span className="text-[11px] text-blue-800">
+                  {isPaid ? 'Bursary Clearance Endorsed' : 'Part Payment Credited'}
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Outstanding Balance
+                </span>
+                <span className={`text-2xl font-black font-mono mt-1 block ${isPaid ? 'text-blue-950' : 'text-slate-900'}`}>
+                  ₦{outstandingBalance.toLocaleString()}.00
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  {isPaid ? 'Zero Balance · Fully Settled' : 'Payment Required'}
+                </span>
+              </div>
+            </div>
+
+            {/* Itemized Schedule of Prescribed College Fees (What You Will Pay) */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs shadow-2xs">
+              <div className="bg-slate-50 p-4 font-bold text-blue-950 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-sm font-bold block text-blue-950">Official Schedule of Prescribed Fees</span>
+                  <span className="text-[11px] font-normal text-slate-500">
+                    Configured by College Administration · Class: {student.classArm}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Schedule Total</span>
+                  <span className="text-sm font-black font-mono text-blue-950">₦{totalTermBill.toLocaleString()}.00</span>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-100 bg-white">
+                {/* Base School Tuition Fee */}
+                <div className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 text-xs">Base Tuition & School Fee</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-950 border border-blue-200">
+                        Primary Instruction
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      Core academic curriculum, instructor allocations, and classroom teaching
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-900 text-sm">
+                    ₦{(feeSchedule?.baseTuition ?? 85000).toLocaleString()}.00
+                  </span>
+                </div>
+
+                {/* Additional Fees Input by Administrator (e.g. Project Fee, Science Lab, etc.) */}
+                {feeSchedule?.otherFees && feeSchedule.otherFees.length > 0 ? (
+                  feeSchedule.otherFees.map((fee, idx) => (
+                    <div key={fee.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs">{fee.name}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {fee.category || 'College Assessment'}
+                          </span>
+                        </div>
+                        {fee.description && (
+                          <span className="text-[11px] text-slate-500 block mt-0.5">
+                            {fee.description}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono font-bold text-slate-900 text-sm">
+                        ₦{fee.amount.toLocaleString()}.00
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                      <div>
+                        <span className="font-bold text-slate-900 block">Project & Practical Fee</span>
+                        <span className="text-[11px] text-slate-500">Term academic project kits & laboratory investigations</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-900 text-sm">₦15,000.00</span>
+                    </div>
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                      <div>
+                        <span className="font-bold text-slate-900 block">ICT & College Database Maintenance</span>
+                        <span className="text-[11px] text-slate-500">Computer laboratory sessions & portal hosting</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-900 text-sm">₦10,000.00</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Total Bill Footer */}
+                <div className="p-4 bg-slate-50/80 flex items-center justify-between border-t border-slate-200 font-bold">
+                  <span className="text-slate-900 text-xs uppercase tracking-wider">
+                    Total Prescribed Term Dues
+                  </span>
+                  <span className="font-mono text-base font-black text-blue-950">
+                    ₦{totalTermBill.toLocaleString()}.00
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Official College Bank Account Remittance Details */}
+            {feeSchedule?.bankDetails && (
+              <div className="p-5 bg-white rounded-2xl border border-blue-900/20 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
+                      OFFICIAL REMITTANCE ACCOUNT
+                    </span>
+                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">
+                      College Designated Bank Details
+                    </h4>
+                  </div>
+                  <span className="px-2.5 py-1 bg-blue-50 text-blue-950 border border-blue-200 rounded-lg text-[10px] font-bold">
+                    Official Bursary Channel
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Bank Name</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">
+                      {feeSchedule.bankDetails.bankName}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Number</span>
+                      <span className="font-mono font-black text-blue-950 text-base mt-0.5 block">
+                        {feeSchedule.bankDetails.accountNumber}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleCopyAccount}
+                      className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer"
+                      title="Copy Account Number"
+                    >
+                      {copiedAccount ? <Check className="w-4 h-4 text-blue-950" /> : <Copy className="w-4 h-4 text-slate-600" />}
+                    </button>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Name</span>
+                    <span className="font-bold text-slate-900 text-xs mt-0.5 block truncate">
+                      {feeSchedule.bankDetails.accountName}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
+                  <strong>Remittance Narration:</strong> Please use your official College Registration Number (<code>{student.admissionNo}</code>) as the payment description or transaction remarks.
+                </div>
+              </div>
+            )}
+
+            {/* Clearance Certificate Footer & Print Receipt Action */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-600">
+              <div>
+                <span className="font-bold text-slate-800 block">Official Bursary Endorsement</span>
+                <span className="text-[11px] text-slate-500">
+                  Receipt Ref: DGC-BUR-2026-{(student.admissionNo || '000').replace(/[^0-9]/g, '')} · Certified by Administration Office
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  window.print();
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-950 text-white font-bold hover:bg-blue-900 transition-colors shadow-2xs flex items-center gap-2 cursor-pointer"
+                id="student-print-clearance-btn"
               >
-                Clearance Status: {student.feeStatus}
-              </span>
+                <Printer className="w-3.5 h-3.5 text-blue-300" />
+                <span>Print Fee Schedule & Clearance</span>
+              </button>
             </div>
           </div>
-
-          {/* Clearance Banner */}
-          {student.feeStatus === 'Cleared' ? (
-            <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-emerald-950">
-                  Full Bursary Clearance Confirmed
-                </h4>
-                <p className="text-xs text-emerald-800 leading-relaxed">
-                  All prescribed school fees, laboratory practical dues, and administrative charges for <strong>{student.name}</strong> ({student.admissionNo}) have been fully settled for the {CURRENT_TERM}. No outstanding balance is recorded.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-5 bg-rose-50 rounded-2xl border border-rose-200 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-rose-950">
-                  Outstanding Fees Notice
-                </h4>
-                <p className="text-xs text-rose-800 leading-relaxed">
-                  Our bursary records indicate a pending balance. Please resolve any outstanding dues at the Accounts Department to avoid administrative holds on terminal examination reports.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Financial Totals Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Total Term Bill</span>
-              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">₦155,000.00</span>
-              <span className="text-[11px] text-slate-500">Tuition & All Assigned Dues</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase">Amount Cleared & Paid</span>
-              <span className="text-2xl font-black text-emerald-950 font-mono mt-1 block">
-                {student.feeStatus === 'Cleared' ? '₦155,000.00' : '₦75,000.00'}
-              </span>
-              <span className="text-[11px] text-emerald-700">Central Bursary Receipt Verified</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Outstanding Balance</span>
-              <span className={`text-2xl font-black font-mono mt-1 block ${student.feeStatus === 'Cleared' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                {student.feeStatus === 'Cleared' ? '₦0.00' : '₦80,000.00'}
-              </span>
-              <span className="text-[11px] text-slate-500">
-                {student.feeStatus === 'Cleared' ? 'Fully Cleared for Term' : 'Payment Required'}
-              </span>
-            </div>
-          </div>
-
-          {/* Itemized Schedule of Dues */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
-            <div className="bg-slate-100/70 p-3.5 font-bold text-slate-800 border-b border-slate-200 flex items-center justify-between">
-              <span>Itemized College Dues & Assessments Breakdown</span>
-              <span className="text-[11px] text-slate-500">Class: {student.classArm}</span>
-            </div>
-            <div className="divide-y divide-slate-100">
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">1. Tuition & Academic Instruction</span>
-                  <span className="text-[11px] text-slate-500">Core academic curriculum & teacher instruction</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦85,000.00</span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">2. Science & Practical Laboratories Due</span>
-                  <span className="text-[11px] text-slate-500">Physics, Chemistry & Biology laboratory materials</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦15,000.00</span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">3. ICT & Online Portal Maintenance</span>
-                  <span className="text-[11px] text-slate-500">Computer studies, internet access & database</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦10,000.00</span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">4. Campus Development & Facilities Levy</span>
-                  <span className="text-[11px] text-slate-500">Library, academic facilities & sports arena</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦25,000.00</span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">5. Medical Clinic & Sanitation Due</span>
-                  <span className="text-[11px] text-slate-500">College infirmary & student healthcare services</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦15,000.00</span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">6. Parents-Teachers Association (PTA) Term Levy</span>
-                  <span className="text-[11px] text-slate-500">Approved general council welfare assessment</span>
-                </div>
-                <span className="font-mono font-bold text-slate-900">₦5,000.00</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Clearance Certificate Footer & Print Receipt Action */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-600">
-            <div>
-              <span className="font-bold text-slate-800 block">Official Bursary Endorsement</span>
-              <span className="text-[11px] text-slate-500">Receipt Ref: DGC-BUR-2026-0891 · Certified by Accounts Office</span>
-            </div>
-            <button
-              onClick={() => alert(`Official Bursary Clearance Certificate generated for ${student.name} (${student.admissionNo}).`)}
-              className="px-4 py-2 rounded-xl bg-blue-950 text-white font-bold hover:bg-blue-900 transition-colors shadow-2xs flex items-center gap-2"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Official Clearance Certificate</span>
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

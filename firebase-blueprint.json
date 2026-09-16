@@ -71,6 +71,36 @@
         "body": { "type": "string" }
       },
       "required": ["title", "date", "body"]
+    },
+    "FeeSchedule": {
+      "title": "Fee Schedule",
+      "description": "Institutional tuition and fees structure with project and custom fees",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "session": { "type": "string" },
+        "term": { "type": "string" },
+        "baseSchoolFee": { "type": "number" },
+        "totalFee": { "type": "number" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["session", "term", "baseSchoolFee"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Daily or periodic classroom attendance roll logged to Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "className": { "type": "string" },
+        "date": { "type": "string" },
+        "sessionPeriod": { "type": "string" },
+        "markedBy": { "type": "string" },
+        "records": { "type": "array" },
+        "recordedAt": { "type": "string" }
+      },
+      "required": ["className", "date", "records"]
     }
   },
   "firestore": {
@@ -89,6 +119,14 @@
     "/announcements/{announcementId}": {
       "schema": "Announcement",
       "description": "Collection of institutional notices and circulars"
+    },
+    "/system/{systemDocId}": {
+      "schema": "FeeSchedule",
+      "description": "Global institutional settings including official school fee and dues schedule"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Daily official attendance roll call registers with student statuses"
     }
   }
 }

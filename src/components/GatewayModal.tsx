@@ -13,7 +13,6 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { StaffMember } from '../types';
-import { INITIAL_STAFF_MEMBERS } from '../data/mockData';
 
 interface GatewayModalProps {
   isOpen: boolean;
@@ -64,9 +63,9 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
       // Fallback to local check if offline or server initializing
     }
 
-    // Local check against initial staff roster
+    // Local check against active staff roster
     const q = targetName.trim().toLowerCase();
-    const matched = INITIAL_STAFF_MEMBERS.find((s) => {
+    const matched = (staffList || []).find((s) => {
       const sName = s.name.toLowerCase();
       return (
         sName === q ||
@@ -232,7 +231,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                     value={staffNameInput}
                     onChange={(e) => setStaffNameInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyStaff()}
-                    placeholder="e.g. Dr. C. Umeh or Mrs. N. Eze"
+                    placeholder="Enter your registered teacher / staff name..."
                     className="flex-1 px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-800/30 focus:border-blue-800"
                     autoFocus
                   />
@@ -246,25 +245,31 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                 </div>
               </div>
 
-              {/* Quick Staff Selection for Immediate Testing */}
+              {/* Quick Staff Selection */}
               <div className="pt-2 border-t border-slate-100">
                 <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">
-                  Quick Select from Admin Uploaded Teachers (Click to auto-fill):
+                  Quick Select from Registered Teachers:
                 </p>
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
-                  {(staffList && staffList.length > 0 ? staffList : INITIAL_STAFF_MEMBERS).map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setStaffNameInput(s.name);
-                        handleVerifyStaff(s.name);
-                      }}
-                      className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-900 rounded-lg transition-colors text-left"
-                    >
-                      {s.name} <span className="text-[10px] text-slate-400">({s.department})</span>
-                    </button>
-                  ))}
-                </div>
+                {staffList && staffList.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                    {staffList.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setStaffNameInput(s.name);
+                          handleVerifyStaff(s.name);
+                        }}
+                        className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-900 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        {s.name} <span className="text-[10px] text-slate-400">({s.department})</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 py-2 italic">
+                    No teachers registered yet. Administrators can add teaching staff from the Administration Dashboard.
+                  </p>
+                )}
               </div>
             </div>
           )}

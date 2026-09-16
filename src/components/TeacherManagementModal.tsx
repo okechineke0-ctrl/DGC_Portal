@@ -534,7 +534,7 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Kenneth Okoli"
+                  placeholder="e.g. Teacher Full Name"
                   value={newName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-semibold text-slate-900 placeholder:text-slate-400"

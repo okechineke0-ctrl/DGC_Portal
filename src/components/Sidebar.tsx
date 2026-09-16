@@ -4,6 +4,7 @@ import {
   GraduationCap,
   CalendarCheck,
   ShieldCheck,
+  CreditCard,
   Settings,
   LogOut,
   ChevronRight,
@@ -19,7 +20,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isMobileOpen?: boolean;
   setIsMobileOpen?: (open: boolean) => void;
-  currentStudent?: StudentProfile;
+  currentStudent?: StudentProfile | null;
   onLogout?: () => void;
 }
 
@@ -61,11 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'fees',
-      label: 'Check School Fees & Dues',
-      subtitle: 'Clearance verification & bursary status',
-      icon: ShieldCheck,
-      badge: currentStudent?.feeStatus === 'Cleared' ? 'Cleared' : 'Pending',
-      badgeColor: currentStudent?.feeStatus === 'Cleared' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800',
+      label: 'School Fees',
+      subtitle: 'Clearance verification & bursary dues',
+      icon: CreditCard,
+      badge: currentStudent?.feeStatus === 'Cleared' ? 'Paid' : 'Not Paid',
+      badgeColor: currentStudent?.feeStatus === 'Cleared' ? 'bg-blue-100 text-blue-950 border border-blue-300 font-bold' : 'bg-slate-100 text-slate-700 border border-slate-300 font-bold',
     },
     {
       id: 'settings',
@@ -73,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subtitle: 'Uniform passport photo & contact',
       icon: Settings,
       badge: currentStudent?.photoUrl ? 'Verified' : 'Required',
-      badgeColor: currentStudent?.photoUrl ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800',
+      badgeColor: currentStudent?.photoUrl ? 'bg-blue-50 text-blue-950 border border-blue-200' : 'bg-slate-100 text-slate-700',
     },
   ];
 
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div
                       className={`p-2 rounded-xl mt-0.5 shrink-0 ${
                         isActive
-                          ? 'bg-blue-800/60 text-amber-400'
+                          ? 'bg-blue-900 text-white'
                           : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200/80 group-hover:text-blue-950'
                       }`}
                     >
@@ -178,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span
                       className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
                         isActive
-                          ? 'bg-amber-400 text-blue-950'
+                          ? 'bg-white text-blue-950 font-bold'
                           : item.badgeColor || 'bg-slate-100 text-slate-600'
                       }`}
                     >
