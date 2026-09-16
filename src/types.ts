@@ -241,7 +241,7 @@ export interface WeeklyAttendanceGroup {
   days: StudentDailyAttendanceLog[];
 }
 
-export interface StudentAttendanceFullData {
+export interface StudentAttendanceSummary {
   openDays: number;
   presentDays: number;
   absentDays: number;
@@ -251,7 +251,30 @@ export interface StudentAttendanceFullData {
   attendanceRate: number;
   isCleared: boolean;
   assignedFormMaster: string;
+}
+
+export interface StudentAttendanceFullData {
+  summary: StudentAttendanceSummary;
   weeks: WeeklyAttendanceGroup[];
   recentLogs: StudentDailyAttendanceLog[];
+  totalRecords: number;
+}
+
+/** Raw envelope returned by GET /api/attendance/student/:studentId */
+export interface StudentAttendanceApiResponse {
+  success: boolean;
+  student: {
+    id: string;
+    name: string;
+    admissionNo: string;
+    classArm: string;
+    level: string;
+    session: string;
+    term: string;
+  };
+  summary: StudentAttendanceSummary;
+  weeks: WeeklyAttendanceGroup[];
+  recentLogs: StudentDailyAttendanceLog[];
+  totalRecords: number;
 }
 

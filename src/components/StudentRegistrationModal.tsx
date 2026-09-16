@@ -24,6 +24,7 @@ import {
 import { StudentProfile } from '../types';
 import { SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { DGCLogo } from './DGCLogo';
+import { printDocument } from '../lib/print';
 
 interface StudentRegistrationModalProps {
   isOpen: boolean;
@@ -257,7 +258,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   };
 
   const handlePrintSlip = () => {
-    window.print();
+    printDocument('student-admission-slip-print-root');
   };
 
   return (
@@ -313,9 +314,9 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
             </div>
 
             {/* Official Admission Slip Card */}
-            <div className="p-6 sm:p-7 bg-white rounded-2xl border-2 border-blue-950/20 shadow-lg space-y-5">
+            <div id="student-admission-slip-print-root" className="p-5 sm:p-7 bg-white rounded-2xl border-2 border-blue-950/20 shadow-lg space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <DGCLogo size="md" showText={false} />
                   <div>
                     <h4 className="font-serif-title font-black text-blue-950 text-base">

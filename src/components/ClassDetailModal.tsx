@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { SchoolClassDefinition, StudentProfile, StaffMember } from '../types';
+import { printDocument } from '../lib/print';
 import { ALL_SCHOOL_SUBJECTS } from '../data/mockData';
 
 interface ClassDetailModalProps {
@@ -515,9 +516,9 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
           {/* TAB 3: BROADSHEET */}
           {activeTab === 'broadsheet' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="space-y-4" id="class-broadsheet-print-root">
+              <div className="no-print flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
                   <h3 className="text-sm font-bold text-slate-900">
                     Official Broad Sheet · {schoolClass.name} (First Term 2026/2027)
                   </h3>
@@ -526,8 +527,8 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   </p>
                 </div>
                 <button
-                  onClick={() => window.print()}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors"
+                  onClick={() => printDocument('class-broadsheet-print-root')}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors cursor-pointer shrink-0"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Sheet</span>

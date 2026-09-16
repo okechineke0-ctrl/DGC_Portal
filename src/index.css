@@ -13,3 +13,87 @@
 .font-crest {
   font-family: 'Cinzel', Georgia, serif;
 }
+
+@layer base {
+  /* Long admission numbers, remarks and account names must never widen a card. */
+  h1, h2, h3, h4, h5, h6, p, span, td, th, li, label {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Slim scrollbars for the horizontally scrollable tab strips and tables. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.6) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.6);
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   Printing
+   Documents (report cards, fee clearance slips) are printed by tagging the
+   document element with .print-root — see src/lib/print.ts. Everything else
+   in the application shell is suppressed.
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body.printing * {
+    visibility: hidden;
+  }
+
+  body.printing .print-root,
+  body.printing .print-root * {
+    visibility: visible;
+  }
+
+  body.printing .print-root {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-height: none !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Never clip a document table onto a scroll container when printing. */
+  body.printing .print-root * {
+    overflow: visible !important;
+  }
+
+  body.printing .print-root table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 10px;
+  }
+
+  body.printing .print-root tr,
+  body.printing .print-root img {
+    break-inside: avoid;
+  }
+}
