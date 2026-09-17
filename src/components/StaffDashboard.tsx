@@ -599,59 +599,59 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       )}
 
       {/* Staff Tab Switcher */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none">
         <button
           onClick={() => setActiveTab('grading')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'grading'
               ? 'bg-blue-950 text-amber-300 shadow-md'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>Continuous Assessment & Exam Grading</span>
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>CA & Exam Grading</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'attendance'
               ? 'bg-blue-950 text-amber-300 shadow-md'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
           id="tab-mark-attendance-btn"
         >
-          <CalendarCheck className="w-4 h-4 text-emerald-500" />
-          <span>Mark Class Attendance</span>
+          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+          <span>Attendance</span>
           <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">
-            {staff.assignedClasses.length} {staff.assignedClasses.length === 1 ? 'Class' : 'Classes'}
+            {staff.assignedClasses.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('form_master')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'form_master'
               ? 'bg-blue-950 text-amber-300 shadow-md'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>
-            {formDesignation} Oversight {staff.formMasterOf ? `(${staff.formMasterOf})` : ''}
+            {formDesignation} {staff.formMasterOf ? `(${staff.formMasterOf})` : ''}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('workload')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'workload'
               ? 'bg-blue-950 text-amber-300 shadow-md'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>My Teaching Workload & Classes</span>
+          <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>My Teaching Schedule</span>
         </button>
       </div>
 

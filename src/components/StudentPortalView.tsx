@@ -324,52 +324,52 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       </div>
 
       {/* Main Student Portal Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-200/70 rounded-2xl max-w-fit overflow-x-auto text-xs font-semibold">
+      <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-200/70 rounded-2xl w-full sm:w-auto overflow-x-auto whitespace-nowrap scrollbar-none text-xs font-semibold">
         <button
           onClick={() => setActiveTab('report_card')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'report_card'
               ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Printer className="w-4 h-4" />
-          <span>Print Results</span>
+          <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Report Card</span>
         </button>
 
         <button
           onClick={() => setActiveTab('performance')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'performance'
               ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <GraduationCap className="w-4 h-4" />
-          <span>Performance</span>
+          <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Analytics</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'attendance'
               ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <CalendarCheck className="w-4 h-4" />
+          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>Attendance</span>
         </button>
 
         <button
           onClick={() => setActiveTab('fees')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'fees'
               ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>Fees & Clearance</span>
         </button>
       </div>

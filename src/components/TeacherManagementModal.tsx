@@ -341,21 +341,21 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[95dvh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
         id="teacher-management-modal"
       >
         {/* ========================================================================= */}
         {/* MODAL HEADER                                                              */}
         {/* ========================================================================= */}
-        <div className="p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+            className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -372,10 +372,10 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
 
           <h2 className="text-xl sm:text-2xl font-bold font-serif-title flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-amber-300 shrink-0" />
-            <span>Teachers Directory, Classes & Form Master/Mistress Command</span>
+            <span>Teacher & Staff Management</span>
           </h2>
           <p className="text-xs sm:text-sm text-blue-200/90 mt-1">
-            Add new teachers, delete staff records, assign secondary school classes, and appoint Form Masters or Form Mistresses for all 14 class arms.
+            Teacher directory, subject allocations, and Form Master/Mistress appointments.
           </p>
 
           {/* Quick Metrics Strip */}
@@ -821,9 +821,9 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
         {/* ========================================================================= */}
         {/* MAIN BODY: TEACHERS ROSTER WITH IN-PLACE EDIT & DELETE                    */}
         {/* ========================================================================= */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="w-full text-left text-xs">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[720px]">
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Teacher Profile</th>

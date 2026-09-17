@@ -25,33 +25,35 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[95dvh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between no-print">
+        <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print shrink-0">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-blue-950 uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-blue-950 uppercase tracking-wider shrink-0">
               Terminal Report
             </span>
-            <span className="text-xs text-slate-300 truncate max-w-[200px] sm:max-w-none">
+            <span className="text-xs text-slate-300 truncate max-w-[160px] sm:max-w-none">
               {student.name} ({student.admissionNo}) · {student.classArm}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[36px]"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Results</span>
+              <span className="hidden sm:inline">Print Results</span>
+              <span className="sm:hidden">Print</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
               title="Close"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
@@ -105,8 +107,8 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
             </div>
 
             {/* Academic Results Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-              <table className="w-full text-left text-xs">
+            <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-2xs">
+              <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
                   <tr>
                     <th className="py-2.5 px-3">Subject</th>

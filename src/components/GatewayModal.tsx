@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import {
   ShieldAlert,
-  GraduationCap,
   Briefcase,
   KeyRound,
-  CheckCircle2,
   AlertCircle,
   X,
-  Sparkles,
   ArrowRight,
   Lock,
   UserCheck,
@@ -46,7 +43,6 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
     setErrorMessage(null);
 
     try {
-      // Try verifying with backend API first
       const res = await fetch('/api/staff/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,10 +56,9 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
         return;
       }
     } catch {
-      // Fallback to local check if offline or server initializing
+      // Fallback to local check
     }
 
-    // Local check against active staff roster
     const q = targetName.trim().toLowerCase();
     const matched = (staffList || []).find((s) => {
       const sName = s.name.toLowerCase();
@@ -81,109 +76,116 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
       onSelectRole('staff', matched);
     } else {
       setErrorMessage(
-        `Staff name "${targetName}" is not registered on the official roster uploaded by the CEO. Please check spelling or contact Administration.`
+        `Staff name "${targetName}" is not on the official roster. Check spelling or contact Administration.`
       );
     }
   };
 
   const handleCeoSubmit = () => {
-    if (ceoPasscode.trim().toLowerCase() === 'dgc2026' || ceoPasscode.trim().toLowerCase() === 'ceo' || ceoPasscode.trim() === '1234') {
+    const clean = ceoPasscode.trim().toLowerCase();
+    if (clean === 'dgc2026' || clean === 'ceo' || clean === '1234') {
       onSelectRole('ceo');
     } else {
-      setErrorMessage('Invalid executive access passcode. (Hint: dgc2026)');
+      setErrorMessage('Invalid administrative passcode. (Default: dgc2026)');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-3xl max-w-xl w-full overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-lg sm:max-w-xl w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Top Header */}
-        <div className="p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative">
+        {/* Header */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
-              Authorized Portal Gateway
+          <div className="flex items-center gap-2 mb-1.5 pr-8">
+            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
+              Institutional Gateway
             </span>
-            <span className="text-xs text-blue-200">Collegiate System</span>
+            <span className="text-[11px] text-blue-200 hidden xs:inline">Dominion Global College</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold font-serif-title">
-            Dominion Stars College Gateway
+          <h2 className="text-lg sm:text-xl font-bold font-serif-title tracking-tight text-white pr-8">
+            Staff & Directorate Portal
           </h2>
-          <p className="text-xs text-blue-200/90 mt-1">
-            Authorized Institutional Access · Select your administrative operational role.
+          <p className="text-[11px] sm:text-xs text-blue-200/90 mt-0.5">
+            Authorized access for teaching staff and college administration.
           </p>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 sm:p-7 space-y-6">
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 text-slate-800">
           {activeTab === 'select' && (
-            <div className="space-y-4">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Select Operational Workspace:
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Select Workspace:
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Staff Option */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {/* Teaching Staff Option */}
                 <button
+                  type="button"
                   onClick={() => {
                     setErrorMessage(null);
                     setActiveTab('staff_verify');
                   }}
-                  className="p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-700 bg-slate-50/50 hover:bg-blue-50/40 text-left transition-all group flex flex-col justify-between"
+                  className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-700 bg-slate-50 hover:bg-blue-50/50 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
                 >
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                      <Briefcase className="w-6 h-6" />
+                  <div className="space-y-2.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                      <Briefcase className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-base group-hover:text-blue-900">
-                        Staff & Teacher Portal
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-blue-950">
+                        Teaching Staff
                       </h3>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        Input scores for Quiz, Homework, Tests 1 & 2, Exam, and manage student continuous assessment files.
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        Continuous assessment grading, class roll call & student report comments.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold text-blue-800">
-                    <span>Name Verification</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-blue-900">
+                    <span>Teacher Login</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
 
-                {/* CEO Administrator Option */}
+                {/* College Administration / CEO Option */}
                 <button
+                  type="button"
                   onClick={() => {
                     setErrorMessage(null);
                     setActiveTab('ceo_auth');
                   }}
-                  className="p-5 rounded-2xl border-2 border-slate-200 hover:border-amber-600 bg-slate-50/50 hover:bg-amber-50/40 text-left transition-all group flex flex-col justify-between"
+                  className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-amber-600 bg-slate-50 hover:bg-amber-50/50 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
                 >
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500 text-blue-950 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                      <ShieldAlert className="w-6 h-6" />
+                  <div className="space-y-2.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 text-blue-950 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                      <ShieldAlert className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-base group-hover:text-amber-900">
-                        CEO & Administrator
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-amber-950">
+                        Administration
                       </h3>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        Executive oversight: hold/release terminal results, edit student files, register new students, and manage staff roster.
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        Result governance, individual result holds, bursary fees & student admission.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold text-amber-800">
-                    <span>Executive Access</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-amber-900">
+                    <span>Directorate Access</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
               </div>
@@ -191,83 +193,87 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
           )}
 
           {activeTab === 'staff_verify' && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-950 flex items-center justify-center shrink-0">
                     <UserCheck className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                      Staff Roster Verification
+                      Teacher Verification
                     </h3>
-                    <p className="text-xs text-slate-500">
-                      Enter your full name to match against the administrator-uploaded staff directory.
+                    <p className="text-[11px] text-slate-500">
+                      Enter your registered name on the college staff roll.
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('select')}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
                   ← Back
                 </button>
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-800">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Your Full Registered Name
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Registered Staff Name
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={staffNameInput}
                     onChange={(e) => setStaffNameInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyStaff()}
-                    placeholder="Enter your registered teacher / staff name..."
-                    className="flex-1 px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-800/30 focus:border-blue-800"
+                    placeholder="e.g. Mr. Chinedu Okafor"
+                    className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/30 focus:border-blue-900 min-h-[44px]"
                     autoFocus
                   />
                   <button
+                    type="button"
                     onClick={() => handleVerifyStaff()}
                     disabled={isVerifying}
-                    className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 disabled:opacity-50"
+                    className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
                   >
-                    {isVerifying ? 'Checking...' : 'Verify & Enter'}
+                    {isVerifying ? 'Checking...' : 'Sign In'}
                   </button>
                 </div>
               </div>
 
               {/* Quick Staff Selection */}
               <div className="pt-2 border-t border-slate-100">
-                <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">
-                  Quick Select from Registered Teachers:
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Quick Select Registered Staff:
                 </p>
                 {staffList && staffList.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                     {staffList.map((s) => (
                       <button
                         key={s.id}
+                        type="button"
                         onClick={() => {
                           setStaffNameInput(s.name);
                           handleVerifyStaff(s.name);
                         }}
-                        className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-900 rounded-lg transition-colors text-left cursor-pointer"
+                        className="px-2.5 py-1.5 text-[11px] bg-slate-100 hover:bg-blue-100 hover:text-blue-950 text-slate-700 rounded-lg transition-colors text-left cursor-pointer flex items-center gap-1.5 min-h-[36px]"
                       >
-                        {s.name} <span className="text-[10px] text-slate-400">({s.department})</span>
+                        <span className="font-semibold">{s.name}</span>
+                        <span className="text-[9px] text-slate-400">({s.department})</span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 py-2 italic">
-                    No teachers registered yet. Administrators can add teaching staff from the Administration Dashboard.
+                  <p className="text-xs text-slate-500 py-1 italic">
+                    No teachers registered yet in the college directory.
                   </p>
                 )}
               </div>
@@ -275,67 +281,70 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
           )}
 
           {activeTab === 'ceo_auth' && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-950 flex items-center justify-center shrink-0">
                     <ShieldAlert className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                      Office of the CEO & Administrator
+                      College Directorate
                     </h3>
-                    <p className="text-xs text-slate-500">
-                      Executive authority for student file edits, result holds & registrations.
+                    <p className="text-[11px] text-slate-500">
+                      Administrative oversight and result governance.
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('select')}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
                   ← Back
                 </button>
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-800">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Executive Access Passcode
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Directorate Access Passcode
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                   <input
                     type="password"
                     value={ceoPasscode}
                     onChange={(e) => setCeoPasscode(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCeoSubmit()}
-                    placeholder="Enter CEO Passcode (prefilled: dgc2026)"
-                    className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-mono"
+                    placeholder="Enter Administrative Passcode"
+                    className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-mono min-h-[44px]"
                     autoFocus
                   />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Development passcode pre-filled for direct executive evaluation: <strong className="font-mono text-slate-700">dgc2026</strong>
+                  Institutional passcode pre-filled: <strong className="font-mono text-slate-800">dgc2026</strong>
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                 <button
+                  type="button"
                   onClick={handleCeoSubmit}
-                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-blue-950 font-extrabold text-sm rounded-xl shadow-xs transition-colors"
+                  className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-blue-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition-all min-h-[44px] cursor-pointer"
                 >
-                  Launch CEO Dashboard
+                  Open Directorate Portal
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('select')}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl"
+                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl min-h-[44px] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -344,20 +353,22 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        {/* Footer */}
+        <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
           <div className="flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-slate-400" />
-            <span>Encrypted College Security Protocol</span>
+            <span>Encrypted College System</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-800 font-semibold"
+            className="text-slate-600 hover:text-slate-900 font-bold p-1 cursor-pointer"
           >
-            Close Gateway
+            Close
           </button>
         </div>
       </div>
     </div>
   );
 };
+

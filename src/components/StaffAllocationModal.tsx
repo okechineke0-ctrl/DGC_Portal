@@ -84,58 +84,58 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[95dvh] sm:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+            className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2.5 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
-              Administrative Assignment
+              Staff Allocation
             </span>
             <span className="text-xs text-blue-200">{staff.title} {staff.name}</span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold font-serif-title">
-            Assign Subjects, Form Master & Classes
+            Staff Teaching & Class Allocation
           </h2>
           <p className="text-xs text-blue-200/90 mt-1">
-            Configure teacher instructional workload, assigned class arms, and institutional roles.
+            Assign curriculum subjects, class arms, and Form Master or Form Mistress appointment.
           </p>
 
           {/* Subtabs */}
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/15 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-4 pt-3 border-t border-white/15 text-xs font-semibold overflow-x-auto whitespace-nowrap scrollbar-none">
             <button
               onClick={() => setActiveTab('subjects')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'subjects' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
+                activeTab === 'subjects' ? 'bg-white text-blue-950 font-bold shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Subjects Taught ({selectedSubjects.length})</span>
+              <span>Subjects ({selectedSubjects.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('classes')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'classes' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
+                activeTab === 'classes' ? 'bg-white text-blue-950 font-bold shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Assigned Classes ({selectedClasses.length})</span>
+              <span>Classes ({selectedClasses.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('roles')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'roles' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
+                activeTab === 'roles' ? 'bg-white text-blue-950 font-bold shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />

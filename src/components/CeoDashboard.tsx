@@ -45,6 +45,7 @@ import { StudentReportCardModal } from './StudentReportCardModal';
 import { StudentRegistrationModal } from './StudentRegistrationModal';
 import { TeacherManagementModal } from './TeacherManagementModal';
 import { SchoolFeesManagement } from './SchoolFeesManagement';
+import { IndividualHoldResultModal } from './IndividualHoldResultModal';
 
 interface CeoDashboardProps {
   onExit: () => void;
@@ -124,6 +125,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   const [selectedStaffForAlloc, setSelectedStaffForAlloc] = useState<StaffMember | null>(null);
   const [reportCardStudent, setReportCardStudent] = useState<StudentProfile | null>(null);
   const [editingStudent, setEditingStudent] = useState<StudentProfile | null>(null);
+  const [individualHoldStudent, setIndividualHoldStudent] = useState<StudentProfile | null>(null);
+  const [isIndividualHoldOpen, setIsIndividualHoldOpen] = useState(false);
 
   // Quick form master modal
   const [quickFormMasterClass, setQuickFormMasterClass] = useState<string | null>(null);
@@ -280,33 +283,46 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <button
+              onClick={() => {
+                setIndividualHoldStudent(null);
+                setIsIndividualHoldOpen(true);
+              }}
+              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-rose-500 cursor-pointer min-h-[44px]"
+              id="admin-hold-individual-result-header-btn"
+              title="Hold or Release an Individual Student's Result"
+            >
+              <Lock className="w-4 h-4 text-white shrink-0" />
+              <span>Hold / Release Result</span>
+            </button>
+
             <button
               onClick={() => setIsRegisterStudentOpen(true)}
-              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-emerald-400 cursor-pointer"
+              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-emerald-400 cursor-pointer min-h-[44px]"
               id="admin-register-student-header-btn"
-              title="Register New Student: JSS 1 to SS 3 with full bio-data & subjects"
+              title="Register New Student: JSS 1 to SS 3"
             >
-              <UserPlus className="w-4 h-4 text-white" />
+              <UserPlus className="w-4 h-4 text-white shrink-0" />
               <span>+ Register Student</span>
             </button>
 
             <button
               onClick={() => setIsTeacherManagerOpen(true)}
-              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-amber-300 cursor-pointer"
+              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-amber-300 cursor-pointer min-h-[44px]"
               id="admin-teacher-management-header-btn"
-              title="Teacher Management: Add, Delete, Assign Classes & Form Master/Mistress"
+              title="Teacher Management: Add, Delete, Assign Classes"
             >
-              <GraduationCap className="w-4 h-4 text-blue-950" />
-              <span>Teachers (Add / Delete / Assign)</span>
+              <GraduationCap className="w-4 h-4 text-blue-950 shrink-0" />
+              <span>Teachers</span>
             </button>
 
             <button
               onClick={onExit}
-              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl border border-white/20 transition-colors flex items-center gap-2 cursor-pointer"
+              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl border border-white/20 transition-colors flex items-center gap-2 cursor-pointer min-h-[44px]"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Exit Admin Mode</span>
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span>Exit Admin</span>
             </button>
           </div>
         </div>
@@ -390,94 +406,94 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
         </div>
       </div>
 
-      {/* Main Administrative Navigation Tabs (Mature White & Blue) */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+      {/* Main Administrative Navigation Tabs */}
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none">
         <button
           onClick={() => setActiveTab('classes')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'classes'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Building className="w-4 h-4" />
-          <span>All Classes & Arms ({totalClassesCount})</span>
+          <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Classes ({totalClassesCount})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('staff')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'staff'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Briefcase className="w-4 h-4" />
-          <span>Teachers & Role Allocations ({staffList.length})</span>
+          <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Teachers ({staffList.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('curriculum')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'curriculum'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>Subject Allocations</span>
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Subjects</span>
         </button>
 
         <button
           onClick={() => setActiveTab('students')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'students'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Users className="w-4 h-4" />
-          <span>6-Year Student Roll ({totalStudentsCount})</span>
+          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Students ({totalStudentsCount})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'attendance'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-attendance-btn"
         >
-          <CalendarCheck className="w-4 h-4" />
-          <span>Attendance Oversight</span>
+          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Attendance</span>
         </button>
 
-        {/* New Dedicated School Fees & Bursary Tab */}
         <button
           onClick={() => setActiveTab('fees')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'fees'
               ? 'bg-blue-950 text-white shadow-md border border-blue-900'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-school-fees-btn"
         >
-          <CreditCard className="w-4 h-4 text-blue-400" />
-          <span>School Fees & Bursary</span>
+          <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400 shrink-0" />
+          <span>Bursary & Fees</span>
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setIsRegisterStudentOpen(true)}
-            className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-blue-950 hover:bg-blue-900 text-white shadow-xs flex items-center gap-2 transition-all cursor-pointer border border-blue-900"
-            id="admin-register-student-tabbar-btn"
-            title="Register New Student"
-          >
-            <UserPlus className="w-4 h-4 text-white" />
-            <span>+ Register Student</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setIndividualHoldStudent(null);
+            setIsIndividualHoldOpen(true);
+          }}
+          className="ml-auto px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[40px]"
+          title="Individual Result Hold & Release Controller"
+        >
+          <Lock className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+          <span>Hold / Release</span>
+        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -972,10 +988,42 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: 6-YEAR STUDENT ROLL                                                */}
+      {/* TAB 4: 6-YEAR STUDENT ROLL & INDIVIDUAL RESULT HOLD MANAGEMENT              */}
       {/* ========================================================================= */}
       {activeTab === 'students' && (
         <div className="space-y-4">
+          {/* Individual Student Result Hold Console Banner */}
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-rose-50 via-amber-50 to-orange-50 border border-rose-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0 mt-0.5 sm:mt-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-900 block">
+                  Individual Student Result Hold Controller
+                </span>
+                <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                  Hold or Release Any Student's Result Independently
+                </h4>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Target a specific student by name or registration number — no class grouping required.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIndividualHoldStudent(null);
+                setIsIndividualHoldOpen(true);
+              }}
+              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer min-h-[44px]"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Hold / Release Student</span>
+            </button>
+          </div>
+
           {/* Controls Bar */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1011,12 +1059,12 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
               <div className="relative flex-1 sm:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Search student by name, reg no..."
+                  placeholder="Search by name, reg no..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden"
@@ -1026,7 +1074,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRegisterStudentOpen(true)}
-                className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px]"
                 title="Open Official Admission & Registration Form"
               >
                 <UserPlus className="w-3.5 h-3.5 text-amber-300" />
@@ -1035,9 +1083,9 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             </div>
           </div>
 
-          {/* Students Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="w-full text-left text-xs">
+          {/* Students Table with Responsive Horizontal Scroll */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Adm No</th>
@@ -1070,7 +1118,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsRegisterStudentOpen(true)}
-                          className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                          className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs min-h-[44px]"
                         >
                           <UserPlus className="w-4 h-4" />
                           <span>+ Register Student</span>
@@ -1086,7 +1134,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-bold text-slate-900 block">{student.name}</span>
-                      <span className="text-[10px] text-slate-400">{student.guardianName}</span>
+                      <span className="text-[10px] text-slate-400">{student.guardianName || 'Guardian'}</span>
                     </td>
                     <td className="py-3 px-3 font-semibold text-slate-800">
                       {student.classArm}
@@ -1105,30 +1153,35 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          student.resultHeld ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          student.resultHeld ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}
+                        title={student.resultHeld ? (student.holdReason || 'Withheld by Administration') : 'Released'}
                       >
                         {student.resultHeld ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                        <span>{student.resultHeld ? 'Held' : 'Released'}</span>
+                        <span>{student.resultHeld ? 'WITHHELD' : 'RELEASED'}</span>
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => onToggleHoldResult(student.id, !student.resultHeld)}
-                          className={`p-1.5 rounded-lg border transition-colors ${
+                          onClick={() => {
+                            setIndividualHoldStudent(student);
+                            setIsIndividualHoldOpen(true);
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1 cursor-pointer min-h-[36px] ${
                             student.resultHeld
-                              ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
-                              : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                              ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
                           }`}
                           title={student.resultHeld ? 'Release Result' : 'Hold Result'}
                         >
                           {student.resultHeld ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                          <span>{student.resultHeld ? 'Release' : 'Hold'}</span>
                         </button>
                         <button
                           onClick={() => setReportCardStudent(student)}
-                          className="px-2 py-1 text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg border border-blue-200 transition-colors"
+                          className="px-2.5 py-1.5 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg border border-blue-200 transition-colors min-h-[36px]"
                         >
                           Report
                         </button>
@@ -1139,7 +1192,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                               notify(`Removed student: ${student.name}`);
                             }
                           }}
-                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
+                          className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors min-h-[36px] flex items-center justify-center cursor-pointer"
+                          title="Delete Student Record"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1727,6 +1781,23 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           student={reportCardStudent}
           classes={classes}
           onClose={() => setReportCardStudent(null)}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: INDIVIDUAL STUDENT RESULT HOLD / RELEASE CONTROLLER                 */}
+      {/* ========================================================================= */}
+      {isIndividualHoldOpen && (
+        <IndividualHoldResultModal
+          isOpen={isIndividualHoldOpen}
+          onClose={() => {
+            setIsIndividualHoldOpen(false);
+            setIndividualHoldStudent(null);
+          }}
+          student={individualHoldStudent}
+          allStudents={students}
+          onToggleHoldResult={onToggleHoldResult}
+          onSuccess={(msg) => notify(msg)}
         />
       )}
 
