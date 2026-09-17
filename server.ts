@@ -21,10 +21,29 @@ import {
 } from './src/data/originalData';
 import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from './src/types';
 
-// Load provisioned Firebase Applet Configuration
-const firebaseConfig = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf8')
-);
+// Load provisioned Firebase Applet Configuration (from file or FIREBASE_CONFIG env var for Render/cloud deployment)
+let firebaseConfig: any = null;
+const configFilePath = path.join(process.cwd(), 'firebase-applet-config.json');
+if (fs.existsSync(configFilePath)) {
+  try {
+    firebaseConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+  } catch (err) {
+    console.error('[Firebase] Failed reading firebase-applet-config.json:', err);
+  }
+}
+if (!firebaseConfig && process.env.FIREBASE_CONFIG) {
+  try {
+    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+  } catch (err) {
+    console.error('[Firebase] Failed parsing FIREBASE_CONFIG env variable:', err);
+  }
+}
+
+if (!firebaseConfig) {
+  throw new Error(
+    'Firebase configuration missing. Ensure firebase-applet-config.json is present or set FIREBASE_CONFIG env var.'
+  );
+}
 
 // Initialize Firebase App and target Firestore Database
 const firebaseApp = initializeApp(firebaseConfig);
@@ -226,7 +245,19 @@ async function startServer() {
       attendanceRecordsList = loadedAtt;
       console.log(`[Firestore] Synchronized ${attendanceRecordsList.length} attendance register records.`);
     } else {
-      console.log('[Firestore] No prior attendance records in database. Checking if enrolled students need term attendance seeding...');
+      console.log('[Firestore] No prior attendance records in database.');
+    }
+
+    // Strictly re-evaluate all students' attendance from real recorded registers (clearing any legacy mock 99/98s)
+    if (students.length > 0) {
+      students.forEach((s) => {
+        const stats = recalculateStudentAttendanceFromRegisters(s.id);
+        s.timesSchoolOpened = stats.openCount;
+        s.timesPresent = stats.presentCount;
+        s.timesPunctual = stats.punctualCount;
+        s.attendanceRate = stats.rate;
+      });
+      console.log(`[Attendance] Synchronized real attendance statistics for all ${students.length} students.`);
     }
 
     if (feeSnap.exists()) {
@@ -268,7 +299,7 @@ async function startServer() {
       }
     });
 
-    const rate = openCount > 0 ? Math.round((presentCount / openCount) * 100) : 100;
+    const rate = openCount > 0 ? Math.round((presentCount / openCount) * 100) : 0;
 
     return {
       openCount,
@@ -704,6 +735,7 @@ async function startServer() {
       term,
       customSubjects,
       attendanceRate,
+      photoUrl,
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -837,7 +869,8 @@ async function startServer() {
       medicalConditions: medicalNotes || 'None reported',
       feeStatus: feeStatus || 'Cleared',
       resultHeld: false,
-      attendanceRate: attendanceRate !== undefined ? Number(attendanceRate) : 95,
+      photoUrl: photoUrl || undefined,
+      attendanceRate: 0,
       termGpa: 0,
       termRank: 'N/A',
       subjects: initialSubjects,
@@ -862,9 +895,9 @@ async function startServer() {
       formTeacherComment: 'A newly enrolled scholar at Dominion Stars Global College. Ready to pursue academic excellence.',
       principalComment: 'Welcome to Dominion Stars Global College. Maintain steadfast discipline and strive for high moral standards.',
       nextTermBegins: '12th January, 2027',
-      timesSchoolOpened: 120,
-      timesPresent: 114,
-      timesPunctual: 110,
+      timesSchoolOpened: 0,
+      timesPresent: 0,
+      timesPunctual: 0,
     };
 
     students.unshift(newStudent);
@@ -1085,12 +1118,15 @@ async function startServer() {
 
   // --- ATTENDANCE REGISTERS & LOGS ENDPOINTS (100% Real Cloud Firestore) ---
   app.get('/api/attendance', (req, res) => {
-    const { className, date, limit, studentId } = req.query;
+    const { className, date, limit, studentId, term } = req.query;
 
     let filtered = [...attendanceRecordsList];
 
     if (className && className !== 'All') {
       filtered = filtered.filter((a) => a.className === className);
+    }
+    if (term && term !== 'All') {
+      filtered = filtered.filter((a) => !a.term || a.term === term);
     }
     if (date) {
       filtered = filtered.filter((a) => a.date === date);
@@ -1116,16 +1152,21 @@ async function startServer() {
   // Dedicated Student Attendance Transcript & Real Database Roll History Endpoint
   app.get('/api/attendance/student/:studentId', (req, res) => {
     const { studentId } = req.params;
+    const requestedTerm = (req.query.term as string) || '';
     const student = students.find((s) => s.id === studentId || s.admissionNo.toLowerCase() === studentId.toLowerCase());
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found in institutional roster' });
     }
 
-    // Find all real attendance records for this student
+    const activeTerm = requestedTerm || student.term || 'First Term';
+
+    // Find all real attendance records for this student in this term and class
     const studentRecords: Array<{
       date: string;
       day: string;
+      week: string;
+      term: string;
       status: 'Present' | 'Absent' | 'Late' | 'Excused';
       time: string;
       remarks: string;
@@ -1136,12 +1177,19 @@ async function startServer() {
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     attendanceRecordsList.forEach((att) => {
+      // If term is specified or default, match term
+      if (att.term && att.term !== activeTerm) return;
+      // Check if student belongs to this class
+      if (att.className && att.className !== student.classArm) return;
+
       const match = (att.records || []).find((r: any) => r.studentId === student.id);
       if (match) {
         const d = new Date(att.date + 'T12:00:00Z');
         studentRecords.push({
           date: att.date,
           day: isNaN(d.getTime()) ? 'School Day' : weekdays[d.getUTCDay()],
+          week: att.week || 'Week 1',
+          term: att.term || activeTerm,
           status: match.status,
           time: match.time || (match.status === 'Late' ? '08:05 AM' : match.status === 'Present' ? '07:45 AM' : '—'),
           remarks: match.remarks || (match.status === 'Present' ? 'Punctual & inspected' : match.status === 'Late' ? 'Late arrival' : match.status === 'Excused' ? 'Medical/Authorized Permit' : 'Unexcused absence'),
@@ -1159,10 +1207,22 @@ async function startServer() {
       ? cls.classMaster
       : 'Class Form Master';
 
+    // Check if the teacher has started marking attendance for this class in this term
+    const classRegistersInTerm = attendanceRecordsList.filter(
+      (a) => a.className === student.classArm && (!a.term || a.term === activeTerm)
+    );
+
     // If no records have been taken yet in the database for this student
     if (studentRecords.length === 0) {
+      const statusNote = classRegistersInTerm.length === 0
+        ? 'No attendance yet, your teacher have not started marking attendance'
+        : 'No attendance yet, meet your teacher';
+
       return res.json({
         success: true,
+        hasAttendance: false,
+        message: statusNote,
+        selectedTerm: activeTerm,
         student: {
           id: student.id,
           name: student.name,
@@ -1179,9 +1239,10 @@ async function startServer() {
           punctualDays: 0,
           lateDays: 0,
           excusedDays: 0,
-          attendanceRate: 100,
+          attendanceRate: 0,
           isCleared: true,
           assignedFormMaster,
+          statusNote,
         },
         weeks: [],
         recentLogs: [],
@@ -1223,6 +1284,9 @@ async function startServer() {
 
     return res.json({
       success: true,
+      hasAttendance: true,
+      selectedTerm: activeTerm,
+      message: 'Verified institutional attendance loaded',
       student: {
         id: student.id,
         name: student.name,
@@ -1242,6 +1306,7 @@ async function startServer() {
         attendanceRate: rate,
         isCleared: rate >= 75,
         assignedFormMaster,
+        statusNote: rate >= 75 ? 'Satisfies attendance clearance' : 'Below standard attendance requirement',
       },
       weeks,
       recentLogs: [...studentRecords].reverse().slice(0, 20),
@@ -1251,7 +1316,7 @@ async function startServer() {
 
   // Daily Class Attendance Marking Endpoint
   app.post('/api/attendance/mark', async (req, res) => {
-    const { className, date, sessionPeriod, markedBy, records } = req.body;
+    const { className, date, sessionPeriod, markedBy, records, term, week } = req.body;
     if (!className || !records || !Array.isArray(records)) {
       return res.status(400).json({ error: 'Invalid attendance submission' });
     }
@@ -1263,6 +1328,8 @@ async function startServer() {
       id: attendanceId,
       className,
       date: markDate,
+      term: term || 'First Term',
+      week: week || 'Week 1',
       sessionPeriod: sessionPeriod || 'Morning Assembly (8:00 AM)',
       markedBy: markedBy || 'Form Master',
       records,
@@ -1358,7 +1425,7 @@ async function startServer() {
         st.timesSchoolOpened = 0;
         st.timesPresent = 0;
         st.timesPunctual = 0;
-        st.attendanceRate = 100;
+        st.attendanceRate = 0;
         await dbSaveStudent(st);
       }
 
@@ -1377,6 +1444,7 @@ async function startServer() {
     return res.json({
       success: true,
       schedule: collegeFeeSchedule,
+      ...collegeFeeSchedule,
     });
   });
 
@@ -1446,6 +1514,7 @@ async function startServer() {
       success: true,
       message: 'Official School Fees Schedule updated and persisted to Cloud Firestore.',
       schedule: collegeFeeSchedule,
+      ...collegeFeeSchedule,
     });
   });
 

@@ -278,12 +278,12 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                               {isCopied ? (
                                 <>
                                   <Check className="w-3.5 h-3.5" />
-                                  <span>Copied!</span>
+                                  <span>Copied</span>
                                 </>
                               ) : (
                                 <>
                                   <Copy className="w-3.5 h-3.5" />
-                                  <span>Copy Reg No</span>
+                                  <span>Copy</span>
                                 </>
                               )}
                             </button>
@@ -291,11 +291,11 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleUseForLogin(std.admissionNo)}
-                              className="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                               title="Autofill and sign in"
                             >
-                              <span>Use in Login</span>
-                              <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Sign In</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>

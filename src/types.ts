@@ -253,5 +253,10 @@ export interface StudentAttendanceFullData {
   assignedFormMaster: string;
   weeks: WeeklyAttendanceGroup[];
   recentLogs: StudentDailyAttendanceLog[];
+  hasAttendance?: boolean;
+  message?: string;
+  totalRecords?: number;
+  selectedTerm?: string;
+  statusNote?: string;
 }
 

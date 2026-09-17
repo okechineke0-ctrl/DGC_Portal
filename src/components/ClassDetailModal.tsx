@@ -14,6 +14,7 @@ import {
   Plus,
   ArrowRight,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 import { SchoolClassDefinition, StudentProfile, StaffMember } from '../types';
 import { ALL_SCHOOL_SUBJECTS } from '../data/mockData';
@@ -29,6 +30,7 @@ interface ClassDetailModalProps {
   onBatchHoldClass: (classArm: string, hold: boolean, reason?: string) => Promise<boolean>;
   onEditStudent: (student: StudentProfile) => void;
   onPreviewReportCard: (student: StudentProfile) => void;
+  onDeleteStudent?: (studentId: string) => Promise<boolean>;
 }
 
 export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
@@ -42,6 +44,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   onBatchHoldClass,
   onEditStudent,
   onPreviewReportCard,
+  onDeleteStudent,
 }) => {
   const [activeTab, setActiveTab] = useState<'students' | 'curriculum' | 'broadsheet'>('students');
   const [selectedFormMaster, setSelectedFormMaster] = useState<string>(schoolClass.classMaster);
@@ -280,8 +283,8 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
               </div>
 
               {/* Students Table */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                <table className="w-full text-left text-xs">
+              <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+                <table className="w-full text-left text-xs min-w-[640px]">
                   <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-3">Adm No</th>
@@ -379,6 +382,23 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
+                            {onDeleteStudent && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm(`Are you sure you want to delete ${student.name} from records?`)) {
+                                    const success = await onDeleteStudent(student.id);
+                                    if (success) {
+                                      setSuccessNotice(`Removed ${student.name} from ${schoolClass.name}.`);
+                                      setTimeout(() => setSuccessNotice(null), 3000);
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
+                                title="Delete Student"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

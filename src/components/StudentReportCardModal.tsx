@@ -31,26 +31,27 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="p-4 bg-slate-900 text-white flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-blue-950 uppercase tracking-wider">
-              Terminal Broadsheet
+              Terminal Report
             </span>
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-slate-300 truncate max-w-[200px] sm:max-w-none">
               {student.name} ({student.admissionNo}) · {student.classArm}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs transition-colors flex items-center gap-1 px-2.5"
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print</span>
+              <span>Print Results</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              title="Close"
             >
               <X className="w-4 h-4" />
             </button>
@@ -58,14 +59,12 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
         </div>
 
         {/* Report Card Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 bg-slate-50/50">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/50 print-content">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8 space-y-6">
             {/* School Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-200 text-center sm:text-left">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-2xl shadow-sm">
-                  <DGCLogo size="md" showText={false} />
-                </div>
+                <DGCLogo size="lg" showText={false} />
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-slate-900 tracking-tight">
                     {SCHOOL_NAME}

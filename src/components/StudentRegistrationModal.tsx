@@ -24,6 +24,7 @@ import {
 import { StudentProfile } from '../types';
 import { SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { DGCLogo } from './DGCLogo';
+import { compressPassportPhoto } from '../utils/imageCompressor';
 
 interface StudentRegistrationModalProps {
   isOpen: boolean;
@@ -1158,16 +1159,15 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (evt) => {
-                                  if (evt.target?.result) {
-                                    setPhotoUrl(evt.target.result as string);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
+                                try {
+                                  const compressed = await compressPassportPhoto(file, 360, 420, 0.82);
+                                  setPhotoUrl(compressed);
+                                } catch (err) {
+                                  console.error('Failed to compress passport photograph:', err);
+                                }
                               }
                             }}
                           />

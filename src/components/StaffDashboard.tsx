@@ -76,7 +76,8 @@ interface StaffDashboardProps {
       remarks?: string;
       newAttendanceRate?: number;
     }>,
-    date?: string
+    date?: string,
+    term?: string
   ) => Promise<boolean>;
 }
 
@@ -120,6 +121,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       : staff.formMasterOf || 'SS 3 Science';
 
   const [selectedAttendanceClass, setSelectedAttendanceClass] = useState<string>(defaultAttendanceClass);
+  const [selectedAttendanceTerm, setSelectedAttendanceTerm] = useState<string>('First Term');
   const [attendanceDate, setAttendanceDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -326,10 +328,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   // Attendance derived states and helper logic
   const attendanceClassStudents = students.filter((s) => s.classArm === selectedAttendanceClass);
 
-  // Initialize and load attendance records from Firestore whenever class, date or students change
+  // Initialize and load attendance records from Firestore whenever class, date, term or students change
   useEffect(() => {
     let isSubscribed = true;
-    fetch(`/api/attendance?className=${encodeURIComponent(selectedAttendanceClass)}&date=${encodeURIComponent(attendanceDate)}`)
+    fetch(`/api/attendance?className=${encodeURIComponent(selectedAttendanceClass)}&date=${encodeURIComponent(attendanceDate)}&term=${encodeURIComponent(selectedAttendanceTerm)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!isSubscribed) return;
@@ -342,7 +344,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
             };
           });
           setAttendanceRecords(loaded);
-          setAttendanceSuccessMsg(`Loaded verified database attendance register for ${attendanceDate}`);
+          setAttendanceSuccessMsg(`Loaded verified database attendance register for ${attendanceDate} (${selectedAttendanceTerm})`);
           setTimeout(() => setAttendanceSuccessMsg(null), 3000);
         } else {
           setAttendanceRecords((prev) => {
@@ -377,7 +379,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     return () => {
       isSubscribed = false;
     };
-  }, [selectedAttendanceClass, attendanceDate, students]);
+  }, [selectedAttendanceClass, attendanceDate, selectedAttendanceTerm, students]);
 
   const handleMarkAllPresent = () => {
     setAttendanceRecords((prev) => {
@@ -444,13 +446,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     });
 
     if (onUpdateStudentAttendance) {
-      await onUpdateStudentAttendance(selectedAttendanceClass, recordsArray, attendanceDate);
+      await onUpdateStudentAttendance(selectedAttendanceClass, recordsArray, attendanceDate, selectedAttendanceTerm);
     }
 
     setIsSavingAttendance(false);
     const presentCount = recordsArray.filter((r) => r.status === 'Present').length;
     setAttendanceSuccessMsg(
-      `✓ Official Attendance for ${selectedAttendanceClass} recorded successfully! (${presentCount}/${recordsArray.length} present). Certified by ${staff.title} ${staff.name}.`
+      `✓ Attendance for ${selectedAttendanceClass} (${selectedAttendanceTerm}) recorded! (${presentCount}/${recordsArray.length} present). Certified by ${staff.title} ${staff.name}.`
     );
 
     setTimeout(() => {
@@ -739,10 +741,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
               </div>
               <button
                 onClick={() => window.print()}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                title="Print Class Broad Sheet"
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                title="Print Broadsheet"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Results</span>
               </button>
             </div>
 
@@ -887,7 +890,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                           <button
                             onClick={() => handleSaveStudentScore(student.id)}
                             disabled={savingId === student.id}
-                            className="px-3 py-1.5 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 ml-auto disabled:opacity-50"
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 ml-auto disabled:opacity-50 cursor-pointer"
                           >
                             <Save className="w-3.5 h-3.5" />
                             <span>{savingId === student.id ? '...' : 'Save'}</span>
@@ -980,7 +983,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                           <span>•</span>
                           <span>Term Average: <strong className="text-slate-900 font-mono">{student.termGpa}%</strong></span>
                           <span>•</span>
-                          <span>Attendance: <strong className="text-emerald-700 font-mono">{student.attendanceRate}%</strong></span>
+                          <span>Attendance: <strong className="text-blue-900 font-mono">{(student.timesSchoolOpened || 0) === 0 ? '0%' : `${student.attendanceRate}%`}</strong></span>
                         </div>
                       </div>
                     </div>
@@ -989,10 +992,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                       <button
                         onClick={() => handleSaveRemark(student.id)}
                         disabled={savingRemarkId === student.id}
-                        className="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                       >
                         <UserCheck className="w-3.5 h-3.5" />
-                        <span>{savingRemarkId === student.id ? 'Saving...' : 'Save Conduct Endorsement'}</span>
+                        <span>{savingRemarkId === student.id ? 'Saving...' : 'Save Remark'}</span>
                       </button>
                     </div>
                   </div>
@@ -1130,9 +1133,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
             </div>
           )}
 
-          {/* Controls Bar: Class Selection, Date, Session, and Quick Actions */}
+          {/* Controls Bar: Class Selection, Term, Date, Session, and Quick Actions */}
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               {/* Class Selector */}
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
@@ -1141,7 +1144,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 <select
                   value={selectedAttendanceClass}
                   onChange={(e) => setSelectedAttendanceClass(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                   id="attendance-class-select"
                 >
                   <optgroup label="My Assigned Classes">
@@ -1160,11 +1163,29 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   </optgroup>
                 </select>
                 {selectedAttendanceClass === staff.formMasterOf && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 mt-1">
-                    <ShieldCheck className="w-3 h-3 text-amber-600" />
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-blue-900 mt-1">
+                    <ShieldCheck className="w-3 h-3 text-blue-600" />
                     <span>Your Designated {formDesignation} Class</span>
                   </span>
                 )}
+              </div>
+
+              {/* Term Selector */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Select Term
+                </label>
+                <select
+                  value={selectedAttendanceTerm}
+                  onChange={(e) => setSelectedAttendanceTerm(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                  id="attendance-term-select"
+                >
+                  <option value="First Term">First Term</option>
+                  <option value="Second Term">Second Term</option>
+                  <option value="Third Term">Third Term</option>
+                </select>
+                <span className="text-[10px] text-slate-400 block mt-1">Academic Session Roster</span>
               </div>
 
               {/* Date Selector */}
@@ -1177,13 +1198,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     type="date"
                     value={attendanceDate}
                     onChange={(e) => setAttendanceDate(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 min-w-0 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     id="attendance-date-input"
                   />
                   <button
                     type="button"
                     onClick={() => setAttendanceDate(new Date().toISOString().split('T')[0])}
-                    className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold shrink-0 transition-colors"
+                    className="px-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold shrink-0 transition-colors"
                     title="Set to Today"
                   >
                     Today
@@ -1194,30 +1215,30 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
               {/* Session / Period Selector */}
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                  Register Session / Period
+                  Register Session
                 </label>
                 <select
                   value={attendanceSession}
                   onChange={(e) => setAttendanceSession(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                 >
-                  <option value="Morning Roll Call & Assembly">Morning Roll Call & Assembly (Official)</option>
-                  <option value="Mid-Day Register">Mid-Day Register (Post-Recess)</option>
-                  <option value="Subject Class Session">Subject Class Session</option>
-                  <option value="Evening Prep Roll Call">Evening Prep / Boarding Roll Call</option>
+                  <option value="Morning Roll Call & Assembly">Morning Assembly (Official)</option>
+                  <option value="Mid-Day Register">Mid-Day Register</option>
+                  <option value="Subject Class Session">Subject Session</option>
+                  <option value="Evening Prep Roll Call">Evening Prep</option>
                 </select>
               </div>
 
               {/* Bulk Quick Toggles */}
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                  Fast Roll Call Actions
+                  Fast Actions
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
                     onClick={handleMarkAllPresent}
-                    className="px-2.5 py-2 bg-blue-900 hover:bg-blue-950 text-white border border-blue-900 rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     id="mark-all-present-btn"
                   >
                     <Check className="w-3.5 h-3.5 text-blue-200" />
@@ -1226,7 +1247,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   <button
                     type="button"
                     onClick={handleMarkAllAbsent}
-                    className="px-2.5 py-2 bg-slate-800 hover:bg-slate-900 text-white border border-slate-700 rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-2 py-2 bg-slate-800 hover:bg-slate-900 text-white border border-slate-700 rounded-xl text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     id="mark-all-absent-btn"
                   >
                     <UserX className="w-3.5 h-3.5 text-slate-300" />
@@ -1432,17 +1453,23 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                           <div className="inline-flex flex-col items-center">
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                                student.attendanceRate >= 90
-                                  ? 'bg-blue-950 text-white'
+                                (student.timesSchoolOpened || 0) === 0
+                                  ? 'bg-slate-100 text-slate-600'
+                                  : student.attendanceRate >= 90
+                                  ? 'bg-blue-900 text-white'
                                   : student.attendanceRate >= 75
                                   ? 'bg-blue-100 text-blue-950'
                                   : 'bg-slate-200 text-slate-800'
                               }`}
                             >
-                              {student.attendanceRate}%
+                              {(student.timesSchoolOpened || 0) === 0 ? '0%' : `${student.attendanceRate}%`}
                             </span>
                             <span className="text-[10px] text-slate-400 mt-0.5">
-                              {student.attendanceRate >= 75 ? 'Satisfactory' : 'Critical Attendance'}
+                              {(student.timesSchoolOpened || 0) === 0
+                                ? 'Pending Roll'
+                                : student.attendanceRate >= 75
+                                ? 'Satisfactory'
+                                : 'Critical'}
                             </span>
                           </div>
                         </td>
@@ -1565,7 +1592,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   type="button"
                   onClick={handleSaveAttendance}
                   disabled={isSavingAttendance || attendanceClassStudents.length === 0}
-                  className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   id="certify-save-attendance-btn"
                 >
                   <Save className="w-4 h-4" />

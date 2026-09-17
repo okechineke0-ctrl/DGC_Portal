@@ -17,6 +17,7 @@ import {
 import { StudentProfile } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM } from '../data/mockData';
+import { compressPassportPhoto } from '../utils/imageCompressor';
 
 interface StudentSettingsViewProps {
   student: StudentProfile;
@@ -40,7 +41,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file processing for both drag-and-drop and manual file picker
-  const processImageFile = (file: File) => {
+  const processImageFile = async (file: File) => {
     setUploadError('');
     setSaveSuccess(false);
 
@@ -49,24 +50,13 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
       return;
     }
 
-    // Limit to 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('File size exceeds 5MB. Please upload a smaller passport photo.');
-      return;
+    try {
+      const compressedDataUri = await compressPassportPhoto(file, 360, 420, 0.82);
+      setPhotoPreview(compressedDataUri);
+      setUniformCertified(true); // Auto certify for confirmed passport photo upload
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to process image file. Please try another photograph.');
     }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        setPhotoPreview(result);
-        setUniformCertified(false); // require re-affirmation for newly uploaded picture
-      }
-    };
-    reader.onerror = () => {
-      setUploadError('Failed to read image file. Please try selecting another photograph.');
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

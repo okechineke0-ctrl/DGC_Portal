@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
 }) => {
   // Navigation items strictly adhering to secondary school student portal scope:
-  // 1. Print Report Card
+  // 1. Print Results
   // 2. Check performance in all subjects assigned by administration
   // 3. Check attendance
   // 4. Check if you have cleared school fees and other dues
@@ -41,29 +41,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigationItems = [
     {
       id: 'report_card',
-      label: 'Print Report Card',
-      subtitle: 'Official terminal grades & result sheet',
+      label: 'Print Results',
+      subtitle: 'Official terminal grades & broadsheet',
       icon: Printer,
       badge: 'Official',
     },
     {
       id: 'performance',
-      label: 'Check Subject Performance',
-      subtitle: 'Continuous assessment & exam breakdown',
+      label: 'Performance',
+      subtitle: 'Assessment & exam breakdown',
       icon: GraduationCap,
-      badge: 'All Subjects',
+      badge: 'Subjects',
     },
     {
       id: 'attendance',
-      label: 'Check Attendance',
-      subtitle: 'Term roll call & punctuality record',
+      label: 'Attendance',
+      subtitle: 'Roll call & punctuality record',
       icon: CalendarCheck,
-      badge: currentStudent ? `${currentStudent.attendanceRate}%` : '58/60 Days',
+      badge: currentStudent && (currentStudent.timesSchoolOpened || 0) > 0 ? `${currentStudent.attendanceRate}%` : 'Roll Call',
     },
     {
       id: 'fees',
-      label: 'School Fees',
-      subtitle: 'Clearance verification & bursary dues',
+      label: 'Fees & Clearance',
+      subtitle: 'Clearance verification & dues',
       icon: CreditCard,
       badge: currentStudent?.feeStatus === 'Cleared' ? 'Paid' : 'Not Paid',
       badgeColor: currentStudent?.feeStatus === 'Cleared' ? 'bg-blue-100 text-blue-950 border border-blue-300 font-bold' : 'bg-slate-100 text-slate-700 border border-slate-300 font-bold',

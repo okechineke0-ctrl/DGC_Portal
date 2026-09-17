@@ -243,12 +243,13 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
     }
   }, [activeTab]);
 
-  // Overall attendance rate across entire student body (derived mathematically from student profiles)
-  const overallAvgAttendance = students.length > 0
-    ? Math.round((students.reduce((acc, s) => acc + (s.attendanceRate !== undefined ? s.attendanceRate : 100), 0) / students.length) * 10) / 10
-    : 100;
-  const studentsMeetingRequirement = students.filter((s) => (s.attendanceRate !== undefined ? s.attendanceRate : 100) >= 75).length;
-  const studentsBelowRequirement = students.length - studentsMeetingRequirement;
+  // Overall attendance rate across entire student body (derived mathematically from student profiles who have records)
+  const studentsWithRecords = students.filter((s) => (s.timesSchoolOpened || 0) > 0);
+  const overallAvgAttendance = studentsWithRecords.length > 0
+    ? Math.round((studentsWithRecords.reduce((acc, s) => acc + (s.attendanceRate || 0), 0) / studentsWithRecords.length) * 10) / 10
+    : 0;
+  const studentsMeetingRequirement = studentsWithRecords.filter((s) => (s.attendanceRate || 0) >= 75).length;
+  const studentsBelowRequirement = studentsWithRecords.length - studentsMeetingRequirement;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -1241,8 +1242,9 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     .filter((cls) => attClassFilter === 'ALL' || cls.name === attClassFilter)
                     .map((cls) => {
                       const classStdList = students.filter((s) => s.classArm === cls.name);
-                      const classAvg = classStdList.length > 0
-                        ? Math.round((classStdList.reduce((acc, s) => acc + (s.attendanceRate !== undefined ? s.attendanceRate : 100), 0) / classStdList.length) * 10) / 10
+                      const classRecordedStdList = classStdList.filter((s) => (s.timesSchoolOpened || 0) > 0);
+                      const classAvg = classRecordedStdList.length > 0
+                        ? Math.round((classRecordedStdList.reduce((acc, s) => acc + (s.attendanceRate || 0), 0) / classRecordedStdList.length) * 10) / 10
                         : 0;
                       return (
                         <tr key={cls.id} className="hover:bg-slate-50/60">
@@ -1252,15 +1254,17 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                           </td>
                           <td className="py-3 px-3 font-mono">{classStdList.length} Students</td>
                           <td className="py-3 px-3 font-bold font-mono text-slate-800">
-                            {classStdList.length > 0 ? `${classAvg}%` : 'N/A'}
+                            {classRecordedStdList.length > 0 ? `${classAvg}%` : 'Pending Roll'}
                           </td>
                           <td className="py-3 px-3">
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                              classAvg >= 75
-                                ? 'bg-blue-950 text-white'
+                              classRecordedStdList.length === 0
+                                ? 'bg-slate-100 text-slate-600'
+                                : classAvg >= 75
+                                ? 'bg-blue-900 text-white'
                                 : 'bg-slate-200 text-slate-800'
                             }`}>
-                              {classStdList.length === 0 ? 'No Enrollees' : classAvg >= 75 ? 'Cleared (≥75%)' : 'Deficit (<75%)'}
+                              {classRecordedStdList.length === 0 ? 'Pending Roll' : classAvg >= 75 ? 'Cleared (≥75%)' : 'Deficit (<75%)'}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
@@ -1644,6 +1648,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onBatchHoldClass={onBatchHoldClass}
           onEditStudent={(s) => setEditingStudent(s)}
           onPreviewReportCard={(s) => setReportCardStudent(s)}
+          onDeleteStudent={onDeleteStudent}
         />
       )}
 

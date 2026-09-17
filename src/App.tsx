@@ -910,7 +910,8 @@ export default function App() {
       remarks?: string;
       newAttendanceRate?: number;
     }>,
-    date?: string
+    date?: string,
+    term?: string
   ): Promise<boolean> => {
     try {
       const res = await fetch('/api/attendance/mark', {
@@ -919,6 +920,7 @@ export default function App() {
         body: JSON.stringify({
           className,
           date: date || new Date().toISOString().split('T')[0],
+          term: term || 'First Term',
           records,
         }),
       });
@@ -1044,7 +1046,7 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex text-slate-800">
+    <div className="min-h-screen bg-sky-50/60 flex text-slate-800">
       {/* Navigation Sidebar (Only rendered when user is logged into their portal session) */}
       {!isLoggedOut && (
         <Sidebar
@@ -1257,18 +1259,18 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsCheckRegModalOpen(true)}
-                        className="text-blue-950 hover:text-blue-800 font-bold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                        className="text-blue-900 hover:text-blue-700 font-bold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Search className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Don&apos;t know your Reg Number? Check Reg Number</span>
+                        <Search className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Forgot Reg Number? Check Here</span>
                       </button>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 px-4 bg-blue-950 hover:bg-blue-900 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                      className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center justify-center gap-2 mt-2 cursor-pointer"
                     >
-                      <span>Sign In to Student Portal</span>
+                      <span>Sign In</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </form>

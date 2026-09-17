@@ -34,6 +34,7 @@ import {
 import { DGCLogo } from './DGCLogo';
 import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
+import { StudentReportCardModal } from './StudentReportCardModal';
 
 interface StudentPortalViewProps {
   currentStudent: StudentProfile;
@@ -94,6 +95,9 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   const [feeSchedule, setFeeSchedule] = useState<CollegeFeeSchedule | null>(
     initialFeeSchedule || null
   );
+  const [selectedAttendanceTerm, setSelectedAttendanceTerm] = useState<string>(
+    currentStudent.term || 'First Term'
+  );
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendanceFullData | null>(null);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState<boolean>(false);
 
@@ -108,8 +112,9 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       fetch('/api/fees/schedule')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data && data.totalFee) {
-            setFeeSchedule(data);
+          if (data) {
+            const schedule = data.schedule || data;
+            setFeeSchedule(schedule);
           }
         })
         .catch(() => {});
@@ -120,12 +125,30 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   useEffect(() => {
     let isSubscribed = true;
     setIsLoadingAttendance(true);
-    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}`)
+    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}?term=${encodeURIComponent(selectedAttendanceTerm)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!isSubscribed) return;
         if (data && data.success) {
-          setStudentAttendance(data);
+          const attendanceData: StudentAttendanceFullData = {
+            openDays: data.summary?.openDays ?? 0,
+            presentDays: data.summary?.presentDays ?? 0,
+            absentDays: data.summary?.absentDays ?? 0,
+            punctualDays: data.summary?.punctualDays ?? 0,
+            lateDays: data.summary?.lateDays ?? 0,
+            excusedDays: data.summary?.excusedDays ?? 0,
+            attendanceRate: data.summary?.attendanceRate ?? 0,
+            isCleared: data.summary?.isCleared ?? true,
+            assignedFormMaster: data.summary?.assignedFormMaster || 'Class Form Master',
+            weeks: data.weeks || [],
+            recentLogs: data.recentLogs || [],
+            hasAttendance: data.hasAttendance,
+            message: data.message,
+            totalRecords: data.totalRecords ?? 0,
+            selectedTerm: data.selectedTerm || selectedAttendanceTerm,
+            statusNote: data.summary?.statusNote,
+          };
+          setStudentAttendance(attendanceData);
           if (data.weeks && data.weeks.length > 0) {
             setSelectedWeek(data.weeks.length);
           }
@@ -139,9 +162,15 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
     return () => {
       isSubscribed = false;
     };
-  }, [student.id]);
+  }, [student.id, student.classArm, selectedAttendanceTerm]);
 
   // Subject Chart Data
+  const [isReportCardOpen, setIsReportCardOpen] = useState(false);
+
+  const liveOpenDays = studentAttendance?.summary?.openDays ?? (student.timesSchoolOpened || 0);
+  const livePresentDays = studentAttendance?.summary?.presentDays ?? (student.timesPresent || 0);
+  const liveAttendanceRate = liveOpenDays > 0 ? (studentAttendance?.summary?.attendanceRate ?? student.attendanceRate ?? 0) : 0;
+
   const chartData = (student.subjects || []).map((sub) => ({
     name: sub.name.length > 12 ? sub.name.substring(0, 11) + '…' : sub.name,
     fullName: sub.name,
@@ -161,7 +190,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       alert(`The report card for ${student.name} is currently withheld by the Administration. Clearance from the Bursary is required.`);
       return;
     }
-    window.print();
+    setIsReportCardOpen(true);
   };
 
   return (
@@ -261,10 +290,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             <div className="text-center">
               <span className="text-[10px] uppercase font-bold text-blue-300 block">Attendance</span>
               <span className="text-2xl sm:text-3xl font-black text-white font-mono">
-                {student.attendanceRate}%
+                {liveOpenDays > 0 ? `${liveAttendanceRate}%` : '0%'}
               </span>
               <span className="text-[10px] text-blue-200 block">
-                {student.timesPresent !== undefined ? student.timesPresent : Math.round(((student.attendanceRate ?? 95) / 100) * (student.timesSchoolOpened || 60))} / {student.timesSchoolOpened || 60} Days
+                {liveOpenDays > 0 ? `${livePresentDays} / ${liveOpenDays} Days` : 'Awaiting Roll Call'}
               </span>
             </div>
             <div className="w-px h-10 bg-white/20" />
@@ -286,10 +315,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
           <button
             onClick={handlePrintReportCard}
-            className="px-4 py-2 rounded-xl bg-white text-blue-950 font-bold hover:bg-blue-50 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-blue-900" />
-            <span>{student.resultHeld ? 'Report Card Locked' : 'Print Official Report Card'}</span>
+            <Printer className="w-4 h-4" />
+            <span>{student.resultHeld ? 'Locked' : 'Print Results'}</span>
           </button>
         </div>
       </div>
@@ -298,50 +327,50 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-200/70 rounded-2xl max-w-fit overflow-x-auto text-xs font-semibold">
         <button
           onClick={() => setActiveTab('report_card')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'report_card'
-              ? 'bg-white text-blue-950 font-bold shadow-xs'
+              ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Printer className="w-4 h-4" />
-          <span>Print Report Card</span>
+          <span>Print Results</span>
         </button>
 
         <button
           onClick={() => setActiveTab('performance')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'performance'
-              ? 'bg-white text-blue-950 font-bold shadow-xs'
+              ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <GraduationCap className="w-4 h-4" />
-          <span>Check Subject Performance</span>
+          <span>Performance</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'attendance'
-              ? 'bg-white text-blue-950 font-bold shadow-xs'
+              ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <CalendarCheck className="w-4 h-4" />
-          <span>Check Attendance</span>
+          <span>Attendance</span>
         </button>
 
         <button
           onClick={() => setActiveTab('fees')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'fees'
-              ? 'bg-white text-blue-950 font-bold shadow-xs'
+              ? 'bg-blue-900 text-white font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>Check School Fees & Dues</span>
+          <span>Fees & Clearance</span>
         </button>
       </div>
 
@@ -537,10 +566,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             </span>
             <button
               onClick={handlePrintReportCard}
-              className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>Print Official Terminal Report Card</span>
+              <span>Print Results</span>
             </button>
           </div>
         </div>
@@ -764,8 +793,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         const absentDays = studentAttendance?.summary?.absentDays ?? Math.max(0, openDays - presentDays);
         const punctualDays = studentAttendance?.summary?.punctualDays ?? presentDays;
         const lateDays = studentAttendance?.summary?.lateDays ?? 0;
-        const rate = openDays > 0 ? (studentAttendance?.summary?.attendanceRate ?? student.attendanceRate ?? 100) : 100;
-        const isCleared = rate >= 75;
+        const rate = openDays > 0 ? (studentAttendance?.summary?.attendanceRate ?? student.attendanceRate ?? 0) : 0;
+        const isCleared = openDays === 0 ? true : rate >= 75;
         const weeks = studentAttendance?.weeks || [];
         const currentWkData = weeks.length > 0
           ? (weeks.find((w) => w.week === selectedWeek) || weeks[weeks.length - 1])
@@ -781,26 +810,40 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   <CalendarCheck className="w-5 h-5 text-blue-200" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-bold text-slate-900">
-                      Official College Attendance Transcript
+                      College Attendance
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-950 border border-blue-200 font-mono">
-                      {student.session} · {student.term}
+                      {student.session} · {selectedAttendanceTerm}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Synchronized live with {SCHOOL_NAME} Cloud Firestore roll call register
+                    Live roll call register for {student.classArm}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-center">
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                {/* Term Selector */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-600">Term:</span>
+                  <select
+                    value={selectedAttendanceTerm}
+                    onChange={(e) => setSelectedAttendanceTerm(e.target.value)}
+                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900 cursor-pointer shadow-2xs"
+                  >
+                    <option value="First Term">First Term</option>
+                    <option value="Second Term">Second Term</option>
+                    <option value="Third Term">Third Term</option>
+                  </select>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     setIsLoadingAttendance(true);
-                    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}`)
+                    fetch(`/api/attendance/student/${encodeURIComponent(student.id)}?term=${encodeURIComponent(selectedAttendanceTerm)}`)
                       .then((res) => (res.ok ? res.json() : null))
                       .then((data) => {
                         if (data && data.success) {
@@ -812,10 +855,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                       })
                       .finally(() => setIsLoadingAttendance(false));
                   }}
-                  className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  className="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                   id="refresh-student-attendance-btn"
                 >
-                  <span>{isLoadingAttendance ? 'Syncing...' : '↻ Refresh Roll'}</span>
+                  <span>{isLoadingAttendance ? 'Syncing...' : '↻ Refresh'}</span>
                 </button>
               </div>
             </div>
@@ -824,13 +867,13 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase block tracking-wider">
-                  College Open Days
+                  Open Days
                 </span>
                 <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">
                   {openDays} {openDays === 1 ? 'Day' : 'Days'}
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  {openDays > 0 ? `${CURRENT_TERM} Recorded` : 'Awaiting First Roll Call'}
+                  {openDays > 0 ? `${selectedAttendanceTerm} Recorded` : 'No Attendance Yet'}
                 </span>
               </div>
 
@@ -848,7 +891,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-blue-700 font-medium">Certified on Morning Register</span>
+                <span className="text-[11px] text-blue-700 font-medium">Certified on Register</span>
               </div>
 
               <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
@@ -859,19 +902,19 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   {absentDays} {absentDays === 1 ? 'Day' : 'Days'}
                 </span>
                 <span className="text-[11px] text-slate-500 font-medium">
-                  {absentDays === 0 ? 'Zero Unexcused Absences' : 'Leave / Excuse Noted'}
+                  {openDays === 0 ? 'No records yet' : absentDays === 0 ? 'Zero Absences' : 'Leave / Excuse Noted'}
                 </span>
               </div>
 
               <div className="p-4 bg-white rounded-2xl border border-blue-200/80 shadow-2xs">
                 <span className="text-[10px] font-extrabold text-blue-900 uppercase block tracking-wider">
-                  Certified Rate
+                  Attendance Rate
                 </span>
                 <span className="text-2xl font-black text-blue-950 font-mono mt-1 block">
                   {rate}%
                 </span>
                 <span className="text-[11px] text-blue-800 font-bold">
-                  {openDays === 0 ? 'Clearance Pending First Roll' : isCleared ? 'Surpasses 75% Requirement' : 'Below 75% Minimum'}
+                  {openDays === 0 ? 'Pending First Roll' : isCleared ? 'Clearance Satisfied' : 'Below 75% Requirement'}
                 </span>
               </div>
             </div>
@@ -885,7 +928,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h4 className="text-base font-bold text-blue-950">
-                      Institutional Roll Certification: {openDays === 0 ? 'Awaiting First Term Register' : isCleared ? 'Cleared & Verified' : 'Under Advisory Review'}
+                      {openDays === 0
+                        ? (studentAttendance?.message || 'No attendance yet, your teacher have not started marking attendance')
+                        : isCleared
+                        ? 'Attendance Status: Cleared & Verified'
+                        : 'Attendance Status: Under Advisory Review'}
                     </h4>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-950 text-white font-mono">
                       OFFICIAL
@@ -894,11 +941,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   <p className="text-xs text-slate-700 leading-relaxed mt-0.5 max-w-2xl">
                     {openDays > 0 ? (
                       <>
-                        <strong>{student.name}</strong> holds an official cumulative attendance rate of <strong>{rate}%</strong> for the {CURRENT_TERM}. This record is certified by the Form Master and recorded in the college database, satisfying the Ministry of Education standard.
+                        <strong>{student.name}</strong> holds an official cumulative attendance rate of <strong>{rate}%</strong> for the {selectedAttendanceTerm}. This record is certified by the Form Master and recorded in the college database.
                       </>
                     ) : (
                       <>
-                        Official daily morning attendance for <strong>{student.name}</strong> is recorded by the assigned Form Master ({assignedFormMaster}) during the morning roll call. All recorded registers are verified into Cloud Firestore in real time.
+                        {studentAttendance?.message || 'No attendance yet, your teacher have not started marking attendance'}. Form Master ({assignedFormMaster}) records daily roll calls for {student.classArm}.
                       </>
                     )}
                   </p>
@@ -920,17 +967,22 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 </div>
                 <div className="max-w-md mx-auto space-y-1.5">
                   <h4 className="text-base font-bold text-slate-900">
-                    No Daily Roll Call Records Logged Yet
+                    {studentAttendance?.message || 'No attendance yet, your teacher have not started marking attendance'}
                   </h4>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    The Form Master ({assignedFormMaster}) has not yet certified morning roll calls for <strong>{student.classArm}</strong>. As soon as the teacher marks attendance in the Staff Dashboard, real-time clock-in times and weekly attendance percentages will display here automatically.
+                    {studentAttendance?.message?.includes('meet your teacher')
+                      ? `Your enrolled class is ${student.classArm}. If you believe this is an error, please meet your form master (${assignedFormMaster}) or the school administration.`
+                      : `The Form Master (${assignedFormMaster}) has not yet marked attendance for ${student.classArm} in ${selectedAttendanceTerm}. As soon as attendance is submitted in the teacher dashboard, it will appear here in real time.`}
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600">
-                  <span>Enrolled Class:</span>
+                  <span>Class:</span>
                   <span className="font-bold text-blue-950">{student.classArm}</span>
                   <span>·</span>
-                  <span>Admission No:</span>
+                  <span>Term:</span>
+                  <span className="font-bold text-blue-950">{selectedAttendanceTerm}</span>
+                  <span>·</span>
+                  <span>Adm No:</span>
                   <span className="font-mono font-bold text-slate-800">{student.admissionNo}</span>
                 </div>
               </div>
@@ -1124,14 +1176,33 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       {/* 4. CHECK SCHOOL FEES AND OTHER DUES (Mature White & Blue Bursary Oversight)*/}
       {/* ========================================================================= */}
       {activeTab === 'fees' && (() => {
-        const totalTermBill = feeSchedule?.totalFee ?? 155000;
+        const validBaseFee = (feeSchedule as any)?.baseSchoolFee ?? (feeSchedule as any)?.baseTuition ?? 85000;
+        const validItems: Array<{ id?: string; name: string; amount: number; category?: string; description?: string }> =
+          (feeSchedule as any)?.items && Array.isArray((feeSchedule as any).items) && (feeSchedule as any).items.length > 0
+            ? (feeSchedule as any).items
+            : (feeSchedule as any)?.otherFees && Array.isArray((feeSchedule as any).otherFees)
+            ? (feeSchedule as any).otherFees
+            : [
+                { name: 'Project & Practical Levy', amount: 15000, category: 'Academic Levy', description: 'Laboratory kits and project supplies' },
+                { name: 'ICT & College Portal Levy', amount: 10000, category: 'Facility', description: 'Computer lab sessions & portal access' },
+              ];
+
+        const nonTuitionItems = validItems.filter((it: any) => it.category !== 'Tuition');
+        const itemsTotal = nonTuitionItems.reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
+        const totalTermBill = (feeSchedule as any)?.totalFee ?? (validBaseFee + itemsTotal);
+
         const isPaid = student.feeStatus === 'Cleared';
-        const amountPaid = isPaid ? totalTermBill : (student.amountPaid ?? Math.round(totalTermBill * 0.45));
+        const amountPaid = isPaid ? totalTermBill : (student.amountPaid ?? 0);
         const outstandingBalance = isPaid ? 0 : Math.max(0, totalTermBill - amountPaid);
 
+        const bankName = (feeSchedule as any)?.bankName || (feeSchedule as any)?.bankDetails?.bankName || 'First Bank of Nigeria';
+        const accountNumber = (feeSchedule as any)?.accountNumber || (feeSchedule as any)?.bankDetails?.accountNumber || '3128940022';
+        const accountName = (feeSchedule as any)?.accountName || (feeSchedule as any)?.bankDetails?.accountName || 'Dominion Stars Global College Bursary Account';
+        const paymentInstructions = (feeSchedule as any)?.paymentInstructions || 'Please indicate the student admission number and full name on the payment narration/deposit slip.';
+
         const handleCopyAccount = () => {
-          if (feeSchedule?.bankDetails.accountNumber) {
-            navigator.clipboard.writeText(feeSchedule.bankDetails.accountNumber);
+          if (accountNumber) {
+            navigator.clipboard.writeText(accountNumber);
             setCopiedAccount(true);
             setTimeout(() => setCopiedAccount(false), 2500);
           }
@@ -1265,50 +1336,31 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                     </span>
                   </div>
                   <span className="font-mono font-bold text-slate-900 text-sm">
-                    ₦{(feeSchedule?.baseTuition ?? 85000).toLocaleString()}.00
+                    ₦{validBaseFee.toLocaleString()}.00
                   </span>
                 </div>
 
                 {/* Additional Fees Input by Administrator (e.g. Project Fee, Science Lab, etc.) */}
-                {feeSchedule?.otherFees && feeSchedule.otherFees.length > 0 ? (
-                  feeSchedule.otherFees.map((fee, idx) => (
-                    <div key={fee.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-xs">{fee.name}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            {fee.category || 'College Assessment'}
-                          </span>
-                        </div>
-                        {fee.description && (
-                          <span className="text-[11px] text-slate-500 block mt-0.5">
-                            {fee.description}
-                          </span>
-                        )}
+                {nonTuitionItems.map((fee: any, idx: number) => (
+                  <div key={fee.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-xs">{fee.name}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          {fee.category || 'College Assessment'}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-slate-900 text-sm">
-                        ₦{fee.amount.toLocaleString()}.00
-                      </span>
+                      {fee.description && (
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          {fee.description}
+                        </span>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <>
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-                      <div>
-                        <span className="font-bold text-slate-900 block">Project & Practical Fee</span>
-                        <span className="text-[11px] text-slate-500">Term academic project kits & laboratory investigations</span>
-                      </div>
-                      <span className="font-mono font-bold text-slate-900 text-sm">₦15,000.00</span>
-                    </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-                      <div>
-                        <span className="font-bold text-slate-900 block">ICT & College Database Maintenance</span>
-                        <span className="text-[11px] text-slate-500">Computer laboratory sessions & portal hosting</span>
-                      </div>
-                      <span className="font-mono font-bold text-slate-900 text-sm">₦10,000.00</span>
-                    </div>
-                  </>
-                )}
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      ₦{Number(fee.amount).toLocaleString()}.00
+                    </span>
+                  </div>
+                ))}
 
                 {/* Total Bill Footer */}
                 <div className="p-4 bg-slate-50/80 flex items-center justify-between border-t border-slate-200 font-bold">
@@ -1323,59 +1375,57 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             </div>
 
             {/* Official College Bank Account Remittance Details */}
-            {feeSchedule?.bankDetails && (
-              <div className="p-5 bg-white rounded-2xl border border-blue-900/20 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
-                      OFFICIAL REMITTANCE ACCOUNT
-                    </span>
-                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">
-                      College Designated Bank Details
-                    </h4>
-                  </div>
-                  <span className="px-2.5 py-1 bg-blue-50 text-blue-950 border border-blue-200 rounded-lg text-[10px] font-bold">
-                    Official Bursary Channel
+            <div className="p-5 bg-white rounded-2xl border border-blue-900/20 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
+                    OFFICIAL REMITTANCE ACCOUNT
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 mt-0.5">
+                    College Designated Bank Details
+                  </h4>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-50 text-blue-950 border border-blue-200 rounded-lg text-[10px] font-bold">
+                  Official Bursary Channel
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Bank Name</span>
+                  <span className="font-bold text-slate-900 text-sm mt-0.5 block">
+                    {bankName}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Bank Name</span>
-                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">
-                      {feeSchedule.bankDetails.bankName}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Number</span>
+                    <span className="font-mono font-black text-blue-950 text-base mt-0.5 block">
+                      {accountNumber}
                     </span>
                   </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Number</span>
-                      <span className="font-mono font-black text-blue-950 text-base mt-0.5 block">
-                        {feeSchedule.bankDetails.accountNumber}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleCopyAccount}
-                      className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer"
-                      title="Copy Account Number"
-                    >
-                      {copiedAccount ? <Check className="w-4 h-4 text-blue-950" /> : <Copy className="w-4 h-4 text-slate-600" />}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Name</span>
-                    <span className="font-bold text-slate-900 text-xs mt-0.5 block truncate">
-                      {feeSchedule.bankDetails.accountName}
-                    </span>
-                  </div>
+                  <button
+                    onClick={handleCopyAccount}
+                    className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer"
+                    title="Copy Account Number"
+                  >
+                    {copiedAccount ? <Check className="w-4 h-4 text-blue-950" /> : <Copy className="w-4 h-4 text-slate-600" />}
+                  </button>
                 </div>
 
-                <div className="text-[11px] text-slate-500 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
-                  <strong>Remittance Narration:</strong> Please use your official College Registration Number (<code>{student.admissionNo}</code>) as the payment description or transaction remarks.
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Name</span>
+                  <span className="font-bold text-slate-900 text-xs mt-0.5 block truncate">
+                    {accountName}
+                  </span>
                 </div>
               </div>
-            )}
+
+              <div className="text-[11px] text-slate-500 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
+                <strong>Remittance Instructions:</strong> {paymentInstructions} (Use registration number <code>{student.admissionNo}</code> as narration).
+              </div>
+            </div>
 
             {/* Clearance Certificate Footer & Print Receipt Action */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-600">
@@ -1389,16 +1439,25 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 onClick={() => {
                   window.print();
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-950 text-white font-bold hover:bg-blue-900 transition-colors shadow-2xs flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
                 id="student-print-clearance-btn"
               >
-                <Printer className="w-3.5 h-3.5 text-blue-300" />
-                <span>Print Fee Schedule & Clearance</span>
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Clearance</span>
               </button>
             </div>
           </div>
         );
       })()}
+
+      {/* Official Student Report Card Modal (View & Print) */}
+      {isReportCardOpen && (
+        <StudentReportCardModal
+          student={student}
+          classes={classes || []}
+          onClose={() => setIsReportCardOpen(false)}
+        />
+      )}
     </div>
   );
 };

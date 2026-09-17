@@ -3,6 +3,7 @@ import React from 'react';
 interface DGCLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
+  variant?: 'default' | 'on-dark';
   className?: string;
   onClick?: () => void;
 }
@@ -10,17 +11,18 @@ interface DGCLogoProps {
 export const DGCLogo: React.FC<DGCLogoProps> = ({
   size = 'md',
   showText = true,
+  variant = 'default',
   className = '',
   onClick,
 }) => {
   const sizeMap = {
-    sm: { box: 36, textTitle: 'text-xs', textSub: 'text-[9px]' },
-    md: { box: 44, textTitle: 'text-sm', textSub: 'text-[10px]' },
-    lg: { box: 56, textTitle: 'text-base', textSub: 'text-xs' },
-    xl: { box: 80, textTitle: 'text-xl', textSub: 'text-sm' },
+    sm: { box: 32, pad: 'p-1', rounded: 'rounded-xl', textTitle: 'text-xs', textSub: 'text-[9px]' },
+    md: { box: 40, pad: 'p-1', rounded: 'rounded-xl', textTitle: 'text-sm', textSub: 'text-[10px]' },
+    lg: { box: 52, pad: 'p-1.5', rounded: 'rounded-2xl', textTitle: 'text-base', textSub: 'text-xs' },
+    xl: { box: 72, pad: 'p-2', rounded: 'rounded-2xl', textTitle: 'text-xl', textSub: 'text-sm' },
   };
 
-  const { box } = sizeMap[size];
+  const { box, pad, rounded } = sizeMap[size];
 
   return (
     <div
@@ -28,25 +30,31 @@ export const DGCLogo: React.FC<DGCLogoProps> = ({
       title="Dominion Global College - Awgu, Enugu"
       className={`flex items-center gap-2.5 select-none relative group ${onClick ? 'cursor-pointer' : ''} ${className}`}
     >
-      {/* Official Dominion Global College Crest Logo */}
-      <img
-        src="/1789397544433.jpg"
-        alt="Dominion Global College Crest Logo"
-        width={box}
-        height={box}
-        style={{ width: `${box}px`, height: `${box}px` }}
-        className="shrink-0 object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
-        referrerPolicy="no-referrer"
-      />
+      {/* Official Dominion Global College Crest Logo in Clean White Emblem Badge */}
+      <div className={`bg-white ${pad} ${rounded} shadow-xs border border-slate-200/90 shrink-0 flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105`}>
+        <img
+          src="/1789397544433.jpg"
+          alt="Dominion Global College Crest Logo"
+          width={box}
+          height={box}
+          style={{ width: `${box}px`, height: `${box}px` }}
+          className="shrink-0 object-contain"
+          referrerPolicy="no-referrer"
+        />
+      </div>
 
       {showText && (
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
-            <span className="font-extrabold tracking-tight text-slate-900 leading-tight text-sm md:text-base">
+            <span className={`font-extrabold tracking-tight leading-tight text-sm md:text-base ${
+              variant === 'on-dark' ? 'text-white' : 'text-slate-900'
+            }`}>
               Dominion Global
             </span>
           </div>
-          <span className="text-[10px] font-bold tracking-wider text-blue-900 uppercase leading-none">
+          <span className={`text-[10px] font-bold tracking-wider uppercase leading-none ${
+            variant === 'on-dark' ? 'text-blue-200' : 'text-blue-900'
+          }`}>
             COLLEGE · AWGU
           </span>
         </div>
