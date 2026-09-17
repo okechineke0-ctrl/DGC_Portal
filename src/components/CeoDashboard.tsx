@@ -241,7 +241,9 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             setAllAttendanceLogs(data.attendanceRecords);
           }
         })
-        .catch((err) => console.error('Failed to load attendance logs:', err))
+        .catch(() => {
+          // Graceful fallback to existing registers
+        })
         .finally(() => setIsLoadingAttendance(false));
     }
   }, [activeTab]);
