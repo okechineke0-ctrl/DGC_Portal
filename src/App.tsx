@@ -173,6 +173,21 @@ export default function App() {
     setIsGatewayOpen(true);
   };
 
+  // Discreet sliding-window timestamp tracker for rapid triple-click administrative shortcut (zero intrusive popups/toasts)
+  const logoClicksRef = useRef<number[]>([]);
+
+  const handleLogoTripleClick = () => {
+    const now = Date.now();
+    // Keep clicks occurring within the last 1500ms
+    const recentClicks = [...logoClicksRef.current.filter((t) => now - t < 1500), now];
+    logoClicksRef.current = recentClicks;
+
+    if (recentClicks.length >= 3) {
+      logoClicksRef.current = [];
+      handleOpenGateway();
+    }
+  };
+
   // Student Authentication: Reg Number and Password (which is also the Reg Number)
   const handleStudentLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1027,6 +1042,7 @@ export default function App() {
           setIsMobileOpen={setIsMobileMenuOpen}
           currentStudent={selectedStudent}
           onLogout={() => setIsLogoutModalOpen(true)}
+          onLogoTripleClick={handleLogoTripleClick}
         />
       )}
 
@@ -1039,6 +1055,7 @@ export default function App() {
           setPortalMode={() => {}}
           onOpenAnnouncements={() => setIsAnnouncementsOpen(true)}
           onOpenGateway={handleOpenGateway}
+          onLogoTripleClick={handleLogoTripleClick}
           currentRole={activeRole}
           isLoggedOut={isLoggedOut}
           isDbLive={isDbLive}
@@ -1121,14 +1138,17 @@ export default function App() {
             <>
               {isLoggedOut ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
-                  {/* Dominate Star College Official Crest Emblem */}
+                  {/* Dominate Star College Official Crest Emblem with Administrative Triple-Click Shortcut */}
                   <div className="inline-block mx-auto">
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs"
+                    <button
+                      type="button"
+                      onClick={handleLogoTripleClick}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
                       title="Dominate Star College"
+                      aria-label="Dominate Star College Crest"
                     >
                       <DGCLogo size="md" showText={false} />
-                    </div>
+                    </button>
                   </div>
 
                   <div className="space-y-1.5">

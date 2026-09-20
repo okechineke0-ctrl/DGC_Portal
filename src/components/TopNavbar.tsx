@@ -23,6 +23,7 @@ interface TopNavbarProps {
   setPortalMode: (mode: 'director' | 'student') => void;
   onOpenAnnouncements: () => void;
   onOpenGateway?: () => void;
+  onLogoTripleClick?: () => void;
   currentRole?: 'portal' | 'staff' | 'ceo';
   isLoggedOut?: boolean;
   isDbLive?: boolean;
@@ -40,6 +41,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   setPortalMode,
   onOpenAnnouncements,
   onOpenGateway,
+  onLogoTripleClick,
   currentRole = 'portal',
   isLoggedOut = false,
   isDbLive = true,
@@ -68,7 +70,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
           {/* Logo on mobile/top bar */}
           <div className="lg:hidden">
-            <DGCLogo size="sm" showText={false} />
+            <DGCLogo size="sm" showText={false} onClick={onLogoTripleClick} />
           </div>
 
           <div className="flex flex-col min-w-0">
