@@ -75,11 +75,6 @@ export default function App() {
   const [isCheckRegModalOpen, setIsCheckRegModalOpen] = useState<boolean>(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
 
-  // Triple-click logo trigger for administration gateway access
-  const [logoClickCount, setLogoClickCount] = useState<number>(0);
-  const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [adminToast, setAdminToast] = useState<string | null>(null);
-
   // Workspaces: 'portal' (Standard Student & Guardian Portal), 'staff' (Tutor Continuous Assessment), 'ceo' (CEO & Principal Governance)
   const [activeRole, setActiveRole] = useState<'portal' | 'staff' | 'ceo'>('portal');
   const [isGatewayOpen, setIsGatewayOpen] = useState<boolean>(false);
@@ -176,31 +171,6 @@ export default function App() {
 
   const handleOpenGateway = () => {
     setIsGatewayOpen(true);
-  };
-
-  // Triple-click on the DGC Logo/Icon opens the Administration Gateway
-  const handleLogoTripleClick = () => {
-    const nextCount = logoClickCount + 1;
-    setLogoClickCount(nextCount);
-
-    if (logoClickTimeoutRef.current) {
-      clearTimeout(logoClickTimeoutRef.current);
-    }
-
-    if (nextCount >= 3) {
-      setLogoClickCount(0);
-      setAdminToast('Administrative Authority Verified: Opening Institutional Gateway...');
-      setTimeout(() => setAdminToast(null), 3500);
-      setIsGatewayOpen(true);
-    } else {
-      if (nextCount === 2) {
-        setAdminToast('Admin Access: 1 more click to unlock Institutional Gateway...');
-        setTimeout(() => setAdminToast(null), 1800);
-      }
-      logoClickTimeoutRef.current = setTimeout(() => {
-        setLogoClickCount(0);
-      }, 2500);
-    }
   };
 
   // Student Authentication: Reg Number and Password (which is also the Reg Number)
@@ -1069,7 +1039,6 @@ export default function App() {
           setPortalMode={() => {}}
           onOpenAnnouncements={() => setIsAnnouncementsOpen(true)}
           onOpenGateway={handleOpenGateway}
-          onLogoTripleClick={handleLogoTripleClick}
           currentRole={activeRole}
           isLoggedOut={isLoggedOut}
           isDbLive={isDbLive}
@@ -1152,28 +1121,14 @@ export default function App() {
             <>
               {isLoggedOut ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
-                  {/* Admin Toast feedback */}
-                  {adminToast && (
-                    <div className="p-3 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold rounded-xl flex items-center justify-center gap-2 animate-bounce">
-                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>{adminToast}</span>
-                    </div>
-                  )}
-
-                  {/* Dominate Star College Logo Icon with Triple-Click Administration Shortcut */}
-                  <div className="relative inline-block mx-auto">
+                  {/* Dominate Star College Official Crest Emblem */}
+                  <div className="inline-block mx-auto">
                     <div
-                      onClick={handleLogoTripleClick}
-                      className="w-20 h-20 rounded-3xl bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group"
-                      title="Dominate Star College (Administration Authority: Click 3 times to unlock gateway)"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs"
+                      title="Dominate Star College"
                     >
                       <DGCLogo size="md" showText={false} />
                     </div>
-                    {logoClickCount > 0 && (
-                      <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-blue-700 text-white font-black text-[9px] rounded-full shadow-xs whitespace-nowrap animate-pulse">
-                        {logoClickCount}/3 Admin Clicks
-                      </span>
-                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -1279,11 +1234,16 @@ export default function App() {
                     </button>
                   </form>
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
-                    <span>Senior Academic Division · 2026/2027</span>
-                    <span className="text-[10px] text-slate-400 text-center sm:text-right">
-                      Administrator: Click crest logo 3 times above to access gateway
-                    </span>
+                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+                    <span className="text-[11px] text-slate-400">Senior Academic Division · 2026/2027</span>
+                    <button
+                      type="button"
+                      onClick={handleOpenGateway}
+                      className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Staff & Administration Gateway</span>
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -1581,13 +1541,12 @@ export default function App() {
         onClose={() => setIsAnnouncementsOpen(false)}
       />
 
-      {/* Check Registration Number Lookup Modal (Fuzzy & Multi-token Name Matcher) */}
+      {/* Check Registration Number Lookup Modal (Resemblance Name Search) */}
       {isCheckRegModalOpen && (
         <CheckRegNumberModal
           isOpen={isCheckRegModalOpen}
           onClose={() => setIsCheckRegModalOpen(false)}
           students={students}
-          onSelectStudent={(regNo) => handleSelectFoundStudent(regNo)}
         />
       )}
 

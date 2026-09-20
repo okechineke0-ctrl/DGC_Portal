@@ -341,6 +341,15 @@ async function startServer() {
 
   // --- STAFF ROSTER ENDPOINTS ---
   app.get('/api/staff', (req, res) => {
+    const { q } = req.query;
+    if (q && typeof q === 'string' && q.trim()) {
+      const cleanQ = q.trim().toLowerCase();
+      const filtered = staffMembers.filter((s) => {
+        const cleanName = s.name.toLowerCase();
+        return cleanName.includes(cleanQ) || cleanQ.includes(cleanName);
+      });
+      return res.json({ staff: filtered });
+    }
     res.json({ staff: staffMembers });
   });
 
@@ -684,8 +693,18 @@ async function startServer() {
 
   // --- STUDENT & ACADEMIC ENDPOINTS ---
   app.get('/api/students', (req, res) => {
-    const { classArm, stream, feeStatus, held } = req.query;
+    const { classArm, stream, feeStatus, held, q } = req.query;
     let filtered = [...students];
+
+    if (q && typeof q === 'string' && q.trim()) {
+      const cleanQ = q.trim().toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          s.name.toLowerCase().includes(cleanQ) ||
+          cleanQ.includes(s.name.toLowerCase()) ||
+          s.admissionNo.toLowerCase().includes(cleanQ)
+      );
+    }
 
     if (classArm && classArm !== 'All') {
       filtered = filtered.filter((s) => s.classArm === classArm);
