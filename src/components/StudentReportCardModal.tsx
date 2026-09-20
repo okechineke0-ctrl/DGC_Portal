@@ -3,6 +3,7 @@ import { X, Printer, ShieldCheck, Award } from 'lucide-react';
 import { StudentProfile, SchoolClassDefinition } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface StudentReportCardModalProps {
   student: StudentProfile;
@@ -37,7 +38,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
               Terminal Report
             </span>
             <span className="text-xs text-slate-300 truncate max-w-[160px] sm:max-w-none">
-              {student.name} ({student.admissionNo}) · {student.classArm}
+              {formatStudentShortName(student.name)} ({student.admissionNo}) · {student.classArm}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -90,7 +91,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Student Name</span>
-                <span className="font-bold text-slate-900">{student.name}</span>
+                <span className="font-bold text-slate-900">{formatStudentShortName(student.name)}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Admission Number</span>

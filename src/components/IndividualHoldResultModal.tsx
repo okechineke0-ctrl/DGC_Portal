@@ -125,7 +125,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
           </button>
 
           <div className="flex items-center gap-2 mb-1.5 pr-8">
-            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
+            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest bg-blue-600 text-white">
               Administrative Control
             </span>
             <span className="text-[11px] text-blue-200">Directorate Office</span>
@@ -334,7 +334,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
                         key={reason}
                         className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer text-xs ${
                           selectedReason === reason
-                            ? 'bg-blue-50 border-blue-600 text-blue-950 font-bold'
+                            ? 'bg-sky-50 border-blue-600 text-blue-950 font-bold'
                             : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                         }`}
                       >
@@ -343,7 +343,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
                           name="holdReason"
                           checked={selectedReason === reason}
                           onChange={() => setSelectedReason(reason)}
-                          className="w-4 h-4 text-blue-900 focus:ring-blue-900 shrink-0"
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-600 shrink-0"
                         />
                         <span>{reason}</span>
                       </label>
@@ -352,7 +352,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
                     <label
                       className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer text-xs ${
                         selectedReason === 'Custom'
-                          ? 'bg-blue-50 border-blue-600 text-blue-950 font-bold'
+                          ? 'bg-sky-50 border-blue-600 text-blue-950 font-bold'
                           : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                       }`}
                     >
@@ -361,7 +361,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
                         name="holdReason"
                         checked={selectedReason === 'Custom'}
                         onChange={() => setSelectedReason('Custom')}
-                        className="w-4 h-4 text-blue-900 focus:ring-blue-900 shrink-0"
+                        className="w-4 h-4 text-blue-600 focus:ring-blue-600 shrink-0"
                       />
                       <span>Custom Directorate Reason...</span>
                     </label>
@@ -374,7 +374,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
                         onChange={(e) => setCustomReason(e.target.value)}
                         placeholder="State specific administrative or disciplinary directive..."
                         rows={2}
-                        className="w-full p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/30"
+                        className="w-full p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/30"
                       />
                     </div>
                   )}
@@ -397,11 +397,7 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
             type="button"
             onClick={handleApply}
             disabled={!selectedStudent || isSubmitting}
-            className={`py-2.5 px-5 font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all min-h-[44px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
-              isHold
-                ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
+            className="py-2.5 px-5 font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all min-h-[44px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isSubmitting ? (
               'Updating...'

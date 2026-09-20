@@ -265,7 +265,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in duration-200">
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 text-white relative">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-900 via-slate-900 to-blue-950 text-white relative">
           <button
             type="button"
             onClick={onClose}
@@ -276,12 +276,12 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
           </button>
 
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 text-amber-300 border border-white/20 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 text-blue-300 border border-white/20 flex items-center justify-center shrink-0">
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-white bg-blue-600 px-2 py-0.5 rounded">
                   Admin Authority Exclusive
                 </span>
                 <span className="text-[10px] text-slate-300">
@@ -309,7 +309,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 Student Enrolled Successfully!
               </h3>
               <p className="text-xs text-emerald-800 font-medium max-w-md mx-auto">
-                Official college academic record and portal credentials have been provisioned into the Dominican Grace College database.
+                Official college academic record and portal credentials have been provisioned into the Dominate Star College database.
               </p>
             </div>
 
@@ -434,7 +434,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
                   Done / Return to Roll
                 </button>
@@ -445,14 +445,14 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
           /* REGISTRATION FORM */
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             {/* Section Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-4 sm:px-6 overflow-x-auto text-xs font-bold py-2 shrink-0">
+            <div className="flex items-center gap-1 border-b border-sky-200 bg-sky-50/60 px-4 sm:px-6 overflow-x-auto text-xs font-bold py-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveSection('biodata')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeSection === 'biodata'
-                    ? 'bg-blue-950 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-sky-100/70'
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
@@ -464,8 +464,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 onClick={() => setActiveSection('academic')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeSection === 'academic'
-                    ? 'bg-blue-950 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-sky-100/70'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -477,8 +477,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 onClick={() => setActiveSection('guardian')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeSection === 'guardian'
-                    ? 'bg-blue-950 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-sky-100/70'
                 }`}
               >
                 <Users className="w-3.5 h-3.5" />
@@ -490,8 +490,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 onClick={() => setActiveSection('medical')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeSection === 'medical'
-                    ? 'bg-blue-950 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-sky-100/70'
                 }`}
               >
                 <HeartPulse className="w-3.5 h-3.5" />
@@ -503,8 +503,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 onClick={() => setActiveSection('bursary')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeSection === 'bursary'
-                    ? 'bg-blue-950 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-sky-100/70'
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" />
@@ -1003,7 +1003,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       Health, Medical Profile & Sick Bay Clearance
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Dominican Grace College clinic emergency preparedness and dietary management.
+                      Dominate Star College clinic emergency preparedness and dietary management.
                     </p>
                   </div>
 
@@ -1218,7 +1218,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       else if (activeSection === 'guardian') setActiveSection('medical');
                       else if (activeSection === 'medical') setActiveSection('bursary');
                     }}
-                    className="px-4 py-2 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <span>Next Step</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -1227,7 +1227,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <span>Registering Student...</span>

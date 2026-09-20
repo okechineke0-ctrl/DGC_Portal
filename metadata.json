@@ -1,6 +1,6 @@
 {
-  "name": "DGC Student Portal - Dominion Stars Global College",
-  "description": "Academic management dashboard and student portal for Dominion Stars Global College.",
+  "name": "Dominate Star College Student Portal",
+  "description": "Academic management dashboard and student portal for Dominate Star College.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

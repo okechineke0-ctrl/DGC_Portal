@@ -56,6 +56,7 @@ import {
   saveLiveClass,
 } from './lib/firebase';
 import { StudentProfile, StaffMember, SubjectScore, SchoolClassDefinition } from './types';
+import { formatStudentShortName, formatStaffName } from './utils/formatters';
 
 export default function App() {
   // Default to 'report_card' tab: directly opens the clean Secondary School Student Portal!
@@ -94,7 +95,7 @@ export default function App() {
   useEffect(() => {
     testFirestoreConnection().then((connected) => {
       setIsDbLive(connected);
-      console.log(`[Dominion Stars Global College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
+      console.log(`[Dominate Star College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
     });
 
     fetch('/api/students')
@@ -1046,7 +1047,7 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-sky-50/60 flex text-slate-800">
+    <div className="min-h-screen bg-sky-50 flex text-slate-800 w-full max-w-full overflow-x-hidden">
       {/* Navigation Sidebar (Only rendered when user is logged into their portal session) */}
       {!isLoggedOut && (
         <Sidebar
@@ -1060,7 +1061,7 @@ export default function App() {
       )}
 
       {/* Main Content Viewport */}
-      <div className={`flex-1 ${!isLoggedOut ? 'lg:pl-72' : ''} flex flex-col min-w-0 transition-all`}>
+      <div className={`flex-1 ${!isLoggedOut ? 'lg:pl-72' : ''} flex flex-col min-w-0 transition-all w-full max-w-full overflow-x-hidden`}>
         {/* Top Navbar */}
         <TopNavbar
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
@@ -1077,35 +1078,38 @@ export default function App() {
 
         {/* Operational Workspace Banner (When in Staff or CEO mode) */}
         {activeRole !== 'portal' && (
-          <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-800 shadow-md">
-            <div className="flex items-center gap-2">
+          <div className="bg-slate-900 text-white px-3 sm:px-4 py-2 flex items-center justify-between text-xs border-b border-slate-800 shadow-xs">
+            <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`w-2.5 h-2.5 rounded-full animate-ping ${
-                  activeRole === 'ceo' ? 'bg-amber-400' : 'bg-blue-400'
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  activeRole === 'ceo' ? 'bg-blue-400' : 'bg-emerald-400'
                 }`}
               />
-              <span>
-                Operating in{' '}
-                <strong className={activeRole === 'ceo' ? 'text-amber-300' : 'text-blue-300'}>
-                  {activeRole === 'ceo'
-                    ? 'Chief Executive Officer (CEO) Administration'
-                    : `Teacher Portal (${activeStaff?.name || 'Authorized Teacher'})`}
-                </strong>
+              <span className="truncate text-xs text-slate-300">
+                {activeRole === 'ceo' ? (
+                  <>
+                    Workspace: <strong className="text-white font-bold">Admin Console</strong>
+                  </>
+                ) : (
+                  <>
+                    Workspace: <strong className="text-white font-bold">Faculty · {activeStaff?.title} {formatStaffName(activeStaff?.name || '')}</strong>
+                  </>
+                )}
               </span>
             </div>
 
             <button
               onClick={handleExitToPortal}
-              className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
             >
-              <span>Back to Student Portal</span>
+              <span>Student Portal</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 min-w-0 overflow-x-hidden">
           {/* 1. STAFF WORKSPACE (Grading Console, Form Master Oversight, Teaching Workload) */}
           {activeRole === 'staff' && activeStaff && (
             <StaffDashboard
@@ -1156,17 +1160,17 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Dominican Grace College Logo Icon with Triple-Click Administration Shortcut */}
+                  {/* Dominate Star College Logo Icon with Triple-Click Administration Shortcut */}
                   <div className="relative inline-block mx-auto">
                     <div
                       onClick={handleLogoTripleClick}
-                      className="w-20 h-20 rounded-3xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-2xl shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group"
-                      title="Dominion Stars Global College (Administration Authority: Click 3 times to unlock gateway)"
+                      className="w-20 h-20 rounded-3xl bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all group"
+                      title="Dominate Star College (Administration Authority: Click 3 times to unlock gateway)"
                     >
                       <DGCLogo size="md" showText={false} />
                     </div>
                     {logoClickCount > 0 && (
-                      <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-amber-400 text-blue-950 font-black text-[9px] rounded-full shadow-xs whitespace-nowrap animate-pulse">
+                      <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-blue-700 text-white font-black text-[9px] rounded-full shadow-xs whitespace-nowrap animate-pulse">
                         {logoClickCount}/3 Admin Clicks
                       </span>
                     )}
@@ -1174,7 +1178,7 @@ export default function App() {
 
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                      Dominion Stars Global College
+                      Dominate Star College
                     </span>
                     <h2 className="text-2xl font-bold font-serif-title text-slate-900">
                       Student Academic Portal Sign-In
@@ -1364,7 +1368,7 @@ export default function App() {
                             <td className="py-3 px-3 font-mono font-bold text-slate-900">
                               {std.admissionNo}
                             </td>
-                            <td className="py-3 px-3 font-bold text-slate-900">{std.name}</td>
+                            <td className="py-3 px-3 font-bold text-slate-900">{formatStudentShortName(std.name)}</td>
                             <td className="py-3 px-3">
                               <span className="font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800">
                                 {std.classArm}
@@ -1463,7 +1467,7 @@ export default function App() {
                       College Bulletins & Official Notices
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Dominion Stars Global College official notifications for students and guardians.
+                      Dominate Star College official notifications for students and guardians.
                     </p>
                   </div>
 

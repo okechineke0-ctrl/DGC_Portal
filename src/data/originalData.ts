@@ -14,7 +14,7 @@ import {
 export const CURRENT_SESSION = '2026/2027';
 export const CURRENT_TERM = 'First Term';
 export const TODAY_DATE = 'Monday, 14 September 2026';
-export const SCHOOL_NAME = 'Dominion Stars Global College';
+export const SCHOOL_NAME = 'Dominate Star College';
 export const SCHOOL_LOCATION = 'Enugu State, Nigeria';
 export const SCHOOL_MOTTO = 'Striving for the Crown of Excellence';
 

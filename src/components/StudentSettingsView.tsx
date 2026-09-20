@@ -18,6 +18,7 @@ import { StudentProfile } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM } from '../data/mockData';
 import { compressPassportPhoto } from '../utils/imageCompressor';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface StudentSettingsViewProps {
   student: StudentProfile;
@@ -158,7 +159,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
                 Profile & Passport Photo Settings
               </h2>
               <p className="text-xs text-blue-200/90 mt-0.5">
-                {student.name} · {student.classArm}
+                {formatStudentShortName(student.name)} · {student.classArm}
               </p>
             </div>
           </div>
@@ -188,7 +189,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
                 Strict Regulatory Warning
               </span>
               <span className="text-xs font-extrabold text-amber-950 uppercase tracking-wide">
-                Dominion Stars Global College Disciplinary Council
+                Dominate Star College Disciplinary Council
               </span>
             </div>
 
@@ -198,7 +199,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
 
             <p className="text-xs sm:text-sm text-amber-900 leading-relaxed font-medium">
               The photograph you upload here serves as your <strong>official college passport identity</strong> across all terminal broadsheets, report cards, WAEC/NECO continuous assessment dossiers, and bursary clearance certificates.
-              You must upload a picture where you are <strong>strictly wearing the approved Dominion Stars Global College school uniform</strong>.
+              You must upload a picture where you are <strong>strictly wearing the approved Dominate Star College school uniform</strong>.
             </p>
           </div>
         </div>
@@ -342,7 +343,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
 
                 {/* DGC Passport Seal Overlay */}
                 <div className="absolute bottom-0 inset-x-0 bg-blue-950/80 text-[8px] font-mono text-amber-300 py-0.5 text-center tracking-widest uppercase">
-                  DOMINION STARS GLOBAL COLLEGE
+                  DOMINATE STAR COLLEGE
                 </div>
               </div>
 

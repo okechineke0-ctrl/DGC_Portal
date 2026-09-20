@@ -35,6 +35,7 @@ import { DGCLogo } from './DGCLogo';
 import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { StudentReportCardModal } from './StudentReportCardModal';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface StudentPortalViewProps {
   currentStudent: StudentProfile;
@@ -227,26 +228,26 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden min-w-0">
       {/* RESULT HELD NOTICE (If result is on administrative hold) */}
       {student.resultHeld && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-rose-950 text-white border-2 border-rose-600/70 shadow-lg space-y-3">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0">
-              <Lock className="w-6 h-6 text-rose-400" />
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-950 text-white border border-rose-700/80 shadow-sm space-y-3">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5 text-rose-400" />
             </div>
             <div className="space-y-1 flex-1">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-widest bg-rose-600 text-white">
-                  Administrative Notice
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-600 text-white">
+                  Notice
                 </span>
-                <span className="text-xs text-rose-300">Office of the College Bursar & Administration</span>
+                <span className="text-xs text-rose-300">Bursary & Administration</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold font-serif-title text-white">
+              <h3 className="text-base sm:text-lg font-bold font-serif-title text-white">
                 Official Terminal Report Card Withheld
               </h3>
               <p className="text-xs sm:text-sm text-rose-100/90 leading-relaxed">
-                The terminal result for <strong>{student.name}</strong> ({student.admissionNo}, {student.classArm}) is currently locked pending school fees clearance.
+                The terminal result for <strong>{formatStudentShortName(student.name)}</strong> ({student.admissionNo}, {student.classArm}) is currently locked pending clearance.
               </p>
             </div>
           </div>
@@ -258,23 +259,18 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             </div>
             <div className="p-3 bg-black/40 rounded-xl border border-rose-500/30">
               <span className="text-[10px] font-bold uppercase text-rose-300 block">Required Action:</span>
-              <span className="text-white font-medium mt-0.5 block">Clear dues at College Accounts Office</span>
+              <span className="text-white font-medium mt-0.5 block">Clear dues at Accounts Office</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Mature Secondary School Student Identity Header Card */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 rounded-3xl p-6 sm:p-7 text-white shadow-md relative overflow-hidden">
-        {/* Subtle Watermark */}
-        <div className="absolute right-4 -bottom-10 opacity-10 pointer-events-none">
-          <DGCLogo size="xl" showText={false} />
-        </div>
-
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* Mature Student Identity Header Card */}
+      <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-800 relative overflow-hidden w-full max-w-full min-w-0">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
           {/* Student Profile Info */}
-          <div className="flex items-center gap-4 sm:gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 text-amber-300 border-2 border-white/20 flex items-center justify-center font-bold text-2xl shadow-inner shrink-0 overflow-hidden">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-800 text-amber-300 border border-slate-700 flex items-center justify-center font-bold text-xl shadow-inner shrink-0 overflow-hidden">
               {student.photoUrl ? (
                 <img
                   src={student.photoUrl}
@@ -288,121 +284,121 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/80 text-blue-200 border border-blue-700/50">
                   {student.classArm}
                 </span>
-                <span className="text-xs text-blue-200">
-                  {student.stream} Stream · Secondary Education
+                <span className="text-xs text-slate-400">
+                  {student.stream} Stream · Secondary
                 </span>
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-bold mt-1 text-white tracking-tight">
-                {student.name}
+              <h2 className="text-lg sm:text-xl font-bold mt-1 text-white tracking-tight">
+                {formatStudentShortName(student.name)}
               </h2>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-blue-200/90 mt-1">
-                <span>Admission No: <strong className="text-white font-mono">{student.admissionNo}</strong></span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                <span>Admit: <strong className="text-white font-mono">{student.admissionNo}</strong></span>
                 <span>•</span>
-                <span>Form Master: <strong className="text-white">{assignedFormMaster}</strong></span>
+                <span>Master: <strong className="text-white">{assignedFormMaster}</strong></span>
               </div>
             </div>
           </div>
 
           {/* Academic Indicators */}
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 flex items-center gap-6 self-stretch md:self-auto justify-around">
+          <div className="bg-slate-800/80 p-3 sm:p-4 rounded-xl border border-slate-700 flex items-center gap-4 sm:gap-6 self-stretch md:self-auto justify-around">
             <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-blue-300 block">Term Average</span>
-              <span className="text-2xl sm:text-3xl font-black text-amber-300 font-mono">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Average</span>
+              <span className="text-xl sm:text-2xl font-bold text-amber-300 font-mono">
                 {student.resultHeld ? '—' : `${student.termGpa}%`}
               </span>
-              <span className="text-[10px] text-emerald-300 font-bold block">
+              <span className="text-[10px] text-emerald-400 font-semibold block">
                 {student.resultHeld ? 'Locked' : student.termRank}
               </span>
             </div>
-            <div className="w-px h-10 bg-white/20" />
+            <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-blue-300 block">Attendance</span>
-              <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Attendance</span>
+              <span className="text-xl sm:text-2xl font-bold text-white font-mono">
                 {liveOpenDays > 0 ? `${liveAttendanceRate}%` : '0%'}
               </span>
-              <span className="text-[10px] text-blue-200 block">
-                {liveOpenDays > 0 ? `${livePresentDays} / ${liveOpenDays} Days` : 'Awaiting Roll Call'}
+              <span className="text-[10px] text-slate-400 block">
+                {liveOpenDays > 0 ? `${livePresentDays}/${liveOpenDays}d` : 'Pending'}
               </span>
             </div>
-            <div className="w-px h-10 bg-white/20" />
+            <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-blue-300 block">Fees Status</span>
-              <span className={`text-xs font-extrabold px-2.5 py-1 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-white text-blue-950 shadow-xs' : 'bg-blue-900/60 text-white border border-blue-700'}`}>
-                {student.feeStatus === 'Cleared' ? 'PAID' : 'NOT PAID'}
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Fees</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}`}>
+                {student.feeStatus === 'Cleared' ? 'PAID' : 'PENDING'}
               </span>
             </div>
           </div>
         </div>
 
         {/* Action strip */}
-        <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-blue-200">
-            <Calendar className="w-3.5 h-3.5 text-blue-300" />
-            <span>Academic Session: {CURRENT_SESSION} · {CURRENT_TERM}</span>
+        <div className="mt-5 pt-3.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-400">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>Session: {CURRENT_SESSION} · {CURRENT_TERM}</span>
           </div>
 
           <button
             onClick={handlePrintReportCard}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-3.5 h-3.5" />
             <span>{student.resultHeld ? 'Locked' : 'Print Results'}</span>
           </button>
         </div>
       </div>
 
       {/* Main Student Portal Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-200/70 rounded-2xl w-full sm:w-auto overflow-x-auto whitespace-nowrap scrollbar-none text-xs font-semibold">
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-xl w-full max-w-full overflow-x-auto whitespace-nowrap scrollbar-none text-xs font-semibold">
         <button
           onClick={() => setActiveTab('report_card')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
             activeTab === 'report_card'
-              ? 'bg-blue-900 text-white font-bold shadow-xs'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <Printer className="w-3.5 h-3.5 shrink-0" />
           <span>Report Card</span>
         </button>
 
         <button
           onClick={() => setActiveTab('performance')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
             activeTab === 'performance'
-              ? 'bg-blue-900 text-white font-bold shadow-xs'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <GraduationCap className="w-3.5 h-3.5 shrink-0" />
           <span>Analytics</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-900 text-white font-bold shadow-xs'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <CalendarCheck className="w-3.5 h-3.5 shrink-0" />
           <span>Attendance</span>
         </button>
 
         <button
           onClick={() => setActiveTab('fees')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
             activeTab === 'fees'
-              ? 'bg-blue-900 text-white font-bold shadow-xs'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
           <span>Fees & Clearance</span>
         </button>
       </div>
@@ -411,7 +407,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       {/* 1. PRINT REPORT CARD VIEW                                                */}
       {/* ========================================================================= */}
       {activeTab === 'report_card' && (
-        <div className={`bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6 ${student.resultHeld ? 'relative' : ''}`}>
+        <div className={`bg-white rounded-2xl p-5 sm:p-7 border border-slate-200 shadow-xs space-y-5 w-full max-w-full min-w-0 ${student.resultHeld ? 'relative' : ''}`}>
           {student.resultHeld && (
             <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-20 rounded-3xl flex flex-col items-center justify-center p-6 text-center">
               <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mb-3 shadow-xs">
@@ -419,7 +415,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               </div>
               <h4 className="font-bold text-slate-900 text-xl font-serif-title">Report Card Locked</h4>
               <p className="text-xs text-slate-600 max-w-md mt-1.5 leading-relaxed">
-                The academic report card for <strong>{student.name}</strong> has been withheld by the Administration. To unlock and view detailed scores, please complete bursary clearance.
+                The academic report card for <strong>{formatStudentShortName(student.name)}</strong> has been withheld by the Administration. To unlock and view detailed scores, please complete bursary clearance.
               </p>
               <div className="mt-4 px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold">
                 Stated Hold Reason: {student.holdReason || 'Outstanding Fees Clearance'}
@@ -464,7 +460,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs flex-1">
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Student Name</span>
-                <span className="font-bold text-slate-900 block">{student.name}</span>
+                <span className="font-bold text-slate-900 block">{formatStudentShortName(student.name)}</span>
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Admission No</span>
@@ -499,28 +495,28 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   </div>
                 )}
                 <div className="absolute bottom-0 inset-x-0 bg-blue-950/90 text-[6px] font-mono text-amber-300 py-0.2 text-center uppercase tracking-widest">
-                  DOMINION STARS GLOBAL COLLEGE
+                  DOMINATE STAR COLLEGE
                 </div>
               </div>
             </div>
           </div>
 
           {/* Official Scores Table with 40% CA + 60% Exam */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="overflow-x-auto w-full max-w-full -mx-1 sm:mx-0 px-1 sm:px-0">
+            <table className="w-full text-left text-xs border-collapse min-w-[780px] whitespace-nowrap">
               <thead>
                 <tr className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
-                  <th className="py-3 px-3">Subject Name</th>
+                  <th className="py-3 px-3">Subject</th>
                   <th className="py-3 px-2">Code</th>
                   <th className="py-3 px-2 text-center" title="Continuous Assessment: Homework out of 10">HW (10)</th>
                   <th className="py-3 px-2 text-center" title="Continuous Assessment: Test 1 out of 10">Test 1 (10)</th>
                   <th className="py-3 px-2 text-center" title="Continuous Assessment: Test 2 out of 10">Test 2 (10)</th>
-                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Practical out of 10">Practical (10)</th>
+                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Practical out of 10">Prac (10)</th>
                   <th className="py-3 px-2 text-center bg-blue-50/70 text-blue-950 font-extrabold">CA (40)</th>
                   <th className="py-3 px-2 text-center">Exam (60)</th>
                   <th className="py-3 px-2 text-center font-bold text-slate-900 bg-slate-100/60">Total (100)</th>
                   <th className="py-3 px-2 text-center">Grade</th>
-                  <th className="py-3 px-3 text-right">Teacher Remark</th>
+                  <th className="py-3 px-3 text-right">Remark</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -595,7 +591,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
           {/* Print Controls */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
             <span className="text-xs text-slate-500">
-              Official document issued by Dominion Stars Global College.
+              Official document issued by Dominate Star College.
             </span>
             <button
               onClick={handlePrintReportCard}
@@ -892,7 +888,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                       })
                       .finally(() => setIsLoadingAttendance(false));
                   }}
-                  className="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                   id="refresh-student-attendance-btn"
                 >
                   <span>{isLoadingAttendance ? 'Syncing...' : '↻ Refresh'}</span>
@@ -978,7 +974,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   <p className="text-xs text-slate-700 leading-relaxed mt-0.5 max-w-2xl">
                     {openDays > 0 ? (
                       <>
-                        <strong>{student.name}</strong> holds an official cumulative attendance rate of <strong>{rate}%</strong> for the {selectedAttendanceTerm}. This record is certified by the Form Master and recorded in the college database.
+                        <strong>{formatStudentShortName(student.name)}</strong> holds an official cumulative attendance rate of <strong>{rate}%</strong> for the {selectedAttendanceTerm}. This record is certified by the Form Master and recorded in the college database.
                       </>
                     ) : (
                       <>
@@ -1044,8 +1040,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                         onClick={() => setSelectedWeek(w.week)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                           (currentWkData && currentWkData.week === w.week)
-                            ? 'bg-blue-950 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-900'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-blue-900 border border-sky-200'
                         }`}
                       >
                         Wk {w.week}
@@ -1153,8 +1149,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                <div className="overflow-x-auto w-full max-w-full -mx-1 sm:mx-0 px-1 sm:px-0">
+                  <table className="w-full text-left text-xs min-w-[640px] whitespace-nowrap">
                     <thead>
                       <tr className="border-b border-slate-200 text-slate-400 uppercase font-extrabold text-[10px]">
                         <th className="py-2.5 px-3">Date</th>
@@ -1234,7 +1230,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
         const bankName = (feeSchedule as any)?.bankName || (feeSchedule as any)?.bankDetails?.bankName || 'First Bank of Nigeria';
         const accountNumber = (feeSchedule as any)?.accountNumber || (feeSchedule as any)?.bankDetails?.accountNumber || '3128940022';
-        const accountName = (feeSchedule as any)?.accountName || (feeSchedule as any)?.bankDetails?.accountName || 'Dominion Stars Global College Bursary Account';
+        const accountName = (feeSchedule as any)?.accountName || (feeSchedule as any)?.bankDetails?.accountName || 'Dominate Star College Bursary Account';
         const paymentInstructions = (feeSchedule as any)?.paymentInstructions || 'Please indicate the student admission number and full name on the payment narration/deposit slip.';
 
         const handleCopyAccount = () => {
@@ -1286,7 +1282,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                     Bursary Clearance Verified (Paid in Full)
                   </h4>
                   <p className="text-xs text-blue-900 leading-relaxed">
-                    All prescribed school fees, tuition, project fees, and college dues for <strong>{student.name}</strong> ({student.admissionNo}) have been fully settled and endorsed for {CURRENT_TERM}. No outstanding balance is recorded on your portal ledger.
+                    All prescribed school fees, tuition, project fees, and college dues for <strong>{formatStudentShortName(student.name)}</strong> ({student.admissionNo}) have been fully settled and endorsed for {CURRENT_TERM}. No outstanding balance is recorded on your portal ledger.
                   </p>
                 </div>
               </div>

@@ -366,7 +366,7 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
               Academic Administration
             </span>
             <span className="text-xs text-blue-200 font-semibold">
-              Dominion Stars Global College
+              Dominate Star College
             </span>
           </div>
 
@@ -1016,11 +1016,11 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
         {/* ========================================================================= */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
           <span className="font-semibold">
-            Secondary School Academic Governance · Dominion Stars Global College
+            Secondary School Academic Governance · Dominate Star College
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-900 hover:bg-blue-950 text-white font-bold rounded-xl transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
           >
             Close Teachers Hub
           </button>
@@ -1050,7 +1050,7 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to permanently delete <strong>{deletingTeacher.title} {deletingTeacher.name}</strong> from the Dominion Stars teaching staff?
+              Are you sure you want to permanently delete <strong>{deletingTeacher.title} {deletingTeacher.name}</strong> from the Dominate Star teaching staff?
             </p>
 
             <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1 text-xs text-rose-900">

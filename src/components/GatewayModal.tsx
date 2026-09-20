@@ -10,6 +10,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { StaffMember } from '../types';
+import { formatStaffName } from '../utils/formatters';
 
 interface GatewayModalProps {
   isOpen: boolean;
@@ -100,27 +101,27 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white relative shrink-0 border-b border-slate-800">
           <button
             onClick={onClose}
-            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
+            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer border border-slate-700"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2 mb-1.5 pr-8">
-            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
-              Institutional Gateway
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/70 text-blue-200 border border-blue-700/50">
+              Institutional Access
             </span>
-            <span className="text-[11px] text-blue-200 hidden xs:inline">Dominion Global College</span>
+            <span className="text-xs text-slate-400 font-medium hidden xs:inline">Dominate Star College</span>
           </div>
 
           <h2 className="text-lg sm:text-xl font-bold font-serif-title tracking-tight text-white pr-8">
-            Staff & Directorate Portal
+            Faculty & Administration
           </h2>
-          <p className="text-[11px] sm:text-xs text-blue-200/90 mt-0.5">
-            Authorized access for teaching staff and college administration.
+          <p className="text-xs text-slate-300 mt-0.5">
+            Authorized access for academic instructors and executive leadership.
           </p>
         </div>
 
@@ -128,7 +129,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 text-slate-800">
           {activeTab === 'select' && (
             <div className="space-y-3 sm:space-y-4">
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Select Workspace:
               </p>
 
@@ -140,51 +141,51 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                     setErrorMessage(null);
                     setActiveTab('staff_verify');
                   }}
-                  className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-700 bg-slate-50 hover:bg-blue-50/50 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200 hover:border-blue-600 bg-slate-50/60 hover:bg-blue-50/40 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
                 >
                   <div className="space-y-2.5">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
                       <Briefcase className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-blue-950">
-                        Teaching Staff
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-blue-900">
+                        Faculty
                       </h3>
                       <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                        Continuous assessment grading, class roll call & student report comments.
+                        Continuous assessment grading, class roll call register & student report comments.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-blue-900">
-                    <span>Teacher Login</span>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-blue-600">
+                    <span>Faculty Login</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
 
-                {/* College Administration / CEO Option */}
+                {/* College Administration Option */}
                 <button
                   type="button"
                   onClick={() => {
                     setErrorMessage(null);
                     setActiveTab('ceo_auth');
                   }}
-                  className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-amber-600 bg-slate-50 hover:bg-amber-50/50 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200 hover:border-slate-800 bg-slate-50/60 hover:bg-slate-100/70 text-left transition-all group flex flex-col justify-between cursor-pointer active:scale-[0.99] min-h-[140px]"
                 >
                   <div className="space-y-2.5">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 text-blue-950 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
                       <ShieldAlert className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-amber-950">
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-slate-900">
                         Administration
                       </h3>
                       <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                        Result governance, individual result holds, bursary fees & student admission.
+                        Result certification, student enrollments, fee schedules, and governance.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-amber-900">
-                    <span>Directorate Access</span>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span>Admin Access</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
@@ -196,7 +197,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-950 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-sky-100 text-blue-900 flex items-center justify-center shrink-0">
                     <UserCheck className="w-4 h-4" />
                   </div>
                   <div>
@@ -235,14 +236,14 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                     onChange={(e) => setStaffNameInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyStaff()}
                     placeholder="e.g. Mr. Chinedu Okafor"
-                    className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/30 focus:border-blue-900 min-h-[44px]"
+                    className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 min-h-[44px]"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => handleVerifyStaff()}
                     disabled={isVerifying}
-                    className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
                   >
                     {isVerifying ? 'Checking...' : 'Sign In'}
                   </button>
@@ -252,7 +253,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
               {/* Quick Staff Selection */}
               <div className="pt-2 border-t border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Quick Select Registered Staff:
+                  Select Registered Faculty:
                 </p>
                 {staffList && staffList.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
@@ -264,16 +265,16 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                           setStaffNameInput(s.name);
                           handleVerifyStaff(s.name);
                         }}
-                        className="px-2.5 py-1.5 text-[11px] bg-slate-100 hover:bg-blue-100 hover:text-blue-950 text-slate-700 rounded-lg transition-colors text-left cursor-pointer flex items-center gap-1.5 min-h-[36px]"
+                        className="px-2.5 py-1.5 text-[11px] bg-slate-50 hover:bg-blue-50 hover:text-blue-900 text-slate-700 rounded-lg transition-colors text-left cursor-pointer flex items-center gap-1.5 min-h-[36px] border border-slate-200"
                       >
-                        <span className="font-semibold">{s.name}</span>
+                        <span className="font-semibold">{formatStaffName(s.name)}</span>
                         <span className="text-[9px] text-slate-400">({s.department})</span>
                       </button>
                     ))}
                   </div>
                 ) : (
                   <p className="text-xs text-slate-500 py-1 italic">
-                    No teachers registered yet in the college directory.
+                    No faculty registered yet in the college directory.
                   </p>
                 )}
               </div>
@@ -284,22 +285,22 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-950 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 border border-slate-200">
                     <ShieldAlert className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                      College Directorate
+                      Administration
                     </h3>
                     <p className="text-[11px] text-slate-500">
-                      Administrative oversight and result governance.
+                      Academic governance, result certification, and bursary.
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('select')}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
                   ← Back
                 </button>
@@ -314,7 +315,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
 
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                  Directorate Access Passcode
+                  Administrative Passcode
                 </label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
@@ -324,7 +325,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                     onChange={(e) => setCeoPasscode(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCeoSubmit()}
                     placeholder="Enter Administrative Passcode"
-                    className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-mono min-h-[44px]"
+                    className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 font-mono min-h-[44px]"
                     autoFocus
                   />
                 </div>
@@ -337,14 +338,14 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCeoSubmit}
-                  className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-blue-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition-all min-h-[44px] cursor-pointer"
+                  className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all min-h-[44px] cursor-pointer"
                 >
-                  Open Directorate Portal
+                  Open Administration
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('select')}
-                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl min-h-[44px] cursor-pointer"
+                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl min-h-[44px] cursor-pointer"
                 >
                   Cancel
                 </button>

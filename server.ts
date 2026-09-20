@@ -172,7 +172,7 @@ const DEFAULT_FEE_SCHEDULE: CollegeFeeSchedule = {
   totalFee: 155000,
   bankName: 'First Bank of Nigeria',
   accountNumber: '3128940022',
-  accountName: 'Dominion Stars Global College Bursary Account',
+  accountName: 'Dominate Star College Bursary Account',
   paymentInstructions: 'Payment should be made through direct bank deposit or electronic bank transfer into the official Bursary account. Quote student registration number as payment narration.',
   updatedAt: new Date().toISOString(),
   updatedBy: 'College Administrator / Bursar',
@@ -319,7 +319,7 @@ async function startServer() {
     res.json({
       status: 'ok',
       time: new Date().toISOString(),
-      school: 'Dominion Stars Global College',
+      school: 'Dominate Star College',
       database: 'Cloud Firestore',
       projectId: firebaseConfig.projectId,
       databaseId: firebaseConfig.firestoreDatabaseId,
@@ -483,7 +483,7 @@ async function startServer() {
 
     return res.json({
       matched: false,
-      message: 'Name does not match any registered Dominion Stars Global College staff member.',
+      message: 'Name does not match any registered Dominate Star College staff member.',
     });
   });
 
@@ -892,8 +892,8 @@ async function startServer() {
         musicalSkills: 3,
         drawingAndArt: 4,
       },
-      formTeacherComment: 'A newly enrolled scholar at Dominion Stars Global College. Ready to pursue academic excellence.',
-      principalComment: 'Welcome to Dominion Stars Global College. Maintain steadfast discipline and strive for high moral standards.',
+      formTeacherComment: 'A newly enrolled scholar at Dominate Star College. Ready to pursue academic excellence.',
+      principalComment: 'Welcome to Dominate Star College. Maintain steadfast discipline and strive for high moral standards.',
       nextTermBegins: '12th January, 2027',
       timesSchoolOpened: 0,
       timesPresent: 0,

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { DGCLogo } from './DGCLogo';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface CheckRegNumberModalProps {
   isOpen: boolean;
@@ -154,7 +155,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                 Check Registration Number
               </h2>
               <p className="text-xs text-slate-300 mt-0.5">
-                Dominion Stars Global College · Academic Registry Directory
+                Dominate Star College · Academic Registry Directory
               </p>
             </div>
           </div>
@@ -235,7 +236,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                               {std.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div>
-                              <h4 className="font-bold text-slate-900 text-sm">{std.name}</h4>
+                              <h4 className="font-bold text-slate-900 text-sm">{formatStudentShortName(std.name)}</h4>
                               <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 mt-0.5">
                                 <span className="font-semibold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded-md">
                                   {std.classArm}
@@ -330,7 +331,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                     >
                       <div className="truncate pr-2">
                         <span className="font-bold text-xs text-slate-800 block truncate">
-                          {s.name}
+                          {formatStudentShortName(s.name)}
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
                           {s.admissionNo} · {s.classArm}

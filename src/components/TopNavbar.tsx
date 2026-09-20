@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DGCLogo } from './DGCLogo';
 import { ANNOUNCEMENTS, CURRENT_SESSION, CURRENT_TERM } from '../data/originalData';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface TopNavbarProps {
   onOpenMobileMenu: () => void;
@@ -51,7 +52,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   return (
     <header
       id="top-navbar"
-      className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-3 transition-all"
+      className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sky-200/80 px-4 sm:px-6 lg:px-8 py-3 transition-all"
     >
       <div className="flex items-center justify-between gap-4">
         {/* Left: Mobile Menu Trigger + Breadcrumb / Brand Logo */}
@@ -60,7 +61,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="mobile-menu-toggle-btn"
               onClick={onOpenMobileMenu}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-hidden"
+              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-sky-50 focus:outline-hidden cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
@@ -72,45 +73,45 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <DGCLogo size="sm" showText={false} onClick={onLogoTripleClick || onOpenGateway} />
           </div>
 
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase truncate">
                 {isLoggedOut
-                  ? 'STUDENT PORTAL AUTHENTICATION'
+                  ? 'STUDENT PORTAL'
                   : currentRole === 'ceo'
-                  ? 'OFFICE OF THE CEO'
+                  ? 'ADMINISTRATION'
                   : currentRole === 'staff'
-                  ? 'STAFF ASSESSMENT PORTAL'
+                  ? 'FACULTY CONSOLE'
                   : portalMode === 'director'
-                  ? 'COLLEGIATE ACADEMIC OPERATIONS'
+                  ? 'REGISTRY'
                   : 'STUDENT PORTAL'}
               </span>
               {currentRole === 'ceo' && !isLoggedOut && (
-                <span className="px-1.5 py-0.2 bg-amber-100 text-amber-900 text-[9px] font-extrabold rounded-md uppercase">
-                  Executive
+                <span className="px-1.5 py-0.2 bg-blue-100 text-blue-900 text-[9px] font-bold rounded-md uppercase">
+                  Admin
                 </span>
               )}
               {currentRole === 'staff' && !isLoggedOut && (
-                <span className="px-1.5 py-0.2 bg-blue-100 text-blue-900 text-[9px] font-extrabold rounded-md uppercase">
-                  Teacher
+                <span className="px-1.5 py-0.2 bg-blue-100 text-blue-900 text-[9px] font-bold rounded-md uppercase">
+                  Faculty
                 </span>
               )}
             </div>
 
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight flex items-center gap-2">
-              <span>
+            <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight flex items-center gap-2 truncate">
+              <span className="truncate">
                 {isLoggedOut
-                  ? 'Dominion Stars Global College'
+                  ? 'Dominate Star College'
                   : currentRole === 'ceo'
-                  ? 'Central Administration & Result Control'
+                  ? 'Administration'
                   : currentRole === 'staff'
-                  ? 'Continuous Assessment Grading Console'
+                  ? 'Faculty Console'
                   : portalMode === 'director'
-                  ? 'Student Directory & Academic Records'
-                  : 'Terminal Academic & Result Portal'}
+                  ? 'Academic Records'
+                  : 'Academic Portal'}
               </span>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full">
-                Senior Academic Division
+              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-md shrink-0">
+                Senior Division
               </span>
             </h1>
           </div>
@@ -122,19 +123,19 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           {currentRole === 'portal' && !isLoggedOut && onOpenGateway && (
             <button
               onClick={onOpenGateway}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-semibold transition-all shadow-2xs"
-              title="Teachers & Administration Portal Access"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer"
+              title="Staff & Administration Portal Access"
             >
-              <Lock className="w-3.5 h-3.5 text-slate-600" />
+              <Lock className="w-3.5 h-3.5 text-slate-300" />
               <span>Staff / Admin</span>
             </button>
           )}
 
           {/* Current Session Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700">
-            <Calendar className="w-3.5 h-3.5 text-blue-800" />
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700">
+            <Calendar className="w-3.5 h-3.5 text-slate-600" />
             <div className="flex flex-col text-left">
-              <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">CURRENT SESSION</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">SESSION</span>
               <span className="text-slate-800 font-bold leading-tight">{CURRENT_SESSION} · {CURRENT_TERM}</span>
             </div>
           </div>
@@ -145,7 +146,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             title="Active Google Cloud Firestore Database Connection"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Live Firestore DB</span>
+            <span>Cloud DB</span>
           </div>
 
           {/* Notifications Trigger */}
@@ -153,7 +154,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="notifications-bell-btn"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-sky-50 transition-colors cursor-pointer"
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -164,9 +165,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             {showNotifications && (
               <div
                 id="notifications-dropdown-menu"
-                className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-sky-200 p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-2">
+                <div className="flex items-center justify-between pb-2 border-b border-sky-100 px-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900">Official College Notices</span>
                     <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded-full">
@@ -178,13 +179,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                       setShowNotifications(false);
                       onOpenAnnouncements();
                     }}
-                    className="text-[11px] font-semibold text-blue-700 hover:underline"
+                    className="text-[11px] font-semibold text-blue-700 hover:underline cursor-pointer"
                   >
                     View all
                   </button>
                 </div>
 
-                <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto mt-1">
+                <div className="divide-y divide-sky-100 max-h-72 overflow-y-auto mt-1">
                   {ANNOUNCEMENTS.map((ann) => (
                     <div
                       key={ann.id}
@@ -192,10 +193,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                         setShowNotifications(false);
                         onOpenAnnouncements();
                       }}
-                      className="p-2.5 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
+                      className="p-2.5 hover:bg-sky-50 rounded-xl transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold uppercase text-blue-800 bg-sky-50 px-2 py-0.5 rounded-md">
                           {ann.category}
                         </span>
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -222,11 +223,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               {isLoggedOut ? (
                 '?'
               ) : currentRole === 'ceo' ? (
-                'CEO'
+                'ADM'
               ) : currentRole === 'staff' ? (
                 'STA'
               ) : portalMode === 'director' ? (
-                'D'
+                'REG'
               ) : currentStudent?.photoUrl ? (
                 <img
                   src={currentStudent.photoUrl}
@@ -242,26 +243,26 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <div className="hidden lg:flex flex-col text-left">
               <span className="text-xs font-bold text-slate-900 leading-tight">
                 {isLoggedOut
-                  ? 'Guest / Portal Sign-In'
+                  ? 'Guest Portal'
                   : currentRole === 'ceo'
-                  ? 'Governing Council'
+                  ? 'Administrator'
                   : currentRole === 'staff'
-                  ? 'Teaching Staff'
+                  ? 'Faculty Member'
                   : portalMode === 'director'
-                  ? 'registrar@dgc.edu.ng'
+                  ? 'Registrar'
                   : currentStudent
-                  ? currentStudent.name
+                  ? formatStudentShortName(currentStudent.name)
                   : 'Student Account'}
               </span>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                 {isLoggedOut
-                  ? 'AUTHENTICATION REQUIRED'
+                  ? 'SIGN-IN REQUIRED'
                   : currentRole === 'ceo'
-                  ? 'CHIEF EXECUTIVE'
+                  ? 'ADMIN'
                   : currentRole === 'staff'
-                  ? 'STAFF TUTOR'
+                  ? 'FACULTY'
                   : portalMode === 'director'
-                  ? 'COLLEGE REGISTRAR'
+                  ? 'REGISTRY'
                   : currentStudent
                   ? currentStudent.classArm
                   : 'STUDENT'}

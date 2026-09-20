@@ -23,6 +23,7 @@ import {
   Landmark,
 } from 'lucide-react';
 import { StudentProfile, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from '../types';
+import { formatStudentShortName } from '../utils/formatters';
 
 interface SchoolFeesManagementProps {
   students: StudentProfile[];
@@ -105,7 +106,7 @@ const DEFAULT_SCHEDULE: CollegeFeeSchedule = {
   totalFee: 155000,
   bankName: 'First Bank of Nigeria',
   accountNumber: '3128940022',
-  accountName: 'Dominion Stars Global College Bursary Account',
+  accountName: 'Dominate Star College Bursary Account',
   paymentInstructions: 'Payment should be made through direct bank deposit or electronic bank transfer into the official Bursary account. Quote student registration number as payment narration.',
   updatedAt: new Date().toISOString(),
   updatedBy: 'College Administrator / Bursar',
@@ -136,7 +137,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
   // Bank Account Settings
   const [bankName, setBankName] = useState('First Bank of Nigeria');
   const [accountNumber, setAccountNumber] = useState('3128940022');
-  const [accountName, setAccountName] = useState('Dominion Stars Global College Bursary Account');
+  const [accountName, setAccountName] = useState('Dominate Star College Bursary Account');
   const [isBankEditing, setIsBankEditing] = useState(false);
 
   // Whole Student Filter & Search
@@ -162,7 +163,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           setBaseSchoolFeeInput(data.schedule.baseSchoolFee || 85000);
           setBankName(data.schedule.bankName || 'First Bank of Nigeria');
           setAccountNumber(data.schedule.accountNumber || '3128940022');
-          setAccountName(data.schedule.accountName || 'Dominion Stars Global College Bursary Account');
+          setAccountName(data.schedule.accountName || 'Dominate Star College Bursary Account');
         }
       }
     } catch {
@@ -1006,7 +1007,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
                             </div>
                             <div className="min-w-0">
                               <span className="font-bold text-slate-900 block truncate">
-                                {std.name}
+                                {formatStudentShortName(std.name)}
                               </span>
                               <span className="font-mono text-[11px] text-slate-500 block">
                                 {std.admissionNo}

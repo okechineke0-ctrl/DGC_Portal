@@ -27,14 +27,14 @@ export const DGCLogo: React.FC<DGCLogoProps> = ({
   return (
     <div
       onClick={onClick}
-      title="Dominion Global College - Awgu, Enugu"
+      title="Dominate Star College - Awgu, Enugu"
       className={`flex items-center gap-2.5 select-none relative group ${onClick ? 'cursor-pointer' : ''} ${className}`}
     >
-      {/* Official Dominion Global College Crest Logo in Clean White Emblem Badge */}
+      {/* Official Dominate Star College Crest Logo in Clean White Emblem Badge */}
       <div className={`bg-white ${pad} ${rounded} shadow-xs border border-slate-200/90 shrink-0 flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105`}>
         <img
           src="/1789397544433.jpg"
-          alt="Dominion Global College Crest Logo"
+          alt="Dominate Star College Crest Logo"
           width={box}
           height={box}
           style={{ width: `${box}px`, height: `${box}px` }}
@@ -49,13 +49,13 @@ export const DGCLogo: React.FC<DGCLogoProps> = ({
             <span className={`font-extrabold tracking-tight leading-tight text-sm md:text-base ${
               variant === 'on-dark' ? 'text-white' : 'text-slate-900'
             }`}>
-              Dominion Global
+              Dominate Star
             </span>
           </div>
           <span className={`text-[10px] font-bold tracking-wider uppercase leading-none ${
             variant === 'on-dark' ? 'text-blue-200' : 'text-blue-900'
           }`}>
-            COLLEGE · AWGU
+            COLLEGE
           </span>
         </div>
       )}

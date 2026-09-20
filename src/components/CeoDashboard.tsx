@@ -43,6 +43,7 @@ import { StaffAllocationModal } from './StaffAllocationModal';
 import { ClassDetailModal } from './ClassDetailModal';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { StudentRegistrationModal } from './StudentRegistrationModal';
+import { formatStudentShortName, formatStaffName } from '../utils/formatters';
 import { TeacherManagementModal } from './TeacherManagementModal';
 import { SchoolFeesManagement } from './SchoolFeesManagement';
 import { IndividualHoldResultModal } from './IndividualHoldResultModal';
@@ -257,73 +258,71 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   const studentsBelowRequirement = studentsWithRecords.length - studentsMeetingRequirement;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* CEO Executive Control Header Banner */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-blue-800/40 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center font-bold text-2xl shadow-inner shrink-0">
-              <ShieldCheck className="w-8 h-8" />
+    <div className="space-y-6 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden min-w-0">
+      {/* College Administration Header Banner */}
+      <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-800 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+          <div className="flex items-start gap-3.5 sm:gap-4">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xl shadow-xs shrink-0 mt-0.5">
+              <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950 shadow-xs">
-                  Central Administration & Governance
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/70 text-blue-200 border border-blue-700/50">
+                  Administration
                 </span>
-                <span className="text-xs text-amber-200/90 font-semibold">
-                  Chief Executive & Academic Directorate
+                <span className="text-xs text-slate-400 font-medium">
+                  Academic Session 2026/2027 · Term 1
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-serif-title tracking-tight">
-                Academic Administration & Staff Command
+              <h1 className="text-xl sm:text-2xl font-bold font-serif-title tracking-tight text-white">
+                College Administration
               </h1>
-              <p className="text-xs sm:text-sm text-blue-100/90 mt-1">
-                Manage 14 class arms · Assign Form Masters · Allocate subjects & teacher schedules · Oversee student rosters
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                Manage classes, faculty allocations, fee clearances, and examination records.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <button
-              onClick={() => {
-                setIndividualHoldStudent(null);
-                setIsIndividualHoldOpen(true);
-              }}
-              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-rose-500 cursor-pointer min-h-[44px]"
-              id="admin-hold-individual-result-header-btn"
-              title="Hold or Release an Individual Student's Result"
-            >
-              <Lock className="w-4 h-4 text-white shrink-0" />
-              <span>Hold / Release Result</span>
-            </button>
-
-            <button
               onClick={() => setIsRegisterStudentOpen(true)}
-              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-emerald-400 cursor-pointer min-h-[44px]"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
               id="admin-register-student-header-btn"
               title="Register New Student: JSS 1 to SS 3"
             >
-              <UserPlus className="w-4 h-4 text-white shrink-0" />
+              <UserPlus className="w-3.5 h-3.5 text-white shrink-0" />
               <span>+ Register Student</span>
             </button>
 
             <button
+              onClick={() => {
+                setIndividualHoldStudent(null);
+                setIsIndividualHoldOpen(true);
+              }}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              id="admin-hold-individual-result-header-btn"
+              title="Hold or Release an Individual Student's Result"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Hold / Release</span>
+            </button>
+
+            <button
               onClick={() => setIsTeacherManagerOpen(true)}
-              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 border border-amber-300 cursor-pointer min-h-[44px]"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
               id="admin-teacher-management-header-btn"
               title="Teacher Management: Add, Delete, Assign Classes"
             >
-              <GraduationCap className="w-4 h-4 text-blue-950 shrink-0" />
-              <span>Teachers</span>
+              <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Faculty Hub</span>
             </button>
 
             <button
               onClick={onExit}
-              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl border border-white/20 transition-colors flex items-center gap-2 cursor-pointer min-h-[44px]"
+              className="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80 font-medium text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
             >
-              <LogOut className="w-4 h-4 shrink-0" />
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
               <span>Exit Admin</span>
             </button>
           </div>
@@ -377,15 +376,15 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </div>
           <button
             onClick={() => setIsRegisterStudentOpen(true)}
-            className="mt-3 w-full py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-950 border border-blue-200 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+            className="mt-3 w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
             id="metric-card-register-student-btn"
           >
-            <UserPlus className="w-3.5 h-3.5 text-blue-800" />
+            <UserPlus className="w-3.5 h-3.5 text-white" />
             <span>+ Register Student</span>
           </button>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-white border border-sky-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
               School Fees & Bursary
@@ -399,23 +398,23 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </div>
           <button
             onClick={() => setActiveTab('fees')}
-            className="mt-3 w-full py-1.5 px-3 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+            className="mt-3 w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
             id="metric-card-manage-fees-btn"
           >
-            <CreditCard className="w-3.5 h-3.5 text-blue-300" />
+            <CreditCard className="w-3.5 h-3.5 text-white" />
             <span>Manage Fees & Clearance →</span>
           </button>
         </div>
       </div>
 
       {/* Main Administrative Navigation Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-sky-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
         <button
           onClick={() => setActiveTab('classes')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'classes'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
         >
           <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -426,8 +425,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('staff')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'staff'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
         >
           <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -438,8 +437,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('curriculum')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'curriculum'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -450,8 +449,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('students')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'students'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
         >
           <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -462,8 +461,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('attendance')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
           id="admin-tab-attendance-btn"
         >
@@ -475,12 +474,12 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('fees')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'fees'
-              ? 'bg-blue-950 text-white shadow-md border border-blue-900'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
           }`}
           id="admin-tab-school-fees-btn"
         >
-          <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400 shrink-0" />
+          <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
           <span>Bursary & Fees</span>
         </button>
 
@@ -490,10 +489,10 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             setIndividualHoldStudent(null);
             setIsIndividualHoldOpen(true);
           }}
-          className="ml-auto px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[40px]"
+          className="ml-auto px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[40px]"
           title="Individual Result Hold & Release Controller"
         >
-          <Lock className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+          <Lock className="w-3.5 h-3.5 text-blue-700 shrink-0" />
           <span>Hold / Release</span>
         </button>
       </div>
@@ -518,7 +517,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRegisterStudentOpen(true)}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5 text-white" />
                 <span>+ Register Student</span>
@@ -686,7 +685,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     {/* Open Class Command Hub Button */}
                     <button
                       onClick={() => setSelectedClassForModal(c)}
-                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Users className="w-3.5 h-3.5" />
                       <span>Manage Class & Teachers</span>
@@ -704,7 +703,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'staff' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-sky-200 shadow-xs">
             <div>
               <h2 className="text-base font-bold text-slate-900">
                 Teachers Directory & Workload Allocations
@@ -717,15 +716,15 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={() => setIsTeacherManagerOpen(true)}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
                 id="open-teacher-management-hub-btn"
               >
-                <GraduationCap className="w-4 h-4 text-blue-950" />
+                <GraduationCap className="w-4 h-4 text-white" />
                 <span>Teacher Management Hub</span>
               </button>
               <button
                 onClick={() => setIsTeacherManagerOpen(true)}
-                className="px-4 py-2 bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Add Teacher</span>
@@ -734,13 +733,13 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </div>
 
           {/* Search & Department Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 w-full max-w-full min-w-0">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto min-w-0 scrollbar-none">
               {['ALL', 'Sciences', 'Arts', 'Commercial', 'General', 'Administration'].map((dept) => (
                 <button
                   key={dept}
                   onClick={() => setStaffDeptFilter(dept)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                     staffDeptFilter === dept
                       ? 'bg-blue-950 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -751,7 +750,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               ))}
             </div>
 
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-72 shrink-0">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
@@ -763,72 +762,73 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             </div>
           </div>
 
-          {/* Teachers Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">Teacher / Staff Member</th>
-                  <th className="py-3 px-3">Department & Role</th>
-                  <th className="py-3 px-3">Form Master / Mistress</th>
-                  <th className="py-3 px-3">Subjects Taught</th>
-                  <th className="py-3 px-3">Assigned Classes</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredStaff.length === 0 ? (
+          {/* Teachers Table with Responsive Horizontal Scroll */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full max-w-full min-w-0">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs min-w-[680px]">
+                <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                   <tr>
-                    <td colSpan={6} className="py-12 px-4 text-center">
-                      <div className="max-w-md mx-auto space-y-3">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-900 flex items-center justify-center mx-auto">
-                          <GraduationCap className="w-6 h-6" />
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-800">
-                          {staffSearchQuery || staffDeptFilter !== 'ALL'
-                            ? 'No staff found matching current filters'
-                            : 'No data yet (0 teachers registered)'}
-                        </h4>
-                        <p className="text-xs text-slate-500">
-                          {staffSearchQuery || staffDeptFilter !== 'ALL'
-                            ? 'Try resetting the department filter or clearing the search box.'
-                            : 'No teachers or staff members have been added to the college directory yet. Click "+ Add Teacher" to configure teaching personnel.'}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setIsTeacherManagerOpen(true)}
-                          className="mt-2 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-blue-950 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs"
-                        >
-                          <PlusCircle className="w-4 h-4" />
-                          <span>+ Add Teacher</span>
-                        </button>
-                      </div>
-                    </td>
+                    <th className="py-3 px-4">Teacher / Staff Member</th>
+                    <th className="py-3 px-3">Department & Role</th>
+                    <th className="py-3 px-3">Form Master / Mistress</th>
+                    <th className="py-3 px-3">Subjects Taught</th>
+                    <th className="py-3 px-3">Assigned Classes</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ) : (
-                  filteredStaff.map((staff) => {
-                  const designation =
-                    staff.formDesignation ||
-                    (staff.role === 'Form Mistress' ||
-                    staff.title === 'Mrs.' ||
-                    staff.title === 'Miss' ||
-                    staff.title === 'Lady'
-                      ? 'Form Mistress'
-                      : 'Form Master');
-
-                  return (
-                    <tr key={staff.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-900 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
-                            {staff.name.replace(/^(Dr\.|Mrs\.|Mr\.|Miss|Engr\.|Lady|Rev\.|Barr\.)\s*/, '').substring(0, 2).toUpperCase()}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredStaff.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 px-4 text-center">
+                        <div className="max-w-md mx-auto space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-sky-50 text-blue-900 border border-sky-200 flex items-center justify-center mx-auto">
+                            <GraduationCap className="w-6 h-6 text-blue-800" />
                           </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block">{staff.title} {staff.name}</span>
-                            <span className="text-[10px] text-slate-400">{staff.qualification || staff.email}</span>
-                          </div>
+                          <h4 className="text-sm font-bold text-slate-800">
+                            {staffSearchQuery || staffDeptFilter !== 'ALL'
+                              ? 'No staff found matching current filters'
+                              : 'No data yet (0 teachers registered)'}
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            {staffSearchQuery || staffDeptFilter !== 'ALL'
+                              ? 'Try resetting the department filter or clearing the search box.'
+                              : 'No teachers or staff members have been added to the college directory yet. Click "+ Add Teacher" to configure teaching personnel.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setIsTeacherManagerOpen(true)}
+                            className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          >
+                            <PlusCircle className="w-4 h-4" />
+                            <span>+ Add Teacher</span>
+                          </button>
                         </div>
                       </td>
+                    </tr>
+                  ) : (
+                    filteredStaff.map((staff) => {
+                    const designation =
+                      staff.formDesignation ||
+                      (staff.role === 'Form Mistress' ||
+                      staff.title === 'Mrs.' ||
+                      staff.title === 'Miss' ||
+                      staff.title === 'Lady'
+                        ? 'Form Mistress'
+                        : 'Form Master');
+
+                    return (
+                      <tr key={staff.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                              {staff.name.replace(/^(Dr\.|Mrs\.|Mr\.|Miss|Engr\.|Lady|Rev\.|Barr\.)\s*/, '').substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 block">{staff.title} {formatStaffName(staff.name)}</span>
+                              <span className="text-[10px] text-slate-400">{staff.qualification || staff.email}</span>
+                            </div>
+                          </div>
+                        </td>
                       <td className="py-3.5 px-3">
                         <span className="font-semibold text-slate-800 block">{staff.role}</span>
                         <span className="text-[10px] text-slate-500">{staff.department} Dept</span>
@@ -852,9 +852,9 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         ) : (
                           <button
                             onClick={() => setSelectedStaffForAlloc(staff)}
-                            className="px-2 py-1 rounded-lg border border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-500 hover:text-amber-900 text-[11px] font-semibold transition-colors flex items-center gap-1"
+                            className="px-2 py-1 rounded-lg border border-dashed border-sky-300 hover:border-blue-400 hover:bg-sky-50 text-slate-600 hover:text-blue-900 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
                           >
-                            <PlusCircle className="w-3 h-3 text-amber-600" />
+                            <PlusCircle className="w-3 h-3 text-blue-600" />
                             <span>Assign Form Master/Mistress</span>
                           </button>
                         )}
@@ -895,7 +895,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                           </div>
                           <button
                             onClick={() => setSelectedStaffForAlloc(staff)}
-                            className="text-[10px] font-bold text-blue-900 hover:underline block"
+                            className="text-[10px] font-bold text-blue-900 hover:underline block cursor-pointer"
                           >
                             Assign Classes ({staff.assignedClasses.length})
                           </button>
@@ -905,7 +905,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setSelectedStaffForAlloc(staff)}
-                            className="px-3 py-1.5 text-xs font-bold bg-amber-400 hover:bg-amber-300 text-blue-950 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                             title="Assign Subjects, Classes & Form Master/Mistress"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
@@ -925,6 +925,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 }))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -939,7 +940,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               Master School Curriculum & Subject Teacher Allocations
             </h2>
             <p className="text-xs text-slate-500">
-              Matrix of all subjects offered at Dominion Stars Global College, across Junior and Senior Secondary streams.
+              Matrix of all subjects offered at Dominate Star College, across Junior and Senior Secondary streams.
             </p>
           </div>
 
@@ -995,13 +996,13 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {activeTab === 'students' && (
         <div className="space-y-4">
           {/* Individual Student Result Hold Console Banner */}
-          <div className="p-4 sm:p-5 bg-gradient-to-r from-rose-50 via-amber-50 to-orange-50 border border-rose-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+          <div className="p-4 sm:p-5 bg-sky-50 border border-sky-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-start sm:items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0 mt-0.5 sm:mt-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0 mt-0.5 sm:mt-0">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-900 block">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 block">
                   Individual Student Result Hold Controller
                 </span>
                 <h4 className="text-sm font-bold text-slate-900 leading-tight">
@@ -1019,7 +1020,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 setIndividualHoldStudent(null);
                 setIsIndividualHoldOpen(true);
               }}
-              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer min-h-[44px]"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer min-h-[44px]"
             >
               <Lock className="w-3.5 h-3.5" />
               <span>Hold / Release Student</span>
@@ -1076,18 +1077,19 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRegisterStudentOpen(true)}
-                className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px]"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px]"
                 title="Open Official Admission & Registration Form"
               >
-                <UserPlus className="w-3.5 h-3.5 text-amber-300" />
+                <UserPlus className="w-3.5 h-3.5 text-white" />
                 <span>+ Register Student</span>
               </button>
             </div>
           </div>
 
           {/* Students Table with Responsive Horizontal Scroll */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[700px]">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full max-w-full min-w-0">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs min-w-[700px]">
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Adm No</th>
@@ -1120,7 +1122,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsRegisterStudentOpen(true)}
-                          className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs min-h-[44px]"
+                          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs min-h-[44px]"
                         >
                           <UserPlus className="w-4 h-4" />
                           <span>+ Register Student</span>
@@ -1135,7 +1137,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       {student.admissionNo}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-bold text-slate-900 block">{student.name}</span>
+                      <span className="font-bold text-slate-900 block">{formatStudentShortName(student.name)}</span>
                       <span className="text-[10px] text-slate-400">{student.guardianName || 'Guardian'}</span>
                     </td>
                     <td className="py-3 px-3 font-semibold text-slate-800">
@@ -1183,7 +1185,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         </button>
                         <button
                           onClick={() => setReportCardStudent(student)}
-                          className="px-2.5 py-1.5 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg border border-blue-200 transition-colors min-h-[36px]"
+                          className="px-2.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors min-h-[36px] cursor-pointer"
                         >
                           Report
                         </button>
@@ -1205,6 +1207,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 )))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -1281,8 +1284,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs min-w-[600px]">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-400 uppercase font-extrabold text-[10px]">
                     <th className="py-2.5 px-3">Class Arm</th>
@@ -1365,7 +1368,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     })
                     .finally(() => setIsLoadingAttendance(false));
                 }}
-                className="px-3.5 py-2 bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <span>{isLoadingAttendance ? 'Refreshing...' : '↻ Refresh Registers'}</span>
               </button>
@@ -1557,7 +1560,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               <button
                 onClick={() => handleQuickAssignFormMaster(quickFormMasterClass)}
                 disabled={!quickFormMasterTeacher}
-                className="px-4 py-2 bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold text-xs rounded-xl shadow-xs disabled:opacity-40"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs disabled:opacity-40 cursor-pointer"
               >
                 Save Assignment
               </button>
@@ -1644,7 +1647,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 <label className="font-bold text-slate-700">Email Address</label>
                 <input
                   type="email"
-                  placeholder="e.g. k.okoli@dominionstars.edu.ng"
+                  placeholder="e.g. k.okoli@dominatestar.edu.ng"
                   value={newStaff.email}
                   onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
@@ -1661,7 +1664,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-950 text-amber-300 font-bold rounded-xl shadow-xs"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
                 >
                   Register Teacher
                 </button>
