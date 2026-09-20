@@ -32,11 +32,22 @@ import {
   Clock,
   Check,
   CreditCard,
+  Zap,
+  Grid,
+  Table as TableIcon,
+  CheckCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { StudentProfile, StaffMember, SchoolClassDefinition } from '../types';
 import {
   SCHOOL_CLASSES_LIST,
   ALL_SCHOOL_SUBJECTS,
+  JUNIOR_CURRICULUM,
+  SENIOR_SCIENCE_CURRICULUM,
+  SENIOR_ART_CURRICULUM,
+  SENIOR_COMMERCIAL_CURRICULUM,
+  getSubjectCategory,
+  getSubjectCode,
   calculateGrade,
 } from '../data/mockData';
 import { StaffAllocationModal } from './StaffAllocationModal';
@@ -47,6 +58,7 @@ import { formatStudentShortName, formatStaffName } from '../utils/formatters';
 import { TeacherManagementModal } from './TeacherManagementModal';
 import { SchoolFeesManagement } from './SchoolFeesManagement';
 import { IndividualHoldResultModal } from './IndividualHoldResultModal';
+import { BatchSubjectAllocationModal } from './BatchSubjectAllocationModal';
 
 interface CeoDashboardProps {
   onExit: () => void;
@@ -70,6 +82,16 @@ interface CeoDashboardProps {
     department?: StaffMember['department'];
   }) => Promise<boolean>;
   onUpdateStaff?: (staffId: string, updatedData: Partial<StaffMember>) => Promise<boolean>;
+  onBatchAssignSubjects?: (
+    targetClasses: string[],
+    subjects: string[],
+    mode?: 'add' | 'set' | 'remove'
+  ) => Promise<boolean>;
+  onUpdateClassCurriculum?: (
+    className: string,
+    subjects: string[],
+    action?: 'add' | 'set' | 'remove'
+  ) => Promise<boolean>;
   onUpdateStudentFeeStatus?: (
     studentId: string,
     feeStatus: 'Cleared' | 'Pending',
@@ -99,6 +121,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   onAssignSubjectTeacher,
   onAssignStaffAllocations,
   onUpdateStaff,
+  onBatchAssignSubjects,
+  onUpdateClassCurriculum,
   onUpdateStudentFeeStatus,
   onBulkUpdateStudentFeeStatus,
 }) => {
@@ -106,6 +130,15 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<
     'classes' | 'staff' | 'curriculum' | 'students' | 'attendance' | 'fees'
   >('classes');
+
+  // Curriculum Oversight & Batch Subject Allocation State
+  const [isBatchSubjectModalOpen, setIsBatchSubjectModalOpen] = useState(false);
+  const [initialSubjectForBatch, setInitialSubjectForBatch] = useState<string | undefined>(undefined);
+  const [curriculumViewMode, setCurriculumViewMode] = useState<'matrix' | 'cards'>('matrix');
+  const [curriculumSearchQuery, setCurriculumSearchQuery] = useState('');
+  const [curriculumCategoryFilter, setCurriculumCategoryFilter] = useState('ALL');
+  const [curriculumSuccessNotice, setCurriculumSuccessNotice] = useState<string | null>(null);
+  const [isProcessingCurriculumAction, setIsProcessingCurriculumAction] = useState(false);
 
   // Attendance oversight state
   const [allAttendanceLogs, setAllAttendanceLogs] = useState<any[]>([]);
@@ -931,62 +964,467 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SUBJECT ALLOCATIONS & CURRICULUM                                   */}
+      {/* TAB 3: SUBJECT ALLOCATIONS & CURRICULUM MANAGEMENT                       */}
       {/* ========================================================================= */}
       {activeTab === 'curriculum' && (
-        <div className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-            <h2 className="text-base font-bold text-slate-900">
-              Master School Curriculum & Subject Teacher Allocations
-            </h2>
-            <p className="text-xs text-slate-500">
-              Matrix of all subjects offered at Dominate Star College, across Junior and Senior Secondary streams.
-            </p>
+        <div className="space-y-5">
+          {/* Success / Alert notice */}
+          {curriculumSuccessNotice && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold rounded-2xl flex items-center gap-2 shadow-xs animate-in fade-in duration-150">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{curriculumSuccessNotice}</span>
+            </div>
+          )}
+
+          {/* Academic Board Command Suite Header */}
+          <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-md">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400">
+                    Academic Board & Registrar Portal
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    14 Active Class Arms
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold font-serif-title text-white">
+                  14-Class Curriculum Allocation & Subject Teacher Registry
+                </h2>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Assign subjects (e.g. English Language, Mathematics, Civic Education) across all 14 classes.
+                  Changes immediately synchronize student continuous assessment scorecards, academic reports, and portal views.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!onBatchAssignSubjects) return;
+                    setIsProcessingCurriculumAction(true);
+                    const compulsory = ['English Language', 'Mathematics', 'Civic Education', 'Data Processing / ICT'];
+                    await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, compulsory, 'add');
+                    setIsProcessingCurriculumAction(false);
+                    setCurriculumSuccessNotice('Assigned 4 Core Compulsory subjects (English, Maths, Civic Ed, ICT) to all 14 classes.');
+                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                  }}
+                  disabled={isProcessingCurriculumAction}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Assign English, Mathematics, Civic Education & ICT to all 14 classes"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Assign 4 Core to All 14 Classes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!onBatchAssignSubjects) return;
+                    setIsProcessingCurriculumAction(true);
+                    const juniorClasses = ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'JSS 3A', 'JSS 3B'];
+                    await onBatchAssignSubjects(juniorClasses, JUNIOR_CURRICULUM, 'add');
+                    setIsProcessingCurriculumAction(false);
+                    setCurriculumSuccessNotice('Assigned Standard Junior Curriculum (9 subjects) to all 6 JSS class arms.');
+                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                  }}
+                  disabled={isProcessingCurriculumAction}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Assign 9 standard junior subjects to JSS 1A - JSS 3B"
+                >
+                  <span>⚡ Junior Std (6 Classes)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!onBatchAssignSubjects) return;
+                    setIsProcessingCurriculumAction(true);
+                    await onBatchAssignSubjects(['SS 2 Science', 'SS 3 Science'], SENIOR_SCIENCE_CURRICULUM, 'add');
+                    await onBatchAssignSubjects(['SS 2 Art', 'SS 3 Art'], SENIOR_ART_CURRICULUM, 'add');
+                    await onBatchAssignSubjects(['SS 2 Commercial', 'SS 3 Commercial'], SENIOR_COMMERCIAL_CURRICULUM, 'add');
+                    await onBatchAssignSubjects(
+                      ['SS 1A', 'SS 1B'],
+                      ['English Language', 'Mathematics', 'Civic Education', 'Economics', 'Biology', 'Chemistry', 'Physics', 'Government', 'Data Processing / ICT'],
+                      'add'
+                    );
+                    setIsProcessingCurriculumAction(false);
+                    setCurriculumSuccessNotice('Assigned Senior Secondary Science, Art & Commercial streams to respective classes.');
+                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                  }}
+                  disabled={isProcessingCurriculumAction}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Assign specialized streams to Senior Secondary classes"
+                >
+                  <span>⚡ Senior Streams (8 Classes)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInitialSubjectForBatch(undefined);
+                    setIsBatchSubjectModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Open Batch Subject Allocation Suite"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Batch Allocation Suite...</span>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ALL_SCHOOL_SUBJECTS.map((subject) => {
-              const teachers = staffList.filter((s) => s.subjectsTaught.includes(subject));
-              const classesOffering = classes.filter((c) =>
-                c.curriculumSubjects ? c.curriculumSubjects.includes(subject) : true
-              );
+          {/* Filtering and View Switcher Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={curriculumSearchQuery}
+                  onChange={(e) => setCurriculumSearchQuery(e.target.value)}
+                  placeholder="Filter subjects by name or code (e.g. Maths, ENG, Physics)..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/20"
+                />
+              </div>
 
-              return (
-                <div key={subject} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 text-sm">{subject}</span>
-                    <span className="text-[11px] font-bold text-blue-900 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200">
-                      {teachers.length} Teachers Assigned
-                    </span>
-                  </div>
+              {/* Category Filter */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                {['ALL', 'Sciences', 'Arts & Humanities', 'Commercial', 'General', 'Vocational & Tech'].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCurriculumCategoryFilter(cat)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors shrink-0 ${
+                      curriculumCategoryFilter === cat
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  <div className="text-xs space-y-1">
-                    <span className="text-slate-400 font-medium block text-[10px] uppercase">Assigned Teachers:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {teachers.map((t) => (
-                        <span key={t.id} className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 font-semibold border border-amber-200 text-[11px]">
-                          {t.name} ({t.department})
+            {/* View Mode Toggle: Matrix vs Cards */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => setCurriculumViewMode('matrix')}
+                className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                  curriculumViewMode === 'matrix'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5 text-blue-600" />
+                <span>14-Class Matrix</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurriculumViewMode('cards')}
+                className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                  curriculumViewMode === 'cards'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Grid className="w-3.5 h-3.5 text-blue-600" />
+                <span>Subject Cards</span>
+              </button>
+            </div>
+          </div>
+
+          {/* VIEW 1: 14-CLASS GRID MATRIX */}
+          {curriculumViewMode === 'matrix' && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                <span className="font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Interactive Curriculum Matrix · Click any cell to assign or remove subject from that class arm.</span>
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Showing 14 classes across Junior & Senior secondary.
+                </span>
+              </div>
+
+              <div className="overflow-x-auto max-h-[600px]">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px] sticky top-0 z-10">
+                    <tr>
+                      <th className="py-3 px-3.5 bg-slate-100 min-w-[200px] border-r border-slate-200">
+                        Subject Course
+                      </th>
+                      <th className="py-3 px-2 bg-slate-100 min-w-[90px] border-r border-slate-200 text-center">
+                        Quick Action
+                      </th>
+                      {SCHOOL_CLASSES_LIST.map((cls) => {
+                        const classDef = classes.find((c) => c.name === cls);
+                        const curList = classDef?.curriculumSubjects || [];
+                        const count = curList.length;
+                        return (
+                          <th
+                            key={cls}
+                            className="py-3 px-2 text-center min-w-[76px] border-r border-slate-200 last:border-r-0"
+                          >
+                            <span className="block font-bold text-slate-900 leading-tight">{cls}</span>
+                            <span className="text-[9px] font-normal text-slate-500 block">
+                              {count} subj
+                            </span>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ALL_SCHOOL_SUBJECTS.filter((subject) => {
+                      const matchesSearch =
+                        subject.toLowerCase().includes(curriculumSearchQuery.toLowerCase()) ||
+                        getSubjectCode(subject).toLowerCase().includes(curriculumSearchQuery.toLowerCase());
+                      const cat = getSubjectCategory(subject);
+                      const matchesCat = curriculumCategoryFilter === 'ALL' || cat === curriculumCategoryFilter;
+                      return matchesSearch && matchesCat;
+                    }).map((subject) => {
+                      const code = getSubjectCode(subject);
+                      const category = getSubjectCategory(subject);
+                      const offeringCount = classes.filter((c) =>
+                        c.curriculumSubjects ? c.curriculumSubjects.includes(subject) : false
+                      ).length;
+
+                      return (
+                        <tr key={subject} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Subject Course Info */}
+                          <td className="py-2.5 px-3.5 border-r border-slate-200 bg-white sticky left-0 z-5">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div>
+                                <span className="font-bold text-slate-900 block leading-tight">
+                                  {subject}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono font-bold">
+                                  {code} · {category}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                {offeringCount}/14
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Quick Assign to All 14 Action */}
+                          <td className="py-2.5 px-2 text-center border-r border-slate-200">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!onBatchAssignSubjects) return;
+                                setIsProcessingCurriculumAction(true);
+                                await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, [subject], 'add');
+                                setIsProcessingCurriculumAction(false);
+                                setCurriculumSuccessNotice(`Assigned ${subject} across all 14 class arms.`);
+                                setTimeout(() => setCurriculumSuccessNotice(null), 3000);
+                              }}
+                              disabled={isProcessingCurriculumAction}
+                              className="px-2 py-1 text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-md border border-blue-200 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50"
+                              title={`Assign ${subject} to all 14 classes`}
+                            >
+                              All 14
+                            </button>
+                          </td>
+
+                          {/* 14 Class Cells */}
+                          {SCHOOL_CLASSES_LIST.map((cls) => {
+                            const classDef = classes.find((c) => c.name === cls);
+                            const isAssigned = classDef?.curriculumSubjects
+                              ? classDef.curriculumSubjects.includes(subject)
+                              : false;
+
+                            return (
+                              <td
+                                key={cls}
+                                className="py-2 px-1 text-center border-r border-slate-200 last:border-r-0"
+                              >
+                                {isAssigned ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (onUpdateClassCurriculum) {
+                                        setIsProcessingCurriculumAction(true);
+                                        await onUpdateClassCurriculum(cls, [subject], 'remove');
+                                        setIsProcessingCurriculumAction(false);
+                                        setCurriculumSuccessNotice(`Removed ${subject} from ${cls}.`);
+                                        setTimeout(() => setCurriculumSuccessNotice(null), 2500);
+                                      }
+                                    }}
+                                    disabled={isProcessingCurriculumAction}
+                                    className="w-7 h-7 mx-auto rounded-lg bg-emerald-100 hover:bg-rose-100 text-emerald-800 hover:text-rose-700 flex items-center justify-center transition-colors cursor-pointer group"
+                                    title={`Assigned in ${cls}. Click to remove.`}
+                                  >
+                                    <Check className="w-3.5 h-3.5 group-hover:hidden" />
+                                    <X className="w-3.5 h-3.5 hidden group-hover:block" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (onUpdateClassCurriculum) {
+                                        setIsProcessingCurriculumAction(true);
+                                        await onUpdateClassCurriculum(cls, [subject], 'add');
+                                        setIsProcessingCurriculumAction(false);
+                                        setCurriculumSuccessNotice(`Assigned ${subject} to ${cls}.`);
+                                        setTimeout(() => setCurriculumSuccessNotice(null), 2500);
+                                      }
+                                    }}
+                                    disabled={isProcessingCurriculumAction}
+                                    className="w-7 h-7 mx-auto rounded-lg bg-slate-50 hover:bg-blue-100 text-slate-300 hover:text-blue-700 flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-blue-200"
+                                    title={`Not assigned in ${cls}. Click to assign.`}
+                                  >
+                                    <PlusCircle className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 2: SUBJECT CARDS VIEW */}
+          {curriculumViewMode === 'cards' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ALL_SCHOOL_SUBJECTS.filter((subject) => {
+                const matchesSearch =
+                  subject.toLowerCase().includes(curriculumSearchQuery.toLowerCase()) ||
+                  getSubjectCode(subject).toLowerCase().includes(curriculumSearchQuery.toLowerCase());
+                const cat = getSubjectCategory(subject);
+                const matchesCat = curriculumCategoryFilter === 'ALL' || cat === curriculumCategoryFilter;
+                return matchesSearch && matchesCat;
+              }).map((subject) => {
+                const teachers = staffList.filter((s) => s.subjectsTaught.includes(subject));
+                const classesOffering = classes.filter((c) =>
+                  c.curriculumSubjects ? c.curriculumSubjects.includes(subject) : false
+                );
+                const code = getSubjectCode(subject);
+                const category = getSubjectCategory(subject);
+
+                return (
+                  <div
+                    key={subject}
+                    className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="font-bold text-slate-900 text-sm block leading-snug">
+                            {subject}
+                          </span>
+                          <span className="text-[11px] font-mono font-bold text-slate-500">
+                            {code}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            category === 'Sciences'
+                              ? 'bg-blue-100 text-blue-900'
+                              : category === 'Arts & Humanities'
+                              ? 'bg-purple-100 text-purple-900'
+                              : category === 'Commercial'
+                              ? 'bg-amber-100 text-amber-900'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {category}
                         </span>
-                      ))}
-                      {teachers.length === 0 && (
-                        <span className="text-rose-600 font-medium text-[11px]">No teachers assigned yet</span>
-                      )}
+                      </div>
+
+                      {/* Offering Coverage Indicator */}
+                      <div className="p-2 bg-slate-50 rounded-xl border border-slate-100 text-xs flex items-center justify-between">
+                        <span className="text-slate-500 text-[11px]">Class Coverage:</span>
+                        <span className="font-bold text-slate-800">
+                          {classesOffering.length} of 14 Classes
+                        </span>
+                      </div>
+
+                      {/* Teachers Info */}
+                      <div className="text-xs space-y-1">
+                        <span className="text-slate-400 font-medium block text-[10px] uppercase">
+                          Instructors:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {teachers.map((t) => (
+                            <span
+                              key={t.id}
+                              className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 font-semibold border border-amber-200 text-[11px]"
+                            >
+                              {t.name}
+                            </span>
+                          ))}
+                          {teachers.length === 0 && (
+                            <span className="text-rose-600 font-medium text-[11px]">
+                              No teachers allocated
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!onBatchAssignSubjects) return;
+                            setIsProcessingCurriculumAction(true);
+                            await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, [subject], 'add');
+                            setIsProcessingCurriculumAction(false);
+                            setCurriculumSuccessNotice(`Assigned ${subject} to all 14 classes.`);
+                            setTimeout(() => setCurriculumSuccessNotice(null), 3000);
+                          }}
+                          className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold rounded-lg transition-colors cursor-pointer"
+                        >
+                          + All 14
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!onBatchAssignSubjects) return;
+                            const jss = ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'JSS 3A', 'JSS 3B'];
+                            setIsProcessingCurriculumAction(true);
+                            await onBatchAssignSubjects(jss, [subject], 'add');
+                            setIsProcessingCurriculumAction(false);
+                            setCurriculumSuccessNotice(`Assigned ${subject} to 6 Junior classes.`);
+                            setTimeout(() => setCurriculumSuccessNotice(null), 3000);
+                          }}
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors cursor-pointer"
+                        >
+                          + 6 Junior
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInitialSubjectForBatch(subject);
+                          setIsBatchSubjectModalOpen(true);
+                        }}
+                        className="text-blue-900 font-bold hover:underline cursor-pointer"
+                      >
+                        Allocate... →
+                      </button>
                     </div>
                   </div>
-
-                  <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-                    <span>Offered across {classesOffering.length} classes</span>
-                    <button
-                      onClick={() => setActiveTab('staff')}
-                      className="text-blue-900 font-bold hover:underline"
-                    >
-                      Assign Teacher →
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1703,11 +2141,30 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClose={() => setSelectedClassForModal(null)}
           onAssignFormMaster={onAssignFormMaster}
           onAssignSubjectTeacher={onAssignSubjectTeacher}
+          onUpdateClassCurriculum={onUpdateClassCurriculum}
           onToggleHoldResult={onToggleHoldResult}
           onBatchHoldClass={onBatchHoldClass}
           onEditStudent={(s) => setEditingStudent(s)}
           onPreviewReportCard={(s) => setReportCardStudent(s)}
           onDeleteStudent={onDeleteStudent}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: BATCH SUBJECT ALLOCATION SUITE                                    */}
+      {/* ========================================================================= */}
+      {isBatchSubjectModalOpen && onBatchAssignSubjects && (
+        <BatchSubjectAllocationModal
+          isOpen={isBatchSubjectModalOpen}
+          onClose={() => {
+            setIsBatchSubjectModalOpen(false);
+            setInitialSubjectForBatch(undefined);
+          }}
+          classes={classes}
+          students={students}
+          staffList={staffList}
+          initialSelectedSubject={initialSubjectForBatch}
+          onBatchAssignSubjects={onBatchAssignSubjects}
         />
       )}
 

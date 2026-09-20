@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  BookOpen,
   Printer,
   GraduationCap,
   CalendarCheck,
@@ -36,12 +37,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogoTripleClick,
 }) => {
   // Navigation items strictly adhering to secondary school student portal scope:
-  // 1. Print Results
-  // 2. Check performance in all subjects assigned by administration
-  // 3. Check attendance
-  // 4. Check if you have cleared school fees and other dues
-  // 5. Settings: Profile picture upload (in school uniform) & optional phone
+  // 1. Check assigned subjects & curriculum (allocated by administration)
+  // 2. Print Results / Terminal Report Sheet
+  // 3. Check performance in all subjects assigned by administration
+  // 4. Check attendance
+  // 5. Check if you have cleared school fees and other dues
+  // 6. Settings: Profile picture upload (in school uniform) & optional phone
   const navigationItems = [
+    {
+      id: 'subjects',
+      label: 'Assigned Subjects',
+      subtitle: 'Curriculum & subject teachers',
+      icon: BookOpen,
+      badge: currentStudent?.subjects?.length ? `${currentStudent.subjects.length} Subjects` : 'Curriculum',
+      badgeColor: 'bg-blue-50 text-blue-900 border border-blue-200 font-bold',
+    },
     {
       id: 'report_card',
       label: 'Print Results',

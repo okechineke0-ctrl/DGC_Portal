@@ -15,8 +15,12 @@ import {
 } from 'firebase/firestore';
 import {
   SCHOOL_CLASSES_DEFINITIONS,
+  SCHOOL_CLASSES_LIST,
+  ALL_SCHOOL_SUBJECTS,
   calculateGrade,
   computeCaTotal,
+  createSubjectScore,
+  getSubjectCode,
   recalculateClassRankings,
 } from './src/data/originalData';
 import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from './src/types';
@@ -689,6 +693,237 @@ async function startServer() {
       dbSaveClass(schoolClasses[clsIndex]);
     }
     return res.json({ success: true, class: clsIndex !== -1 ? schoolClasses[clsIndex] : null });
+  });
+
+  // Batch assign subjects to multiple classes (or all 14 classes), and synchronize student profiles
+  app.post('/api/classes/batch-assign-subjects', async (req, res) => {
+    try {
+      const { targetClasses, subjects, mode = 'add', syncStudents = true } = req.body;
+
+      if (!targetClasses || !Array.isArray(targetClasses) || targetClasses.length === 0) {
+        return res.status(400).json({ error: 'targetClasses array is required' });
+      }
+      if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
+        return res.status(400).json({ error: 'subjects array is required' });
+      }
+
+      // If 'ALL' is passed or 14 classes requested
+      const resolvedClassNames: string[] = targetClasses.includes('ALL') || targetClasses.includes('All 14 Classes')
+        ? [...SCHOOL_CLASSES_LIST]
+        : targetClasses;
+
+      const cleanSubjects = subjects.map((s: string) => s.trim()).filter((s: string) => Boolean(s));
+      if (cleanSubjects.length === 0) {
+        return res.status(400).json({ error: 'At least one valid subject name is required' });
+      }
+
+      const updatedClasses: SchoolClassDefinition[] = [];
+      const updatedClassNames: string[] = [];
+
+      for (const clsName of resolvedClassNames) {
+        const clsIndex = schoolClasses.findIndex((c) => c.name === clsName || c.id === clsName);
+        if (clsIndex === -1) continue;
+
+        const currentSubjs = Array.isArray(schoolClasses[clsIndex].curriculumSubjects)
+          ? [...schoolClasses[clsIndex].curriculumSubjects!]
+          : [];
+
+        let newSubjs: string[] = [];
+        if (mode === 'set') {
+          newSubjs = Array.from(new Set(cleanSubjects));
+        } else if (mode === 'remove') {
+          newSubjs = currentSubjs.filter((s) => !cleanSubjects.some((cs) => cs.toLowerCase() === s.toLowerCase()));
+        } else {
+          // 'add'
+          const set = new Set(currentSubjs);
+          cleanSubjects.forEach((s) => set.add(s));
+          newSubjs = Array.from(set);
+        }
+
+        schoolClasses[clsIndex].curriculumSubjects = newSubjs;
+        await dbSaveClass(schoolClasses[clsIndex]);
+        updatedClasses.push(schoolClasses[clsIndex]);
+        updatedClassNames.push(schoolClasses[clsIndex].name);
+      }
+
+      let syncedStudentsCount = 0;
+
+      if (syncStudents && updatedClassNames.length > 0) {
+        // Synchronize all enrolled students belonging to the updated class arms
+        for (let i = 0; i < students.length; i++) {
+          const student = students[i];
+          if (!updatedClassNames.includes(student.classArm)) continue;
+
+          const cls = schoolClasses.find((c) => c.name === student.classArm);
+          if (!cls) continue;
+
+          const classCurriculum = cls.curriculumSubjects || [];
+          let studentSubjects = Array.isArray(student.subjects) ? [...student.subjects] : [];
+          let studentModified = false;
+
+          if (mode === 'remove') {
+            const beforeLen = studentSubjects.length;
+            studentSubjects = studentSubjects.filter(
+              (sub) => !cleanSubjects.some((cs) => cs.toLowerCase() === sub.name.toLowerCase())
+            );
+            if (studentSubjects.length !== beforeLen) {
+              studentModified = true;
+            }
+          } else {
+            // mode === 'add' or 'set'
+            for (const subjName of classCurriculum) {
+              const alreadyExists = studentSubjects.some(
+                (sub) => sub.name.toLowerCase() === subjName.toLowerCase()
+              );
+              if (!alreadyExists) {
+                // Generate standard institutional subject score object
+                const code = getSubjectCode(subjName, student.level);
+                // Create a standard realistic baseline
+                const newScore = createSubjectScore(code, subjName, 8, 8, 9, 8, 50);
+                newScore.updatedBy = 'College Directorate (Curriculum Allocation)';
+                newScore.updatedAt = new Date().toISOString();
+                studentSubjects.push(newScore);
+                studentModified = true;
+              }
+            }
+
+            if (mode === 'set') {
+              // If mode is 'set', remove any subjects that are no longer in the class curriculum
+              const beforeLen = studentSubjects.length;
+              studentSubjects = studentSubjects.filter((sub) =>
+                classCurriculum.some((cs) => cs.toLowerCase() === sub.name.toLowerCase())
+              );
+              if (studentSubjects.length !== beforeLen) {
+                studentModified = true;
+              }
+            }
+          }
+
+          if (studentModified) {
+            student.subjects = studentSubjects;
+            students[i] = student;
+            syncedStudentsCount++;
+          }
+        }
+
+        if (syncedStudentsCount > 0) {
+          students = recalculateClassRankings(students);
+          // Persist modified students to Firestore
+          for (const s of students) {
+            if (updatedClassNames.includes(s.classArm)) {
+              await dbSaveStudent(s);
+            }
+          }
+        }
+      }
+
+      console.log(`[Curriculum] Batch assigned ${cleanSubjects.length} subjects to ${updatedClasses.length} classes. Synced ${syncedStudentsCount} students.`);
+
+      return res.json({
+        success: true,
+        message: `Successfully assigned ${cleanSubjects.length} subjects to ${updatedClasses.length} classes and synchronized ${syncedStudentsCount} student records in Cloud Firestore.`,
+        classes: schoolClasses,
+        students,
+        updatedClassesCount: updatedClasses.length,
+        syncedStudentsCount,
+      });
+    } catch (err: any) {
+      console.error('[Curriculum Batch Assignment Error]:', err);
+      return res.status(500).json({ error: err.message || 'Failed to batch assign subjects to classes' });
+    }
+  });
+
+  // Assign subjects to a single class and synchronize student profiles
+  app.post('/api/classes/:id/curriculum', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { subjects, mode = 'add' } = req.body;
+      const cls = schoolClasses.find((c) => c.id === id || c.name === id);
+      if (!cls) {
+        return res.status(404).json({ error: 'Class not found' });
+      }
+
+      // Delegate to batch logic
+      const targetClasses = [cls.name];
+      const cleanSubjects = Array.isArray(subjects) ? subjects : [subjects];
+      const clsIndex = schoolClasses.findIndex((c) => c.id === cls.id);
+
+      const currentSubjs = Array.isArray(schoolClasses[clsIndex].curriculumSubjects)
+        ? [...schoolClasses[clsIndex].curriculumSubjects!]
+        : [];
+
+      let newSubjs: string[] = [];
+      if (mode === 'set') {
+        newSubjs = Array.from(new Set(cleanSubjects));
+      } else if (mode === 'remove') {
+        newSubjs = currentSubjs.filter((s) => !cleanSubjects.some((cs) => cs.toLowerCase() === s.toLowerCase()));
+      } else {
+        const set = new Set(currentSubjs);
+        cleanSubjects.forEach((s) => set.add(s));
+        newSubjs = Array.from(set);
+      }
+
+      schoolClasses[clsIndex].curriculumSubjects = newSubjs;
+      await dbSaveClass(schoolClasses[clsIndex]);
+
+      // Sync enrolled students of this class
+      let syncedCount = 0;
+      for (let i = 0; i < students.length; i++) {
+        if (students[i].classArm === cls.name) {
+          const student = students[i];
+          let studentSubjects = Array.isArray(student.subjects) ? [...student.subjects] : [];
+          let mod = false;
+
+          if (mode === 'remove') {
+            const beforeLen = studentSubjects.length;
+            studentSubjects = studentSubjects.filter(
+              (sub) => !cleanSubjects.some((cs) => cs.toLowerCase() === sub.name.toLowerCase())
+            );
+            if (studentSubjects.length !== beforeLen) mod = true;
+          } else {
+            for (const subjName of newSubjs) {
+              const exists = studentSubjects.some((s) => s.name.toLowerCase() === subjName.toLowerCase());
+              if (!exists) {
+                const code = getSubjectCode(subjName, student.level);
+                const newScore = createSubjectScore(code, subjName, 8, 8, 9, 8, 50);
+                newScore.updatedBy = 'College Directorate (Curriculum Allocation)';
+                studentSubjects.push(newScore);
+                mod = true;
+              }
+            }
+            if (mode === 'set') {
+              const beforeLen = studentSubjects.length;
+              studentSubjects = studentSubjects.filter((sub) =>
+                newSubjs.some((cs) => cs.toLowerCase() === sub.name.toLowerCase())
+              );
+              if (studentSubjects.length !== beforeLen) mod = true;
+            }
+          }
+
+          if (mod) {
+            student.subjects = studentSubjects;
+            students[i] = student;
+            await dbSaveStudent(student);
+            syncedCount++;
+          }
+        }
+      }
+
+      if (syncedCount > 0) {
+        students = recalculateClassRankings(students);
+      }
+
+      return res.json({
+        success: true,
+        class: schoolClasses[clsIndex],
+        syncedCount,
+        classes: schoolClasses,
+        students,
+      });
+    } catch (err: any) {
+      console.error('[Class Curriculum Update Error]:', err);
+      return res.status(500).json({ error: err.message || 'Failed to update class curriculum' });
+    }
   });
 
   // --- STUDENT & ACADEMIC ENDPOINTS ---

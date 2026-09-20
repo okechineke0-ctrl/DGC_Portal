@@ -17,7 +17,15 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SchoolClassDefinition, StudentProfile, StaffMember } from '../types';
-import { ALL_SCHOOL_SUBJECTS } from '../data/mockData';
+import {
+  ALL_SCHOOL_SUBJECTS,
+  JUNIOR_CURRICULUM,
+  SENIOR_SCIENCE_CURRICULUM,
+  SENIOR_ART_CURRICULUM,
+  SENIOR_COMMERCIAL_CURRICULUM,
+  getSubjectCategory,
+  getSubjectCode,
+} from '../data/mockData';
 
 interface ClassDetailModalProps {
   schoolClass: SchoolClassDefinition;
@@ -26,6 +34,7 @@ interface ClassDetailModalProps {
   onClose: () => void;
   onAssignFormMaster: (className: string, staffName: string, staffId?: string) => Promise<boolean>;
   onAssignSubjectTeacher: (className: string, subjectName: string, teacherName: string) => Promise<boolean>;
+  onUpdateClassCurriculum?: (className: string, subjects: string[], action?: 'add' | 'set' | 'remove') => Promise<boolean>;
   onToggleHoldResult: (studentId: string, hold: boolean, reason?: string) => Promise<boolean>;
   onBatchHoldClass: (classArm: string, hold: boolean, reason?: string) => Promise<boolean>;
   onEditStudent: (student: StudentProfile) => void;
@@ -40,6 +49,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   onClose,
   onAssignFormMaster,
   onAssignSubjectTeacher,
+  onUpdateClassCurriculum,
   onToggleHoldResult,
   onBatchHoldClass,
   onEditStudent,
@@ -84,13 +94,38 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   };
 
   // Handle Add Subject to Class Curriculum
-  const handleAddSubjectToClass = async () => {
-    if (!newSubjectName.trim()) return;
-    const defaultTeacher = staffList[0]?.name || 'Teacher';
-    await onAssignSubjectTeacher(schoolClass.name, newSubjectName.trim(), defaultTeacher);
+  const handleAddSubjectToClass = async (subjectToAdd?: string) => {
+    const targetSubject = (subjectToAdd || newSubjectName).trim();
+    if (!targetSubject) return;
+
+    if (onUpdateClassCurriculum) {
+      await onUpdateClassCurriculum(schoolClass.name, [targetSubject], 'add');
+    } else {
+      const defaultTeacher = staffList[0]?.name || 'Teacher';
+      await onAssignSubjectTeacher(schoolClass.name, targetSubject, defaultTeacher);
+    }
     setNewSubjectName('');
-    setSuccessNotice(`Added ${newSubjectName.trim()} to ${schoolClass.name} curriculum.`);
+    setSuccessNotice(`Added ${targetSubject} to ${schoolClass.name} curriculum and synced students.`);
     setTimeout(() => setSuccessNotice(null), 3000);
+  };
+
+  // Handle Remove Subject from Class Curriculum
+  const handleRemoveSubjectFromClass = async (subjectName: string) => {
+    if (onUpdateClassCurriculum) {
+      await onUpdateClassCurriculum(schoolClass.name, [subjectName], 'remove');
+    }
+    await onAssignSubjectTeacher(schoolClass.name, subjectName, 'Unassigned');
+    setSuccessNotice(`Removed ${subjectName} from ${schoolClass.name} curriculum.`);
+    setTimeout(() => setSuccessNotice(null), 3000);
+  };
+
+  // Handle Apply Curriculum Preset (e.g. standard junior or senior stream)
+  const handleApplyPreset = async (presetName: string, subjects: readonly string[]) => {
+    if (onUpdateClassCurriculum) {
+      await onUpdateClassCurriculum(schoolClass.name, [...subjects], 'set');
+      setSuccessNotice(`Applied ${presetName} (${subjects.length} subjects) to ${schoolClass.name}.`);
+      setTimeout(() => setSuccessNotice(null), 3500);
+    }
   };
 
   const filteredClassStudents = classStudents.filter((s) =>
@@ -412,29 +447,117 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           {/* TAB 2: CURRICULUM & SUBJECT TEACHER ALLOCATIONS */}
           {activeTab === 'curriculum' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Curriculum & Subject Teacher Allocations for {schoolClass.name}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Assign specific teachers to teach each subject in this class arm.
-                  </p>
+              {/* Presets and Rapid Assignment Toolbar */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-blue-900" />
+                      <span>Class Curriculum & Instructor Allocations · {schoolClass.name}</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Total Active Subjects: <strong>{curriculumList.length}</strong> · Synchronizes real data directly with student report records.
+                    </p>
+                  </div>
+
+                  {/* Standard Stream Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {schoolClass.name.startsWith('JSS') ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('Junior Secondary Curriculum', JUNIOR_CURRICULUM)}
+                        className="px-2.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Assign standard 9 Junior Secondary subjects"
+                      >
+                        ⚡ Apply Junior Curriculum ({JUNIOR_CURRICULUM.length})
+                      </button>
+                    ) : schoolClass.stream === 'Science' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('Senior Science Curriculum', SENIOR_SCIENCE_CURRICULUM)}
+                        className="px-2.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Assign standard 9 Senior Science subjects"
+                      >
+                        ⚡ Apply Science Curriculum ({SENIOR_SCIENCE_CURRICULUM.length})
+                      </button>
+                    ) : schoolClass.stream === 'Art' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('Senior Art Curriculum', SENIOR_ART_CURRICULUM)}
+                        className="px-2.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Assign standard 9 Senior Art subjects"
+                      >
+                        ⚡ Apply Art Curriculum ({SENIOR_ART_CURRICULUM.length})
+                      </button>
+                    ) : schoolClass.stream === 'Commercial' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('Senior Commercial Curriculum', SENIOR_COMMERCIAL_CURRICULUM)}
+                        className="px-2.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Assign standard 9 Senior Commercial subjects"
+                      >
+                        ⚡ Apply Commercial Curriculum ({SENIOR_COMMERCIAL_CURRICULUM.length})
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset('Junior Curriculum', JUNIOR_CURRICULUM)}
+                          className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold rounded-md"
+                        >
+                          Junior Std
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset('Senior Science', SENIOR_SCIENCE_CURRICULUM)}
+                          className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold rounded-md"
+                        >
+                          Senior Science
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add subject (e.g. French)..."
-                    value={newSubjectName}
-                    onChange={(e) => setNewSubjectName(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden"
-                  />
-                  <button
-                    onClick={handleAddSubjectToClass}
-                    className="px-3 py-1.5 text-xs font-bold bg-blue-950 text-amber-300 rounded-xl hover:bg-blue-900 transition-colors"
-                  >
-                    + Add
-                  </button>
+
+                {/* Add Subject Controls: Pick from Catalog or Custom */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-slate-200">
+                  {/* Dropdown pick from master catalog */}
+                  <div className="flex-1 flex gap-2">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) handleAddSubjectToClass(e.target.value);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
+                    >
+                      <option value="">+ Select Subject from Catalog to Add...</option>
+                      {ALL_SCHOOL_SUBJECTS.filter((s) => !curriculumList.includes(s)).map((subj) => (
+                        <option key={subj} value={subj}>
+                          {subj} ({getSubjectCode(subj)} · {getSubjectCategory(subj)})
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Or enter custom subject name */}
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="Or custom subject..."
+                        value={newSubjectName}
+                        onChange={(e) => setNewSubjectName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubjectToClass()}
+                        className="w-36 sm:w-44 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddSubjectToClass()}
+                        disabled={!newSubjectName.trim()}
+                        className="px-3 py-1.5 text-xs font-bold bg-blue-900 hover:bg-blue-800 text-white rounded-xl disabled:opacity-50 transition-colors cursor-pointer shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -443,34 +566,47 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                     <tr>
-                      <th className="py-3 px-4">Subject Course</th>
-                      <th className="py-3 px-4">Subject Category</th>
-                      <th className="py-3 px-4">Assigned Teacher</th>
-                      <th className="py-3 px-4 text-right">Teacher Actions</th>
+                      <th className="py-3 px-3.5">Code</th>
+                      <th className="py-3 px-3.5">Subject Course</th>
+                      <th className="py-3 px-3.5">Category</th>
+                      <th className="py-3 px-3.5">Assigned Instructor</th>
+                      <th className="py-3 px-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {curriculumList.map((subj) => {
                       const assignedTeacher = schoolClass.subjectTeachers?.[subj] || 'Unassigned';
                       const isAssigned = assignedTeacher && assignedTeacher !== 'Unassigned';
+                      const code = getSubjectCode(subj);
+                      const category = getSubjectCategory(subj);
+
                       return (
                         <tr key={subj} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-slate-900">
+                          <td className="py-3 px-3.5">
+                            <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                              {code}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3.5 font-bold text-slate-900">
                             {subj}
                           </td>
-                          <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                            {['Mathematics', 'Physics', 'Chemistry', 'Biology'].includes(subj)
-                              ? 'Sciences'
-                              : ['English Language', 'Literature-in-English', 'Government'].includes(subj)
-                              ? 'Arts & Humanities'
-                              : ['Economics', 'Commerce', 'Financial Accounting'].includes(subj)
-                              ? 'Commercial'
-                              : 'General Curriculum'}
+                          <td className="py-3 px-3.5 text-slate-500 text-[11px]">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              category === 'Sciences'
+                                ? 'bg-blue-100 text-blue-900'
+                                : category === 'Arts & Humanities'
+                                ? 'bg-purple-100 text-purple-900'
+                                : category === 'Commercial'
+                                ? 'bg-amber-100 text-amber-900'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {category}
+                            </span>
                           </td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-3.5">
                             {isAssigned ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-950 font-bold text-xs border border-blue-200">
-                                <UserCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-950 font-bold text-xs border border-emerald-200">
+                                <UserCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                 <span>{assignedTeacher}</span>
                               </span>
                             ) : (
@@ -480,49 +616,38 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-right">
-                            {isAssigned ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <select
-                                  value={assignedTeacher}
-                                  onChange={(e) => handleTeacherChange(subj, e.target.value)}
-                                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-800/20 cursor-pointer"
-                                  title="Change Subject Teacher"
-                                >
-                                  <option value={assignedTeacher}>Change: {assignedTeacher}</option>
-                                  {staffList
-                                    .filter((st) => st.name !== assignedTeacher)
-                                    .map((st) => (
-                                      <option key={st.id} value={st.name}>
-                                        {st.title} {st.name} ({st.department})
-                                      </option>
-                                    ))}
-                                </select>
-                                <button
-                                  onClick={() => handleTeacherChange(subj, 'Unassigned')}
-                                  className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs rounded-xl flex items-center gap-1 transition-colors"
-                                  title="Remove Teacher from this Subject"
-                                >
-                                  <UserMinus className="w-3.5 h-3.5" />
-                                  <span>Remove Teacher</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-end">
-                                <select
-                                  value=""
-                                  onChange={(e) => handleTeacherChange(subj, e.target.value)}
-                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
-                                >
-                                  <option value="">+ Assign Subject</option>
-                                  {staffList.map((st) => (
+                          <td className="py-3 px-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Teacher Selector */}
+                              <select
+                                value={isAssigned ? assignedTeacher : ''}
+                                onChange={(e) => handleTeacherChange(subj, e.target.value)}
+                                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-hidden cursor-pointer max-w-[150px] truncate"
+                                title="Assign or Change Instructor"
+                              >
+                                <option value="">{isAssigned ? assignedTeacher : '+ Assign Teacher'}</option>
+                                {staffList
+                                  .filter((st) => st.name !== assignedTeacher)
+                                  .map((st) => (
                                     <option key={st.id} value={st.name}>
                                       {st.title} {st.name} ({st.department})
                                     </option>
                                   ))}
-                                </select>
-                              </div>
-                            )}
+                                {isAssigned && (
+                                  <option value="Unassigned">-- Unassign Teacher --</option>
+                                )}
+                              </select>
+
+                              {/* Remove Subject from Class */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSubjectFromClass(subj)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                                title={`Remove ${subj} from ${schoolClass.name}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

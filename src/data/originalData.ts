@@ -624,6 +624,71 @@ export function createSubjectScore(
   };
 }
 
+/**
+ * Institutional Subject Code Resolution Algorithm
+ * Maps official Nigerian secondary school subject curricula to standardized course codes.
+ */
+export function getSubjectCode(subjectName: string, level?: string): string {
+  const norm = subjectName.trim().toLowerCase();
+  let prefix = 'GEN';
+  if (norm.includes('math') || norm.includes('arithmetic')) prefix = 'MTH';
+  else if (norm.includes('english') || norm.includes('eng')) prefix = 'ENG';
+  else if (norm.includes('physics')) prefix = 'PHY';
+  else if (norm.includes('chem')) prefix = 'CHM';
+  else if (norm.includes('bio')) prefix = 'BIO';
+  else if (norm.includes('econ')) prefix = 'ECO';
+  else if (norm.includes('gov')) prefix = 'GOV';
+  else if (norm.includes('civic')) prefix = 'CIV';
+  else if (norm.includes('lit')) prefix = 'LIT';
+  else if (norm.includes('account')) prefix = 'ACC';
+  else if (norm.includes('comm')) prefix = 'COM';
+  else if (norm.includes('basic sci') || norm.includes('technology') || norm.includes('bst')) prefix = 'BST';
+  else if (norm.includes('ict') || norm.includes('data proc') || norm.includes('comput')) prefix = 'ICT';
+  else if (norm.includes('relig') || norm.includes('crs') || norm.includes('c.r.s')) prefix = 'CRS';
+  else if (norm.includes('agri')) prefix = 'AGR';
+  else if (norm.includes('igbo')) prefix = 'IGB';
+  else if (norm.includes('french')) prefix = 'FRE';
+  else if (norm.includes('value') || norm.includes('nve')) prefix = 'NVE';
+  else if (norm.includes('business')) prefix = 'BUS';
+  else if (norm.includes('further')) prefix = 'FTH';
+  else if (norm.includes('book')) prefix = 'BKP';
+  else {
+    const letters = subjectName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    prefix = letters.length >= 2 ? letters : 'SUB';
+  }
+
+  let codeNum = '101';
+  if (level) {
+    if (level.includes('JSS 1')) codeNum = '001';
+    else if (level.includes('JSS 2')) codeNum = '002';
+    else if (level.includes('JSS 3')) codeNum = '003';
+    else if (level.includes('SS 1')) codeNum = '101';
+    else if (level.includes('SS 2')) codeNum = '201';
+    else if (level.includes('SS 3')) codeNum = '301';
+  }
+  return `${prefix} ${codeNum}`;
+}
+
+/**
+ * Institutional Subject Category Classifier
+ */
+export function getSubjectCategory(subjectName: string): 'Sciences' | 'Arts & Humanities' | 'Commercial' | 'General Curriculum' | 'Vocational & Technology' {
+  const norm = subjectName.trim().toLowerCase();
+  if (norm.includes('math') || norm.includes('physics') || norm.includes('chem') || norm.includes('bio') || norm.includes('further')) {
+    return 'Sciences';
+  }
+  if (norm.includes('english') || norm.includes('lit') || norm.includes('gov') || norm.includes('relig') || norm.includes('crs') || norm.includes('igbo') || norm.includes('french')) {
+    return 'Arts & Humanities';
+  }
+  if (norm.includes('econ') || norm.includes('account') || norm.includes('comm') || norm.includes('book') || norm.includes('business')) {
+    return 'Commercial';
+  }
+  if (norm.includes('data') || norm.includes('ict') || norm.includes('basic sci') || norm.includes('technology') || norm.includes('agri')) {
+    return 'Vocational & Technology';
+  }
+  return 'General Curriculum';
+}
+
 /* Class Broadsheet & Ranking Algorithm: Computes exact ordinal positions (1st, 2nd, 3rd) within class arm */
 export function recalculateClassRankings(studentList: StudentProfile[]): StudentProfile[] {
   // Group by classArm

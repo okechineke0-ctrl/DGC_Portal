@@ -758,6 +758,68 @@ export default function App() {
     return true;
   };
 
+  // 10b. Batch Assign Subjects to Classes (All 14 Classes or specific cohorts)
+  const handleBatchAssignSubjects = async (
+    targetClasses: string[],
+    subjects: string[],
+    mode: 'add' | 'set' | 'remove' = 'add'
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/classes/batch-assign-subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetClasses, subjects, mode, syncStudents: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.classes) setClasses(data.classes);
+        if (data.students) {
+          setStudents(data.students);
+          if (selectedStudent) {
+            const updated = data.students.find((s: StudentProfile) => s.id === selectedStudent.id);
+            if (updated) setSelectedStudent(updated);
+          }
+        }
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to batch assign subjects:', err);
+    }
+    return false;
+  };
+
+  // 10c. Update Single Class Curriculum (Assign or update subjects with student synchronization)
+  const handleUpdateClassCurriculum = async (
+    className: string,
+    subjects: string[],
+    action: 'add' | 'set' | 'remove' = 'set'
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/classes/${encodeURIComponent(className)}/curriculum`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjects, action, syncStudents: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.class) {
+          setClasses((prev) => prev.map((c) => (c.name === className ? data.class : c)));
+        }
+        if (data.students) {
+          setStudents(data.students);
+          if (selectedStudent) {
+            const updated = data.students.find((s: StudentProfile) => s.id === selectedStudent.id);
+            if (updated) setSelectedStudent(updated);
+          }
+        }
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to update class curriculum:', err);
+    }
+    return false;
+  };
+
   // 11. Comprehensive Staff Allocation (Subjects, Classes, Role, Form Master)
   const handleAssignStaffAllocations = async (
     staffId: string,
@@ -1130,6 +1192,8 @@ export default function App() {
               onUpdateStaff={handleUpdateStaff}
               onUpdateStudentFeeStatus={handleUpdateStudentFeeStatus}
               onBulkUpdateStudentFeeStatus={handleBulkUpdateStudentFeeStatus}
+              onBatchAssignSubjects={handleBatchAssignSubjects}
+              onUpdateClassCurriculum={handleUpdateClassCurriculum}
             />
           )}
 
@@ -1267,8 +1331,10 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                /* PRIMARY STUDENT VIEWS: Report Card, Performance, Attendance, Fees Clearance */
-                (activeTab === 'results' ||
+                /* PRIMARY STUDENT VIEWS: Assigned Subjects, Report Card, Performance, Attendance, Fees Clearance */
+                (activeTab === 'subjects' ||
+                  activeTab === 'curriculum' ||
+                  activeTab === 'results' ||
                   activeTab === 'report_card' ||
                   activeTab === 'analytics' ||
                   activeTab === 'performance' ||

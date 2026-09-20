@@ -19,6 +19,11 @@ import {
   XCircle,
   FileCheck,
   Copy,
+  Search,
+  Grid,
+  Table as TableIcon,
+  Layers,
+  UserCheck,
 } from 'lucide-react';
 import {
   BarChart,
@@ -34,6 +39,7 @@ import {
 import { DGCLogo } from './DGCLogo';
 import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
+import { getSubjectCategory, getSubjectCode, calculateGrade } from '../data/originalData';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { formatStudentShortName } from '../utils/formatters';
 
@@ -42,11 +48,11 @@ interface StudentPortalViewProps {
   allStudents?: StudentProfile[];
   classes?: SchoolClassDefinition[];
   onSelectStudent?: (student: StudentProfile) => void;
-  activeSubTab?: 'results' | 'analytics' | 'bursary' | 'report_card' | 'performance' | 'attendance' | 'fees';
+  activeSubTab?: 'results' | 'analytics' | 'bursary' | 'report_card' | 'performance' | 'attendance' | 'fees' | 'subjects' | 'curriculum';
   feeSchedule?: CollegeFeeSchedule;
 }
 
-type TabKey = 'report_card' | 'performance' | 'attendance' | 'fees';
+type TabKey = 'report_card' | 'performance' | 'attendance' | 'fees' | 'subjects';
 
 export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   currentStudent,
@@ -83,6 +89,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
   // Map incoming tab props to standard keys
   const getMappedTab = (tab: string): TabKey => {
+    if (tab === 'subjects' || tab === 'curriculum') return 'subjects';
     if (tab === 'results' || tab === 'report_card') return 'report_card';
     if (tab === 'analytics' || tab === 'performance') return 'performance';
     if (tab === 'attendance') return 'attendance';
@@ -101,6 +108,67 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   );
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendanceFullData | null>(null);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState<boolean>(false);
+
+  // States for Assigned Subjects & Curriculum Explorer
+  const [subjectSearch, setSubjectSearch] = useState<string>('');
+  const [subjectCategoryFilter, setSubjectCategoryFilter] = useState<string>('ALL');
+  const [subjectViewMode, setSubjectViewMode] = useState<'cards' | 'table'>('cards');
+
+  // Resolve class curriculum & assigned subject teachers from the class arm definition
+  const classDef = classes?.find((c) => c.name === student.classArm);
+  const classCurriculum = classDef?.curriculumSubjects || [];
+  const subjectTeachers = classDef?.subjectTeachers || {};
+
+  // Build unified, real-time list of assigned subjects with scores and grades
+  const resolvedStudentSubjects = React.useMemo(() => {
+    const existingMap = new Map<string, any>();
+    (student.subjects || []).forEach((s) => {
+      existingMap.set(s.name.toLowerCase().trim(), s);
+    });
+
+    // Start with class curriculum subjects, then add any additional student subjects
+    const allNames: string[] = [...classCurriculum];
+    (student.subjects || []).forEach((s) => {
+      if (!allNames.some((n) => n.toLowerCase().trim() === s.name.toLowerCase().trim())) {
+        allNames.push(s.name);
+      }
+    });
+
+    // If neither has items yet, fallback to student.subjects or empty
+    const finalNames = allNames.length > 0 ? allNames : (student.subjects || []).map((s) => s.name);
+
+    return finalNames.map((subjName) => {
+      const existing = existingMap.get(subjName.toLowerCase().trim());
+      const code = existing?.code || getSubjectCode(subjName);
+      const category = getSubjectCategory(subjName);
+      const teacher = subjectTeachers[subjName] || 'Allocated Subject Teacher';
+
+      const hw = existing?.homework ?? 8;
+      const t1 = existing?.test1 ?? 8;
+      const t2 = existing?.test2 ?? 8;
+      const prac = existing?.practical ?? existing?.quiz ?? 8;
+      const caTotal = existing?.caTotal ?? (hw + t1 + t2 + prac);
+      const exam = existing?.exam ?? (existing?.total ? Math.max(0, existing.total - caTotal) : 50);
+      const total = existing?.total ?? (caTotal + exam);
+      const { grade, remark } = calculateGrade(total);
+
+      return {
+        name: subjName,
+        code,
+        category,
+        teacher,
+        homework: hw,
+        test1: t1,
+        test2: t2,
+        practical: prac,
+        caTotal,
+        exam,
+        total,
+        grade: existing?.grade || grade,
+        remark: existing?.remark || remark,
+      };
+    });
+  }, [student.subjects, classCurriculum, subjectTeachers]);
 
   useEffect(() => {
     setActiveTab(getMappedTab(activeSubTab));
@@ -327,6 +395,16 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             </div>
             <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Subjects</span>
+              <span className="text-xl sm:text-2xl font-bold text-blue-300 font-mono">
+                {resolvedStudentSubjects.length}
+              </span>
+              <span className="text-[10px] text-blue-400 font-semibold block">
+                Assigned
+              </span>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div className="text-center">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Fees</span>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}`}>
                 {student.feeStatus === 'Cleared' ? 'PAID' : 'PENDING'}
@@ -355,6 +433,20 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       {/* Main Student Portal Tabs */}
       <div className="flex items-center gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-xl w-full max-w-full overflow-x-auto whitespace-nowrap scrollbar-none text-xs font-semibold">
         <button
+          type="button"
+          onClick={() => setActiveTab('subjects')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
+            activeTab === 'subjects'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+          <span>Assigned Subjects ({resolvedStudentSubjects.length})</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('report_card')}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all cursor-pointer shrink-0 min-h-[36px] ${
             activeTab === 'report_card'
@@ -1479,6 +1571,382 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 <span>Print Clearance</span>
               </button>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ========================================================================= */}
+      {/* TAB: ASSIGNED SUBJECTS & CURRICULUM EXPLORER                             */}
+      {/* ========================================================================= */}
+      {activeTab === 'subjects' && (() => {
+        const filteredSubjects = resolvedStudentSubjects.filter((subj) => {
+          const matchesSearch =
+            subj.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+            subj.code.toLowerCase().includes(subjectSearch.toLowerCase());
+          const matchesCategory =
+            subjectCategoryFilter === 'ALL' || subj.category === subjectCategoryFilter;
+          return matchesSearch && matchesCategory;
+        });
+
+        const coreCount = resolvedStudentSubjects.filter((s) =>
+          ['English Language', 'Mathematics', 'Civic Education', 'Data Processing / ICT'].some(
+            (c) => c.toLowerCase() === s.name.toLowerCase()
+          )
+        ).length;
+
+        const distinctions = resolvedStudentSubjects.filter((s) => s.grade === 'A1' || s.grade === 'B2').length;
+
+        return (
+          <div className="space-y-5">
+            {/* Top Academic Banner */}
+            <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-md">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400">
+                      Academic Curriculum & Class Syllabus
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      {student.classArm} Official Roster
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-white">
+                    Assigned Subjects & Teacher Directory
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    Official subjects assigned to <strong>{student.classArm}</strong> by the Academic Board and Registrar.
+                    Every subject connects your continuous assessment marks (Homework, Tests, Practicals) and Terminal Examination directly to your official academic transcript.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <div className="p-3 bg-slate-800/90 rounded-2xl border border-slate-700/80 text-center min-w-[100px]">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Class Master</span>
+                    <span className="font-bold text-white text-xs truncate max-w-[130px] block">
+                      {assignedFormMaster}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('report_card')}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>View Report Sheet</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick KPI Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">
+                  Total Subjects
+                </span>
+                <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">
+                  {resolvedStudentSubjects.length}
+                </span>
+                <span className="text-[11px] text-slate-500">Allocated to {student.classArm}</span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold uppercase text-blue-900 block">
+                  Core Compulsory
+                </span>
+                <span className="text-2xl font-black text-blue-900 font-mono mt-1 block">
+                  {coreCount}
+                </span>
+                <span className="text-[11px] text-blue-700">Maths, English, Civic, ICT</span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold uppercase text-emerald-800 block">
+                  Distinctions (A/B)
+                </span>
+                <span className="text-2xl font-black text-emerald-800 font-mono mt-1 block">
+                  {distinctions}
+                </span>
+                <span className="text-[11px] text-emerald-700">Scoring ≥ 70%</span>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                <span className="text-[10px] font-extrabold uppercase text-amber-800 block">
+                  Current Average
+                </span>
+                <span className="text-2xl font-black text-amber-900 font-mono mt-1 block">
+                  {student.termGpa}%
+                </span>
+                <span className="text-[11px] text-amber-800 font-semibold">{student.termRank} position</span>
+              </div>
+            </div>
+
+            {/* Controls Bar: Search, Category Filters, View Switcher */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={subjectSearch}
+                    onChange={(e) => setSubjectSearch(e.target.value)}
+                    placeholder="Search subject by name or code (e.g. English, MTH, Civic)..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/20"
+                  />
+                </div>
+
+                {/* Categories */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                  {['ALL', 'Sciences', 'Arts & Humanities', 'Commercial', 'General Curriculum', 'Vocational & Technology'].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSubjectCategoryFilter(cat)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors shrink-0 ${
+                        subjectCategoryFilter === cat
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* View Mode Toggle: Cards vs Table */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-end md:self-center">
+                <button
+                  type="button"
+                  onClick={() => setSubjectViewMode('cards')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                    subjectViewMode === 'cards'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Grid className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Subject Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubjectViewMode('table')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                    subjectViewMode === 'table'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <TableIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Curriculum Table</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Empty State if No match */}
+            {filteredSubjects.length === 0 && (
+              <div className="p-10 bg-white rounded-3xl border border-slate-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-slate-800 text-sm">No Subjects Match Your Query</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  No assigned subjects matched "{subjectSearch}" in category "{subjectCategoryFilter}".
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubjectSearch('');
+                    setSubjectCategoryFilter('ALL');
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-900 rounded-xl text-xs font-semibold hover:bg-blue-100 cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+
+            {/* VIEW 1: SUBJECT CARDS */}
+            {subjectViewMode === 'cards' && filteredSubjects.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSubjects.map((subj) => {
+                  return (
+                    <div
+                      key={subj.name}
+                      className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] font-mono font-bold text-blue-700 uppercase block tracking-wider">
+                              {subj.code}
+                            </span>
+                            <h3 className="font-bold text-slate-900 text-sm mt-0.5 leading-snug">
+                              {subj.name}
+                            </h3>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                              subj.category === 'Sciences'
+                                ? 'bg-blue-100 text-blue-900'
+                                : subj.category === 'Arts & Humanities'
+                                ? 'bg-purple-100 text-purple-900'
+                                : subj.category === 'Commercial'
+                                ? 'bg-amber-100 text-amber-900'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {subj.category}
+                          </span>
+                        </div>
+
+                        {/* Subject Teacher Badge */}
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Subject Teacher:</span>
+                          <span className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                            <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                            <span>{subj.teacher}</span>
+                          </span>
+                        </div>
+
+                        {/* CA & Exam Breakdown Grid */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2 rounded-xl bg-blue-50/60 border border-blue-100">
+                            <span className="text-[10px] font-extrabold uppercase text-blue-800 block">
+                              CA Score (40)
+                            </span>
+                            <div className="flex items-baseline justify-between mt-1">
+                              <span className="text-base font-black font-mono text-blue-950">
+                                {subj.caTotal}/40
+                              </span>
+                              <span className="text-[10px] text-blue-700 font-medium">
+                                HW+Tests+Prac
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                            <span className="text-[10px] font-extrabold uppercase text-slate-500 block">
+                              Exam Score (60)
+                            </span>
+                            <div className="flex items-baseline justify-between mt-1">
+                              <span className="text-base font-black font-mono text-slate-800">
+                                {subj.exam}/60
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                Terminal
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Total Mark & Grade Standing Footer */}
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                            Cumulative Score
+                          </span>
+                          <span className="text-lg font-black font-mono text-slate-900 block">
+                            {subj.total}%
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-lg font-mono font-black text-xs ${
+                              subj.grade === 'A1'
+                                ? 'bg-blue-900 text-white'
+                                : subj.grade.startsWith('B')
+                                ? 'bg-blue-100 text-blue-900 font-bold'
+                                : subj.grade.startsWith('C')
+                                ? 'bg-emerald-100 text-emerald-900 font-bold'
+                                : 'bg-amber-100 text-amber-900 font-bold'
+                            }`}
+                          >
+                            Grade {subj.grade}
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
+                            {subj.remark}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* VIEW 2: CURRICULUM TABLE */}
+            {subjectViewMode === 'table' && filteredSubjects.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                    <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-3.5">Code</th>
+                        <th className="py-3 px-3.5">Assigned Subject Course</th>
+                        <th className="py-3 px-2">Category</th>
+                        <th className="py-3 px-3">Subject Teacher</th>
+                        <th className="py-3 px-2 text-center" title="Continuous Assessment out of 40">CA (40)</th>
+                        <th className="py-3 px-2 text-center" title="Terminal Examination out of 60">Exam (60)</th>
+                        <th className="py-3 px-2 text-center" title="Total cumulative mark out of 100">Total (100)</th>
+                        <th className="py-3 px-2 text-center">Grade</th>
+                        <th className="py-3 px-3 text-right">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {filteredSubjects.map((subj) => (
+                        <tr key={subj.name} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3.5 font-mono font-bold text-blue-700 text-[11px]">
+                            {subj.code}
+                          </td>
+                          <td className="py-3 px-3.5 font-bold text-slate-900">
+                            {subj.name}
+                          </td>
+                          <td className="py-3 px-2">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+                              {subj.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-medium text-slate-800">
+                            {subj.teacher}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-semibold text-blue-900 bg-blue-50/20">
+                            {subj.caTotal}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-slate-800">
+                            {subj.exam}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-black text-slate-900 text-sm bg-slate-50">
+                            {subj.total}
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
+                                subj.grade === 'A1'
+                                  ? 'bg-blue-900 text-white'
+                                  : subj.grade.startsWith('B')
+                                  ? 'bg-blue-100 text-blue-900'
+                                  : subj.grade.startsWith('C')
+                                  ? 'bg-emerald-100 text-emerald-900'
+                                  : 'bg-amber-100 text-amber-900'
+                              }`}
+                            >
+                              {subj.grade}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right font-medium text-slate-600 text-[11px]">
+                            {subj.remark}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
