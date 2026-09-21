@@ -39,7 +39,7 @@ import {
 import { DGCLogo } from './DGCLogo';
 import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
-import { getSubjectCategory, getSubjectCode, calculateGrade } from '../data/originalData';
+import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE } from '../data/originalData';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { formatStudentShortName } from '../utils/formatters';
 
@@ -141,22 +141,44 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       const existing = existingMap.get(subjName.toLowerCase().trim());
       const code = existing?.code || getSubjectCode(subjName);
       const category = getSubjectCategory(subjName);
-      const teacher = subjectTeachers[subjName] || 'Allocated Subject Teacher';
+      const teacher = subjectTeachers[subjName] || 'Unassigned Instructor';
 
-      const hw = existing?.homework ?? 8;
-      const t1 = existing?.test1 ?? 8;
-      const t2 = existing?.test2 ?? 8;
-      const prac = existing?.practical ?? existing?.quiz ?? 8;
-      const caTotal = existing?.caTotal ?? (hw + t1 + t2 + prac);
-      const exam = existing?.exam ?? (existing?.total ? Math.max(0, existing.total - caTotal) : 50);
-      const total = existing?.total ?? (caTotal + exam);
-      const { grade, remark } = calculateGrade(total);
+      const hasMarks = Boolean(
+        existing && (
+          (existing.total !== undefined && existing.total > 0) ||
+          (existing.caTotal !== undefined && existing.caTotal > 0) ||
+          (existing.exam !== undefined && existing.exam > 0) ||
+          (existing.grade && existing.grade !== '-' && existing.grade !== 'Ungraded' && existing.grade !== 'Pending')
+        )
+      );
+
+      const hw = existing?.homework ?? 0;
+      const t1 = existing?.test1 ?? 0;
+      const t2 = existing?.test2 ?? 0;
+      const prac = existing?.practical ?? existing?.quiz ?? 0;
+      const caTotal = existing?.caTotal ?? (hasMarks ? computeCaTotal(hw, t1, t2, prac) : 0);
+      const exam = existing?.exam ?? 0;
+      const total = existing?.total ?? (hasMarks ? Math.min(100, caTotal + exam) : 0);
+
+      let grade = '-';
+      let remark = 'Pending Assessment';
+      if (hasMarks) {
+        if (existing?.grade && existing.grade !== '-' && existing.grade !== 'Ungraded' && existing.grade !== 'Pending') {
+          grade = existing.grade;
+          remark = existing.remark || calculateGrade(total).remark;
+        } else {
+          const res = calculateGrade(total);
+          grade = res.grade;
+          remark = res.remark;
+        }
+      }
 
       return {
         name: subjName,
         code,
         category,
         teacher,
+        isAssessed: hasMarks,
         homework: hw,
         test1: t1,
         test2: t2,
@@ -164,8 +186,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         caTotal,
         exam,
         total,
-        grade: existing?.grade || grade,
-        remark: existing?.remark || remark,
+        grade,
+        remark,
       };
     });
   }, [student.subjects, classCurriculum, subjectTeachers]);
@@ -273,19 +295,30 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   const livePresentDays = studentAttendance?.summary?.presentDays ?? (student.timesPresent || 0);
   const liveAttendanceRate = liveOpenDays > 0 ? (studentAttendance?.summary?.attendanceRate ?? student.attendanceRate ?? 0) : 0;
 
-  const chartData = (student.subjects || []).map((sub) => ({
+  // Assessed vs Unassessed Subjects partition
+  const assessedSubjects = (student.subjects || []).filter(
+    (sub) =>
+      (sub.total !== undefined && sub.total > 0) ||
+      (sub.caTotal !== undefined && sub.caTotal > 0) ||
+      (sub.exam !== undefined && sub.exam > 0) ||
+      (sub.grade && sub.grade !== '-' && sub.grade !== 'Ungraded' && sub.grade !== 'Pending')
+  );
+
+  const chartData = assessedSubjects.map((sub) => ({
     name: sub.name.length > 12 ? sub.name.substring(0, 11) + '…' : sub.name,
     fullName: sub.name,
-    score: sub.total,
-    ca: sub.caTotal ?? ((sub.homework ?? 8) + (sub.test1 ?? 8) + (sub.test2 ?? 8) + (sub.practical ?? sub.quiz ?? 8)),
-    exam: sub.exam,
+    score: sub.total || 0,
+    ca: sub.caTotal ?? ((sub.homework ?? 0) + (sub.test1 ?? 0) + (sub.test2 ?? 0) + (sub.practical ?? sub.quiz ?? 0)),
+    exam: sub.exam || 0,
     grade: sub.grade,
   }));
 
   // Calculations for subject performance overview
-  const distinctionCount = (student.subjects || []).filter((s) => s.grade === 'A1' || s.grade === 'B2').length;
-  const creditCount = (student.subjects || []).filter((s) => s.grade.startsWith('C') || s.grade === 'B3').length;
-  const highestSubject = (student.subjects || []).reduce((prev, curr) => (curr.total > (prev?.total || 0) ? curr : prev), (student.subjects || [])[0]);
+  const distinctionCount = assessedSubjects.filter((s) => s.grade === 'A1' || s.grade === 'B2').length;
+  const creditCount = assessedSubjects.filter((s) => s.grade.startsWith('C') || s.grade === 'B3').length;
+  const highestSubject = assessedSubjects.length > 0
+    ? assessedSubjects.reduce((prev, curr) => ((curr.total || 0) > (prev?.total || 0) ? curr : prev), assessedSubjects[0])
+    : null;
 
   const handlePrintReportCard = () => {
     if (student.resultHeld) {
@@ -352,12 +385,23 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/80 text-blue-200 border border-blue-700/50">
+                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/80 text-blue-200 border border-blue-700/50">
                   {student.classArm}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 font-medium">
                   {student.stream} Stream · Secondary
                 </span>
+                {student.feeStatus === 'Cleared' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Tuition: Cleared (Paid)</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-950/80 text-rose-300 border border-rose-700/60 shadow-2xs">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <span>Tuition: Balance Pending</span>
+                  </span>
+                )}
               </div>
 
               <h2 className="text-lg sm:text-xl font-bold mt-1 text-white tracking-tight">
@@ -372,42 +416,33 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             </div>
           </div>
 
-          {/* Academic Indicators */}
-          <div className="bg-slate-800/80 p-3 sm:p-4 rounded-xl border border-slate-700 flex items-center gap-4 sm:gap-6 self-stretch md:self-auto justify-around">
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Average</span>
+          {/* Academic Indicators (3-column responsive balanced layout) */}
+          <div className="bg-slate-800/90 p-3 sm:p-4 rounded-xl border border-slate-700/80 grid grid-cols-3 divide-x divide-slate-700 self-stretch md:self-auto min-w-[280px] sm:min-w-[340px]">
+            <div className="text-center px-2 sm:px-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Average</span>
               <span className="text-xl sm:text-2xl font-bold text-amber-300 font-mono">
                 {student.resultHeld ? '—' : `${student.termGpa}%`}
               </span>
-              <span className="text-[10px] text-emerald-400 font-semibold block">
+              <span className="text-[10px] text-emerald-400 font-semibold block truncate">
                 {student.resultHeld ? 'Locked' : student.termRank}
               </span>
             </div>
-            <div className="w-px h-8 bg-slate-700" />
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Attendance</span>
+            <div className="text-center px-2 sm:px-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Attendance</span>
               <span className="text-xl sm:text-2xl font-bold text-white font-mono">
                 {liveOpenDays > 0 ? `${liveAttendanceRate}%` : '0%'}
               </span>
-              <span className="text-[10px] text-slate-400 block">
+              <span className="text-[10px] text-slate-400 block truncate">
                 {liveOpenDays > 0 ? `${livePresentDays}/${liveOpenDays}d` : 'Pending'}
               </span>
             </div>
-            <div className="w-px h-8 bg-slate-700" />
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Subjects</span>
+            <div className="text-center px-2 sm:px-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Subjects</span>
               <span className="text-xl sm:text-2xl font-bold text-blue-300 font-mono">
                 {resolvedStudentSubjects.length}
               </span>
-              <span className="text-[10px] text-blue-400 font-semibold block">
+              <span className="text-[10px] text-blue-400 font-semibold block truncate">
                 Assigned
-              </span>
-            </div>
-            <div className="w-px h-8 bg-slate-700" />
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Fees</span>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${student.feeStatus === 'Cleared' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}`}>
-                {student.feeStatus === 'Cleared' ? 'PAID' : 'PENDING'}
               </span>
             </div>
           </div>
@@ -415,9 +450,19 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
         {/* Action strip */}
         <div className="mt-5 pt-3.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-400">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Session: {CURRENT_SESSION} · {CURRENT_TERM}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-300">
+            <div className="flex items-center gap-1.5 font-medium">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Session: {CURRENT_SESSION} · {CURRENT_TERM}</span>
+            </div>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="text-slate-400">Bursary:</span>
+              <span className={`font-bold ${student.feeStatus === 'Cleared' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {student.feeStatus === 'Cleared' ? 'Full Settlement' : 'Outstanding Dues'}
+              </span>
+            </div>
           </div>
 
           <button
@@ -612,41 +657,50 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {(student.subjects || []).map((sub, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-3 font-bold text-slate-900">{sub.name}</td>
-                    <td className="py-3 px-2 font-mono text-slate-400 text-[11px]">{sub.code}</td>
-                    <td className="py-3 px-2 text-center font-mono">{sub.homework ?? 8}</td>
-                    <td className="py-3 px-2 text-center font-mono">{sub.test1 ?? 8}</td>
-                    <td className="py-3 px-2 text-center font-mono">{sub.test2 ?? 8}</td>
-                    <td className="py-3 px-2 text-center font-mono text-blue-950 font-semibold">{sub.practical ?? sub.quiz ?? 8}</td>
-                    <td className="py-3 px-2 text-center font-mono font-bold text-blue-900 bg-blue-50/30">
-                      {sub.caTotal ?? ((sub.homework ?? 8) + (sub.test1 ?? 8) + (sub.test2 ?? 8) + (sub.practical ?? sub.quiz ?? 8))}
-                    </td>
-                    <td className="py-3 px-2 text-center font-mono font-semibold text-slate-800">{sub.exam}</td>
-                    <td className="py-3 px-2 text-center font-mono font-black text-blue-950 text-sm bg-slate-100/40">
-                      {sub.total}
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
-                          sub.grade === 'A1'
-                            ? 'bg-blue-900 text-white'
-                            : sub.grade.startsWith('B')
-                            ? 'bg-blue-100 text-blue-900'
-                            : sub.grade.startsWith('C')
-                            ? 'bg-emerald-100 text-emerald-900'
-                            : 'bg-amber-100 text-amber-900'
-                        }`}
-                      >
-                        {sub.grade}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right font-medium text-emerald-700 text-[11px]">
-                      {sub.remark}
-                    </td>
-                  </tr>
-                ))}
+                {(student.subjects || []).map((sub, idx) => {
+                  const isAssessed = (sub.total !== undefined && sub.total > 0) || (sub.caTotal !== undefined && sub.caTotal > 0) || (sub.exam !== undefined && sub.exam > 0) || (sub.grade && sub.grade !== '-' && sub.grade !== 'Ungraded' && sub.grade !== 'Pending');
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-3 font-bold text-slate-900">{sub.name}</td>
+                      <td className="py-3 px-2 font-mono text-slate-400 text-[11px]">{sub.code}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.homework ?? 0) : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.test1 ?? 0) : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.test2 ?? 0) : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-blue-950 font-semibold">{isAssessed ? (sub.practical ?? sub.quiz ?? 0) : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono font-bold text-blue-900 bg-blue-50/30">
+                        {isAssessed ? (sub.caTotal ?? 0) : '—'}
+                      </td>
+                      <td className="py-3 px-2 text-center font-mono font-semibold text-slate-800">{isAssessed ? (sub.exam ?? 0) : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono font-black text-blue-950 text-sm bg-slate-100/40">
+                        {isAssessed ? (sub.total ?? 0) : '—'}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        {isAssessed ? (
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
+                              sub.grade === 'A1'
+                                ? 'bg-blue-900 text-white'
+                                : sub.grade.startsWith('B')
+                                ? 'bg-blue-100 text-blue-900'
+                                : sub.grade.startsWith('C')
+                                ? 'bg-emerald-100 text-emerald-900'
+                                : 'bg-amber-100 text-amber-900'
+                            }`}
+                          >
+                            {sub.grade}
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right font-medium text-slate-600 text-[11px]">
+                        {isAssessed ? sub.remark : 'Pending Assessment'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -867,19 +921,19 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                   <div className="grid grid-cols-4 gap-2 text-center text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/70">
                     <div>
                       <span className="text-[9px] uppercase text-slate-400 block font-bold">HW (10)</span>
-                      <span className="font-mono font-bold text-slate-800">{sub.homework ?? 8}</span>
+                      <span className="font-mono font-bold text-slate-800">{sub.homework ?? 0}</span>
                     </div>
                     <div>
                       <span className="text-[9px] uppercase text-slate-400 block font-bold">Test 1 (10)</span>
-                      <span className="font-mono font-bold text-slate-800">{sub.test1 ?? 8}</span>
+                      <span className="font-mono font-bold text-slate-800">{sub.test1 ?? 0}</span>
                     </div>
                     <div>
                       <span className="text-[9px] uppercase text-slate-400 block font-bold">Test 2 (10)</span>
-                      <span className="font-mono font-bold text-slate-800">{sub.test2 ?? 8}</span>
+                      <span className="font-mono font-bold text-slate-800">{sub.test2 ?? 0}</span>
                     </div>
                     <div>
                       <span className="text-[9px] uppercase text-slate-400 block font-bold">Practical (10)</span>
-                      <span className="font-mono font-bold text-blue-900">{sub.practical ?? sub.quiz ?? 8}</span>
+                      <span className="font-mono font-bold text-blue-900">{sub.practical ?? sub.quiz ?? 0}</span>
                     </div>
                   </div>
 
@@ -1301,7 +1355,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       {/* 4. CHECK SCHOOL FEES AND OTHER DUES (Mature White & Blue Bursary Oversight)*/}
       {/* ========================================================================= */}
       {activeTab === 'fees' && (() => {
-        const validBaseFee = (feeSchedule as any)?.baseSchoolFee ?? (feeSchedule as any)?.baseTuition ?? 85000;
+        const validBaseFee = (feeSchedule as any)?.baseSchoolFee ?? (feeSchedule as any)?.baseTuition ?? DEFAULT_FEE_SCHEDULE.baseSchoolFee;
         const validItems: Array<{ id?: string; name: string; amount: number; category?: string; description?: string }> =
           (feeSchedule as any)?.items && Array.isArray((feeSchedule as any).items) && (feeSchedule as any).items.length > 0
             ? (feeSchedule as any).items
@@ -1805,8 +1859,14 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                         <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
                           <span className="text-[10px] uppercase font-bold text-slate-400">Subject Teacher:</span>
                           <span className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                            <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                            <span>{subj.teacher}</span>
+                            {subj.teacher && subj.teacher !== 'Unassigned Instructor' ? (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                                <span>{subj.teacher}</span>
+                              </>
+                            ) : (
+                              <span className="text-slate-400 font-normal italic">Pending Assignment</span>
+                            )}
                           </span>
                         </div>
 
@@ -1818,10 +1878,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                             </span>
                             <div className="flex items-baseline justify-between mt-1">
                               <span className="text-base font-black font-mono text-blue-950">
-                                {subj.caTotal}/40
+                                {subj.isAssessed ? `${subj.caTotal}/40` : '— / 40'}
                               </span>
                               <span className="text-[10px] text-blue-700 font-medium">
-                                HW+Tests+Prac
+                                {subj.isAssessed ? 'HW+Tests+Prac' : 'Pending CA'}
                               </span>
                             </div>
                           </div>
@@ -1832,10 +1892,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                             </span>
                             <div className="flex items-baseline justify-between mt-1">
                               <span className="text-base font-black font-mono text-slate-800">
-                                {subj.exam}/60
+                                {subj.isAssessed ? `${subj.exam}/60` : '— / 60'}
                               </span>
                               <span className="text-[10px] text-slate-500 font-medium">
-                                Terminal
+                                {subj.isAssessed ? 'Terminal' : 'Pending Exam'}
                               </span>
                             </div>
                           </div>
@@ -1849,24 +1909,30 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                             Cumulative Score
                           </span>
                           <span className="text-lg font-black font-mono text-slate-900 block">
-                            {subj.total}%
+                            {subj.isAssessed ? `${subj.total}%` : '—'}
                           </span>
                         </div>
 
                         <div className="text-right">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-lg font-mono font-black text-xs ${
-                              subj.grade === 'A1'
-                                ? 'bg-blue-900 text-white'
-                                : subj.grade.startsWith('B')
-                                ? 'bg-blue-100 text-blue-900 font-bold'
-                                : subj.grade.startsWith('C')
-                                ? 'bg-emerald-100 text-emerald-900 font-bold'
-                                : 'bg-amber-100 text-amber-900 font-bold'
-                            }`}
-                          >
-                            Grade {subj.grade}
-                          </span>
+                          {subj.isAssessed ? (
+                            <span
+                              className={`inline-block px-2.5 py-0.5 rounded-lg font-mono font-black text-xs ${
+                                subj.grade === 'A1'
+                                  ? 'bg-blue-900 text-white'
+                                  : subj.grade.startsWith('B')
+                                  ? 'bg-blue-100 text-blue-900 font-bold'
+                                  : subj.grade.startsWith('C')
+                                  ? 'bg-emerald-100 text-emerald-900 font-bold'
+                                  : 'bg-amber-100 text-amber-900 font-bold'
+                              }`}
+                            >
+                              Grade {subj.grade}
+                            </span>
+                          ) : (
+                            <span className="inline-block px-2.5 py-0.5 rounded-lg font-bold text-xs bg-slate-100 text-slate-600 border border-slate-200">
+                              Pending Assessment
+                            </span>
+                          )}
                           <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
                             {subj.remark}
                           </span>
@@ -1911,31 +1977,41 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-3 font-medium text-slate-800">
-                            {subj.teacher}
+                            {subj.teacher && subj.teacher !== 'Unassigned Instructor' ? (
+                              subj.teacher
+                            ) : (
+                              <span className="text-slate-400 italic">Pending Assignment</span>
+                            )}
                           </td>
                           <td className="py-3 px-2 text-center font-mono font-semibold text-blue-900 bg-blue-50/20">
-                            {subj.caTotal}
+                            {subj.isAssessed ? subj.caTotal : '—'}
                           </td>
                           <td className="py-3 px-2 text-center font-mono text-slate-800">
-                            {subj.exam}
+                            {subj.isAssessed ? subj.exam : '—'}
                           </td>
                           <td className="py-3 px-2 text-center font-mono font-black text-slate-900 text-sm bg-slate-50">
-                            {subj.total}
+                            {subj.isAssessed ? `${subj.total}%` : '—'}
                           </td>
                           <td className="py-3 px-2 text-center">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
-                                subj.grade === 'A1'
-                                  ? 'bg-blue-900 text-white'
-                                  : subj.grade.startsWith('B')
-                                  ? 'bg-blue-100 text-blue-900'
-                                  : subj.grade.startsWith('C')
-                                  ? 'bg-emerald-100 text-emerald-900'
-                                  : 'bg-amber-100 text-amber-900'
-                              }`}
-                            >
-                              {subj.grade}
-                            </span>
+                            {subj.isAssessed ? (
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
+                                  subj.grade === 'A1'
+                                    ? 'bg-blue-900 text-white'
+                                    : subj.grade.startsWith('B')
+                                    ? 'bg-blue-100 text-blue-900'
+                                    : subj.grade.startsWith('C')
+                                    ? 'bg-emerald-100 text-emerald-900'
+                                    : 'bg-amber-100 text-amber-900'
+                                }`}
+                              >
+                                {subj.grade}
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500">
+                                Pending
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-right font-medium text-slate-600 text-[11px]">
                             {subj.remark}

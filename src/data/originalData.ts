@@ -9,6 +9,7 @@ import {
   StaffMember,
   SchoolClassDefinition,
   SubjectScore,
+  CollegeFeeSchedule,
 } from '../types';
 
 export const CURRENT_SESSION = '2026/2027';
@@ -17,6 +18,26 @@ export const TODAY_DATE = 'Monday, 14 September 2026';
 export const SCHOOL_NAME = 'Dominate Star College';
 export const SCHOOL_LOCATION = 'Enugu State, Nigeria';
 export const SCHOOL_MOTTO = 'Striving for the Crown of Excellence';
+
+export const DEFAULT_FEE_SCHEDULE: CollegeFeeSchedule = {
+  id: 'fee-schedule-2026-t1',
+  session: CURRENT_SESSION,
+  term: CURRENT_TERM,
+  baseSchoolFee: 85000,
+  items: [
+    { id: 'fee-1', name: 'ICT & Computer Laboratory Practical', amount: 15000, category: 'Laboratory' },
+    { id: 'fee-2', name: 'Science Lab & Technical Workshop Levy', amount: 15000, category: 'Project' },
+    { id: 'fee-3', name: 'Sports, Medical & First Aid Insurance', amount: 8000, category: 'Extracurricular' },
+    { id: 'fee-4', name: 'Development & Continuous Assessment Sheet', amount: 7000, category: 'Development' },
+  ],
+  totalFee: 130000,
+  bankName: 'First Bank of Nigeria',
+  accountNumber: '3128492019',
+  accountName: 'Dominate Star College Ltd - School Fees',
+  paymentInstructions: 'Please present your bank deposit slip or electronic transfer receipt at the College Bursary with student registration number.',
+  updatedAt: '2026-09-01T08:00:00.000Z',
+  updatedBy: 'College Bursary Directorate',
+};
 
 export const SCHOOL_CLASSES_LIST = [
   'JSS 1A',
@@ -572,7 +593,10 @@ export const ANNOUNCEMENTS: Announcement[] = [
 ];
 
 /* Helper to compute WAEC/NECO Grade & Remark */
-export function calculateGrade(total: number): { grade: string; remark: string } {
+export function calculateGrade(total: number, isAssessed = true): { grade: string; remark: string } {
+  if (!isAssessed || total <= 0) {
+    return { grade: '-', remark: 'Pending Assessment' };
+  }
   if (total >= 75) return { grade: 'A1', remark: 'Distinction' };
   if (total >= 70) return { grade: 'B2', remark: 'Very Good' };
   if (total >= 65) return { grade: 'B3', remark: 'Good' };
@@ -596,18 +620,36 @@ export function computeCaTotal(homework = 0, test1 = 0, test2 = 0, practical = 0
   return Math.min(40, hw + t1 + t2 + fourthComponent);
 }
 
+export function createPendingSubjectScore(code: string, name: string): SubjectScore {
+  return {
+    code,
+    name,
+    homework: 0,
+    test1: 0,
+    test2: 0,
+    practical: 0,
+    quiz: 0,
+    caTotal: 0,
+    exam: 0,
+    total: 0,
+    grade: '-',
+    remark: 'Pending Assessment',
+  };
+}
+
 export function createSubjectScore(
   code: string,
   name: string,
-  homework = 8,
-  test1 = 8,
-  test2 = 9,
-  practical = 8,
-  exam = 52
+  homework = 0,
+  test1 = 0,
+  test2 = 0,
+  practical = 0,
+  exam = 0
 ): SubjectScore {
+  const hasMarks = homework > 0 || test1 > 0 || test2 > 0 || practical > 0 || exam > 0;
   const caTotal = computeCaTotal(homework, test1, test2, practical);
   const total = Math.min(100, caTotal + exam);
-  const { grade, remark } = calculateGrade(total);
+  const { grade, remark } = hasMarks ? calculateGrade(total) : { grade: '-', remark: 'Pending Assessment' };
   return {
     code,
     name,
@@ -702,40 +744,57 @@ export function recalculateClassRankings(studentList: StudentProfile[]): Student
   const updatedStudents: StudentProfile[] = [];
 
   classArmGroups.forEach((groupStudents, arm) => {
-    // 1. Calculate each student's average and total
+    // 1. Calculate each student's average and total across assessed subjects
     const computedGroup = groupStudents.map((std) => {
       const subjectList = std.subjects || [];
-      const totalMarks = subjectList.reduce((sum, item) => sum + item.total, 0);
-      const avg = subjectList.length > 0 ? Number((totalMarks / subjectList.length).toFixed(1)) : 0;
+      const assessedSubjects = subjectList.filter((item) =>
+        (item.total !== undefined && item.total > 0) ||
+        (item.caTotal !== undefined && item.caTotal > 0) ||
+        (item.exam !== undefined && item.exam > 0) ||
+        (item.grade && item.grade !== '-' && item.grade !== 'Ungraded' && item.grade !== 'Pending')
+      );
+      const hasAssessments = assessedSubjects.length > 0;
+      const totalMarks = assessedSubjects.reduce((sum, item) => sum + (item.total || 0), 0);
+      const avg = hasAssessments ? Number((totalMarks / assessedSubjects.length).toFixed(1)) : 0;
       return {
         ...std,
         termGpa: avg,
         _totalMarks: totalMarks,
+        _hasAssessments: hasAssessments,
       };
     });
 
-    // 2. Sort descending by average & total marks
+    // 2. Sort descending by average & total marks (unassessed at the end)
     computedGroup.sort((a, b) => {
+      if (a._hasAssessments !== b._hasAssessments) {
+        return a._hasAssessments ? -1 : 1;
+      }
       if (b.termGpa !== a.termGpa) return b.termGpa - a.termGpa;
       return b._totalMarks - a._totalMarks;
     });
 
     const totalInArm = computedGroup.length;
+    const totalAssessed = computedGroup.filter((s) => s._hasAssessments).length;
 
-    // 3. Assign ordinal rank (1st, 2nd, 3rd...)
-    computedGroup.forEach((std, idx) => {
-      const rankNum = idx + 1;
-      const suffix =
-        rankNum === 1
-          ? 'st'
-          : rankNum === 2
-          ? 'nd'
-          : rankNum === 3
-          ? 'rd'
-          : 'th';
-      const termRank = `${rankNum}${suffix} out of ${totalInArm}`;
+    // 3. Assign ordinal rank (1st, 2nd, 3rd...) for assessed students
+    let currentRank = 1;
+    computedGroup.forEach((std) => {
+      let termRank = 'Pending Assessment';
+      if (std._hasAssessments) {
+        const rankNum = currentRank;
+        currentRank++;
+        const suffix =
+          rankNum === 1
+            ? 'st'
+            : rankNum === 2
+            ? 'nd'
+            : rankNum === 3
+            ? 'rd'
+            : 'th';
+        termRank = `${rankNum}${suffix} out of ${totalAssessed || totalInArm}`;
+      }
 
-      const { _totalMarks, ...rest } = std;
+      const { _totalMarks, _hasAssessments, ...rest } = std;
       updatedStudents.push({
         ...rest,
         termRank,

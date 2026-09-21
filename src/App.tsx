@@ -43,6 +43,9 @@ import {
   SCHOOL_MOTTO,
   SCHOOL_CLASSES_DEFINITIONS,
   ANNOUNCEMENTS,
+  getSubjectCode,
+  computeCaTotal,
+  calculateGrade,
 } from './data/originalData';
 import {
   testFirestoreConnection,
@@ -336,19 +339,33 @@ export default function App() {
           (sub) => sub.name.toLowerCase() === scoreData.name?.toLowerCase()
         );
         const updatedSubjects = [...s.subjects];
+
+        const hw = Number(scoreData.homework) || 0;
+        const t1 = Number(scoreData.test1) || 0;
+        const t2 = Number(scoreData.test2) || 0;
+        const prac = Number(scoreData.practical ?? scoreData.quiz) || 0;
+        const ca = scoreData.caTotal !== undefined ? Number(scoreData.caTotal) : computeCaTotal(hw, t1, t2, prac);
+        const ex = scoreData.exam !== undefined ? Number(scoreData.exam) : 0;
+        const tot = scoreData.total !== undefined ? Number(scoreData.total) : Math.min(100, ca + ex);
+        const hasMarks = tot > 0 || ca > 0 || ex > 0;
+        const { grade: computedGrade, remark: computedRemark } = hasMarks
+          ? calculateGrade(tot)
+          : { grade: '-', remark: 'Pending Assessment' };
+
         const newScoreObj: SubjectScore = {
-          code: scoreData.code || 'GEN 101',
+          code: scoreData.code || getSubjectCode(scoreData.name || 'Subject', s.level),
           name: scoreData.name || 'Subject',
-          quiz: scoreData.quiz,
-          homework: scoreData.homework,
-          test1: scoreData.test1,
-          test2: scoreData.test2,
-          caTotal: scoreData.caTotal ?? 30,
-          exam: scoreData.exam ?? 45,
-          total: scoreData.total ?? 75,
-          grade: scoreData.grade || 'A1',
-          remark: scoreData.remark || 'Excellent',
-          updatedBy: scoreData.updatedBy || activeStaff?.name,
+          quiz: prac,
+          homework: hw,
+          test1: t1,
+          test2: t2,
+          practical: prac,
+          caTotal: ca,
+          exam: ex,
+          total: tot,
+          grade: scoreData.grade || computedGrade,
+          remark: scoreData.remark || computedRemark,
+          updatedBy: scoreData.updatedBy || activeStaff?.name || 'Academic Office',
           updatedAt: new Date().toISOString(),
         };
 
@@ -358,12 +375,15 @@ export default function App() {
           updatedSubjects.push(newScoreObj);
         }
 
-        const avg = Number(
-          (
-            updatedSubjects.reduce((sum, item) => sum + item.total, 0) /
-            Math.max(1, updatedSubjects.length)
-          ).toFixed(1)
+        const assessed = updatedSubjects.filter((item) =>
+          (item.total !== undefined && item.total > 0) ||
+          (item.caTotal !== undefined && item.caTotal > 0) ||
+          (item.exam !== undefined && item.exam > 0) ||
+          (item.grade && item.grade !== '-' && item.grade !== 'Ungraded' && item.grade !== 'Pending')
         );
+        const avg = assessed.length > 0
+          ? Number((assessed.reduce((sum, item) => sum + item.total, 0) / assessed.length).toFixed(1))
+          : 0;
 
         return {
           ...s,
@@ -458,6 +478,27 @@ export default function App() {
       // Fallback
     }
 
+    const targetClass = classes.find((c) => c.name === (studentData.classArm || 'SS 1A'));
+    const initialSubjects: SubjectScore[] = (targetClass?.curriculumSubjects && targetClass.curriculumSubjects.length > 0
+      ? targetClass.curriculumSubjects
+      : ['General Mathematics', 'English Language', 'Civic Education']
+    ).map((subName) => ({
+      code: getSubjectCode(subName, studentData.level || 'SS 1'),
+      name: subName,
+      homework: 0,
+      test1: 0,
+      test2: 0,
+      practical: 0,
+      quiz: 0,
+      caTotal: 0,
+      exam: 0,
+      total: 0,
+      grade: '-',
+      remark: 'Pending Assessment',
+      updatedBy: 'Registration System',
+      updatedAt: new Date().toISOString(),
+    }));
+
     const fallbackStudent: StudentProfile = {
       id: `std-${Date.now()}`,
       name: studentData.name || 'New Enrollee',
@@ -475,27 +516,13 @@ export default function App() {
       lga: studentData.lga || 'Enugu North',
       session: '2026/2027',
       term: 'First Term',
-      termGpa: 75.0,
-      termRank: 'New Enrollee',
-      attendanceRate: 100.0,
+      termGpa: 0,
+      termRank: 'Pending Assessment',
+      attendanceRate: 0,
       feeStatus: studentData.feeStatus || 'Cleared',
       resultHeld: Boolean(studentData.resultHeld),
       holdReason: studentData.holdReason,
-      subjects: [
-        {
-          code: 'MTH 001',
-          name: 'Mathematics',
-          quiz: 8,
-          homework: 8,
-          test1: 8,
-          test2: 8,
-          caTotal: 32,
-          exam: 45,
-          total: 77,
-          grade: 'A1',
-          remark: 'Distinction',
-        },
-      ],
+      subjects: initialSubjects,
     };
 
     saveLiveStudent(fallbackStudent).catch((e) => console.warn('Firestore direct write failed:', e));
@@ -1122,6 +1149,9 @@ export default function App() {
           isLoggedOut={isLoggedOut}
           isDbLive={isDbLive}
           currentStudent={selectedStudent}
+          onExitToPortal={handleExitToPortal}
+          staffName={activeStaff?.name}
+          staffTitle={activeStaff?.title}
         />
 
         {/* Operational Workspace Banner (When in Staff or CEO mode) */}

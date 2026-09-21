@@ -23,7 +23,7 @@ import {
   getSubjectCode,
   recalculateClassRankings,
 } from './src/data/originalData';
-import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from './src/types';
+import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule, SubjectScore } from './src/types';
 
 // Load provisioned Firebase Applet Configuration (from file or FIREBASE_CONFIG env var for Render/cloud deployment)
 let firebaseConfig: any = null;
@@ -262,6 +262,44 @@ async function startServer() {
         s.attendanceRate = stats.rate;
       });
       console.log(`[Attendance] Synchronized real attendance statistics for all ${students.length} students.`);
+    }
+
+    // Clean up any legacy hardcoded 8/8/9/8/50 newly assigned subject scores from previous tests
+    let cleanedCount = 0;
+    students.forEach((s) => {
+      if (Array.isArray(s.subjects)) {
+        let studentCleaned = false;
+        s.subjects.forEach((sub) => {
+          if (
+            sub.updatedBy === 'College Directorate (Curriculum Allocation)' &&
+            sub.homework === 8 &&
+            sub.test1 === 8 &&
+            sub.test2 === 9 &&
+            sub.practical === 8 &&
+            sub.exam === 50
+          ) {
+            sub.homework = 0;
+            sub.test1 = 0;
+            sub.test2 = 0;
+            sub.practical = 0;
+            sub.quiz = 0;
+            sub.caTotal = 0;
+            sub.exam = 0;
+            sub.total = 0;
+            sub.grade = '-';
+            sub.remark = 'Pending Assessment';
+            studentCleaned = true;
+            cleanedCount++;
+          }
+        });
+        if (studentCleaned) {
+          setDoc(doc(db, 'students', s.id), s).catch((e) => console.warn('Purge sync error:', e));
+        }
+      }
+    });
+    if (cleanedCount > 0) {
+      console.log(`[Curriculum] Sanitized ${cleanedCount} legacy hardcoded newly-added subject allocations to unassessed status.`);
+      students = recalculateClassRankings(students);
     }
 
     if (feeSnap.exists()) {
@@ -776,12 +814,24 @@ async function startServer() {
                 (sub) => sub.name.toLowerCase() === subjName.toLowerCase()
               );
               if (!alreadyExists) {
-                // Generate standard institutional subject score object
+                // Generate standard institutional subject score object in unassessed pending state
                 const code = getSubjectCode(subjName, student.level);
-                // Create a standard realistic baseline
-                const newScore = createSubjectScore(code, subjName, 8, 8, 9, 8, 50);
-                newScore.updatedBy = 'College Directorate (Curriculum Allocation)';
-                newScore.updatedAt = new Date().toISOString();
+                const newScore: SubjectScore = {
+                  code,
+                  name: subjName,
+                  homework: 0,
+                  test1: 0,
+                  test2: 0,
+                  practical: 0,
+                  quiz: 0,
+                  caTotal: 0,
+                  exam: 0,
+                  total: 0,
+                  grade: '-',
+                  remark: 'Pending Assessment',
+                  updatedBy: 'College Directorate (Curriculum Allocation)',
+                  updatedAt: new Date().toISOString(),
+                };
                 studentSubjects.push(newScore);
                 studentModified = true;
               }
@@ -885,8 +935,22 @@ async function startServer() {
               const exists = studentSubjects.some((s) => s.name.toLowerCase() === subjName.toLowerCase());
               if (!exists) {
                 const code = getSubjectCode(subjName, student.level);
-                const newScore = createSubjectScore(code, subjName, 8, 8, 9, 8, 50);
-                newScore.updatedBy = 'College Directorate (Curriculum Allocation)';
+                const newScore: SubjectScore = {
+                  code,
+                  name: subjName,
+                  homework: 0,
+                  test1: 0,
+                  test2: 0,
+                  practical: 0,
+                  quiz: 0,
+                  caTotal: 0,
+                  exam: 0,
+                  total: 0,
+                  grade: '-',
+                  remark: 'Pending Assessment',
+                  updatedBy: 'College Directorate (Curriculum Allocation)',
+                  updatedAt: new Date().toISOString(),
+                };
                 studentSubjects.push(newScore);
                 mod = true;
               }
@@ -1028,7 +1092,7 @@ async function startServer() {
     let initialSubjects: any[] = [];
     if (customSubjects && Array.isArray(customSubjects) && customSubjects.length > 0) {
       initialSubjects = customSubjects.map((subName: string) => ({
-        code: subName.substring(0, 3).toUpperCase() + ' 101',
+        code: getSubjectCode(subName, level),
         name: subName,
         homework: 0,
         test1: 0,
@@ -1038,53 +1102,42 @@ async function startServer() {
         caTotal: 0,
         exam: 0,
         total: 0,
-        grade: 'F9',
-        remark: 'Ungraded',
-        updatedBy: 'Registration System',
-        updatedAt: new Date().toISOString(),
-      }));
-    } else if (level.startsWith('JSS')) {
-      const defaultJunior = [
-        'Mathematics',
-        'English Language',
-        'Basic Science',
-        'Basic Technology',
-        'Social Studies',
-        'Civic Education',
-        'Agricultural Science',
-        'Christian Religious Studies',
-        'Business Studies',
-        'Computer Studies / ICT',
-      ];
-      initialSubjects = defaultJunior.map((subName) => ({
-        code: subName.substring(0, 3).toUpperCase() + ' 101',
-        name: subName,
-        homework: 0,
-        test1: 0,
-        test2: 0,
-        practical: 0,
-        quiz: 0,
-        caTotal: 0,
-        exam: 0,
-        total: 0,
-        grade: 'F9',
-        remark: 'Ungraded',
+        grade: '-',
+        remark: 'Pending Assessment',
         updatedBy: 'Registration System',
         updatedAt: new Date().toISOString(),
       }));
     } else {
-      const defaultSenior = [
-        'English Language',
-        'General Mathematics',
-        'Civic Education',
-        'Economics',
-        'Biology',
-        'Computer Studies / Data Processing',
-        stream === 'Science' ? 'Physics' : stream === 'Art' ? 'Literature-in-English' : 'Financial Accounting',
-        stream === 'Science' ? 'Chemistry' : stream === 'Art' ? 'Government' : 'Commerce',
-      ];
-      initialSubjects = defaultSenior.map((subName) => ({
-        code: subName.substring(0, 3).toUpperCase() + ' 201',
+      // Check if target class has defined curriculum subjects
+      const targetClass = schoolClasses.find((c) => c.name === classArm);
+      const subjectsToAssign = (targetClass?.curriculumSubjects && targetClass.curriculumSubjects.length > 0)
+        ? targetClass.curriculumSubjects
+        : level.startsWith('JSS')
+        ? [
+            'Mathematics',
+            'English Language',
+            'Basic Science',
+            'Basic Technology',
+            'Social Studies',
+            'Civic Education',
+            'Agricultural Science',
+            'Christian Religious Studies',
+            'Business Studies',
+            'Computer Studies / ICT',
+          ]
+        : [
+            'English Language',
+            'General Mathematics',
+            'Civic Education',
+            'Economics',
+            'Biology',
+            'Computer Studies / Data Processing',
+            stream === 'Science' ? 'Physics' : stream === 'Art' ? 'Literature-in-English' : 'Financial Accounting',
+            stream === 'Science' ? 'Chemistry' : stream === 'Art' ? 'Government' : 'Commerce',
+          ];
+
+      initialSubjects = subjectsToAssign.map((subName) => ({
+        code: getSubjectCode(subName, level),
         name: subName,
         homework: 0,
         test1: 0,
@@ -1094,8 +1147,8 @@ async function startServer() {
         caTotal: 0,
         exam: 0,
         total: 0,
-        grade: 'F9',
-        remark: 'Ungraded',
+        grade: '-',
+        remark: 'Pending Assessment',
         updatedBy: 'Registration System',
         updatedAt: new Date().toISOString(),
       }));

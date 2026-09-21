@@ -36,6 +36,7 @@ import {
   ALL_SCHOOL_SUBJECTS,
   calculateGrade,
   computeCaTotal,
+  getSubjectCode,
 } from '../data/mockData';
 import { formatStudentShortName, formatStaffName } from '../utils/formatters';
 
@@ -220,11 +221,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
     const ca = computeCaTotal(hw, t1, t2, prac);
     const tot = Math.min(100, ca + ex);
-    const { grade, remark } = calculateGrade(tot);
+    const hasEntered = input.homework !== '' || input.test1 !== '' || input.test2 !== '' || input.practical !== '' || input.exam !== '';
+    const { grade, remark } = hasEntered ? calculateGrade(tot) : { grade: '-', remark: 'Pending Assessment' };
 
     const success = await onUpdateStudentScore(studentId, {
       name: selectedSubject,
-      code: `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
+      code: getSubjectCode(selectedSubject, selectedClass),
       homework: hw,
       test1: t1,
       test2: t2,
@@ -279,11 +281,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
           const ca = computeCaTotal(hw, t1, t2, prac);
           const tot = Math.min(100, ca + ex);
-          const { grade, remark } = calculateGrade(tot);
+          const hasEntered = input.homework !== '' || input.test1 !== '' || input.test2 !== '' || input.practical !== '' || input.exam !== '';
+          const { grade, remark } = hasEntered ? calculateGrade(tot) : { grade: '-', remark: 'Pending Assessment' };
 
           await onUpdateStudentScore(s.id, {
             name: selectedSubject,
-            code: `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
+            code: getSubjectCode(selectedSubject, selectedClass),
             homework: hw,
             test1: t1,
             test2: t2,

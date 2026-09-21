@@ -78,8 +78,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Fees & Clearance',
       subtitle: 'Clearance verification & dues',
       icon: CreditCard,
-      badge: currentStudent?.feeStatus === 'Cleared' ? 'Paid' : 'Not Paid',
-      badgeColor: currentStudent?.feeStatus === 'Cleared' ? 'bg-blue-100 text-blue-950 border border-blue-300 font-bold' : 'bg-slate-100 text-slate-700 border border-slate-300 font-bold',
+      badge: currentStudent?.feeStatus === 'Cleared' ? 'Cleared' : 'Pending',
+      badgeColor: currentStudent?.feeStatus === 'Cleared' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold' : 'bg-amber-50 text-amber-800 border border-amber-200 font-bold',
     },
     {
       id: 'settings',

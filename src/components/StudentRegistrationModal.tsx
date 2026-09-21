@@ -234,9 +234,9 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
         setRegisteredStudent({
           ...(studentPayload as StudentProfile),
           id: `std-${Date.now()}`,
-          termGpa: 75.0,
-          termRank: 'New Enrollee',
-          attendanceRate: 100.0,
+          termGpa: 0,
+          termRank: 'Pending Assessment',
+          attendanceRate: 0,
           subjects: [],
         });
       } else {

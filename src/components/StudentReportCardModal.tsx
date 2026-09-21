@@ -125,20 +125,33 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {student.subjects.map((s) => (
-                    <tr key={s.code} className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">{s.name}</td>
-                      <td className="py-2.5 px-2 text-center font-mono">{s.homework ?? 8}</td>
-                      <td className="py-2.5 px-2 text-center font-mono">{s.test1 ?? 8}</td>
-                      <td className="py-2.5 px-2 text-center font-mono">{s.test2 ?? 8}</td>
-                      <td className="py-2.5 px-2 text-center font-mono">{s.practical ?? 8}</td>
-                      <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-800">{s.caTotal}</td>
-                      <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-800">{s.exam}</td>
-                      <td className="py-2.5 px-2 text-center font-mono font-black text-slate-950">{s.total}</td>
-                      <td className="py-2.5 px-2 text-center font-bold text-blue-900">{s.grade}</td>
-                      <td className="py-2.5 px-3 text-right text-slate-600 font-medium">{s.remark}</td>
-                    </tr>
-                  ))}
+                  {student.subjects.map((s) => {
+                    const hasMarks = (s.total !== undefined && s.total > 0) || (s.caTotal !== undefined && s.caTotal > 0) || (s.exam !== undefined && s.exam > 0);
+                    const isPending = !hasMarks && (s.grade === '-' || s.grade === 'Ungraded' || s.grade === 'Pending');
+
+                    return (
+                      <tr key={s.code} className="hover:bg-slate-50">
+                        <td className="py-2.5 px-3 font-semibold text-slate-900">{s.name}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-700">{isPending ? '—' : (s.homework ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-700">{isPending ? '—' : (s.test1 ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-700">{isPending ? '—' : (s.test2 ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-700">{isPending ? '—' : (s.practical ?? s.quiz ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-800">{isPending ? '—' : (s.caTotal ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-800">{isPending ? '—' : (s.exam ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-black text-slate-950">{isPending ? '—' : (s.total ?? 0)}</td>
+                        <td className="py-2.5 px-2 text-center font-bold">
+                          {isPending ? (
+                            <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">Pending</span>
+                          ) : (
+                            <span className="text-blue-900">{s.grade}</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                          {isPending ? 'Pending Assessment' : s.remark}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -147,11 +160,13 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-blue-50/60 border border-blue-100 text-center">
               <div>
                 <span className="text-[10px] uppercase font-bold text-blue-800 block">Term Average GPA</span>
-                <span className="text-xl font-black text-blue-950 font-mono">{student.termGpa}%</span>
+                <span className="text-xl font-black text-blue-950 font-mono">
+                  {student.termGpa > 0 ? `${student.termGpa}%` : 'Pending'}
+                </span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-blue-800 block">Class Standing</span>
-                <span className="text-xl font-black text-blue-950 font-mono">{student.termRank}</span>
+                <span className="text-base sm:text-lg font-black text-blue-950 font-mono">{student.termRank}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-blue-800 block">Attendance Rate</span>
