@@ -282,6 +282,27 @@ async function startServer() {
       clsSnap.forEach((d) => loadedClasses.push(d.data() as SchoolClassDefinition));
       schoolClasses = loadedClasses;
       console.log(`[Firestore] Synchronized ${schoolClasses.length} real academic classes.`);
+
+      // Ensure Geography and Marketing are present in Art & Commercial curricula
+      let classesUpdated = false;
+      for (const cls of schoolClasses) {
+        if (!Array.isArray(cls.curriculumSubjects)) {
+          cls.curriculumSubjects = [];
+        }
+        if (cls.name.includes('Art') && !cls.curriculumSubjects.includes('Geography')) {
+          cls.curriculumSubjects.push('Geography');
+          await dbSaveClass(cls);
+          classesUpdated = true;
+        }
+        if (cls.name.includes('Commercial') && !cls.curriculumSubjects.includes('Marketing')) {
+          cls.curriculumSubjects.push('Marketing');
+          await dbSaveClass(cls);
+          classesUpdated = true;
+        }
+      }
+      if (classesUpdated) {
+        console.log('[Firestore] Integrated Geography & Marketing into class curricula in database.');
+      }
     } else {
       console.log('[Firestore] Seeding original class arms...');
       const batch = writeBatch(db);
@@ -784,7 +805,8 @@ async function startServer() {
   // Batch assign subjects to multiple classes (or all 14 classes), and synchronize student profiles
   app.post('/api/classes/batch-assign-subjects', async (req, res) => {
     try {
-      const { targetClasses, subjects, mode = 'add', syncStudents = true } = req.body;
+      const mode = req.body.action || req.body.mode || 'add';
+      const { targetClasses, subjects, syncStudents = true } = req.body;
 
       if (!targetClasses || !Array.isArray(targetClasses) || targetClasses.length === 0) {
         return res.status(400).json({ error: 'targetClasses array is required' });
@@ -931,20 +953,29 @@ async function startServer() {
     }
   });
 
-  // Assign subjects to a single class and synchronize student profiles
-  app.post('/api/classes/:id/curriculum', async (req, res) => {
+  // Assign subjects to a single class and synchronize student profiles (supports both PUT and POST)
+  const handleSingleClassCurriculum = async (req: any, res: any) => {
     try {
       const { id } = req.params;
-      const { subjects, mode = 'add' } = req.body;
-      const cls = schoolClasses.find((c) => c.id === id || c.name === id);
-      if (!cls) {
-        return res.status(404).json({ error: 'Class not found' });
+      const decodedId = decodeURIComponent(id || '').trim();
+      const mode = req.body.action || req.body.mode || 'add';
+      const { subjects } = req.body;
+
+      const clsIndex = schoolClasses.findIndex(
+        (c) =>
+          c.id === id ||
+          c.id === decodedId ||
+          c.name.toLowerCase() === decodedId.toLowerCase() ||
+          c.name.toLowerCase() === id.toLowerCase()
+      );
+      if (clsIndex === -1) {
+        return res.status(404).json({ error: `Class not found: ${decodedId || id}` });
       }
 
-      // Delegate to batch logic
-      const targetClasses = [cls.name];
-      const cleanSubjects = Array.isArray(subjects) ? subjects : [subjects];
-      const clsIndex = schoolClasses.findIndex((c) => c.id === cls.id);
+      const cls = schoolClasses[clsIndex];
+      const cleanSubjects = (Array.isArray(subjects) ? subjects : [subjects])
+        .map((s: string) => String(s).trim())
+        .filter((s: string) => Boolean(s));
 
       const currentSubjs = Array.isArray(schoolClasses[clsIndex].curriculumSubjects)
         ? [...schoolClasses[clsIndex].curriculumSubjects!]
@@ -967,7 +998,7 @@ async function startServer() {
       // Sync enrolled students of this class
       let syncedCount = 0;
       for (let i = 0; i < students.length; i++) {
-        if (students[i].classArm === cls.name) {
+        if (students[i].classArm.toLowerCase() === cls.name.toLowerCase()) {
           const student = students[i];
           let studentSubjects = Array.isArray(student.subjects) ? [...student.subjects] : [];
           let mod = false;
@@ -1036,7 +1067,10 @@ async function startServer() {
       console.error('[Class Curriculum Update Error]:', err);
       return res.status(500).json({ error: err.message || 'Failed to update class curriculum' });
     }
-  });
+  };
+
+  app.put('/api/classes/:id/curriculum', handleSingleClassCurriculum);
+  app.post('/api/classes/:id/curriculum', handleSingleClassCurriculum);
 
   // --- STUDENT & ACADEMIC ENDPOINTS ---
   app.get('/api/students', (req, res) => {

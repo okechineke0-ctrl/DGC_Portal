@@ -264,7 +264,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       });
       await onBulkUpdateStudentScores(
         selectedClass,
-        `${selectedSubject.substring(0, 3).toUpperCase()} ${selectedClass.startsWith('SS') ? '301' : '101'}`,
+        getSubjectCode(selectedSubject, selectedClass),
         selectedSubject,
         scoresPayload
       );

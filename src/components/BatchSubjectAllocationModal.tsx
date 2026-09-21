@@ -24,6 +24,7 @@ import {
   SENIOR_COMMERCIAL_CURRICULUM,
   getSubjectCategory,
   getSubjectCode,
+  matchesSubjectCategory,
 } from '../data/mockData';
 
 export interface BatchSubjectAllocationModalProps {
@@ -78,8 +79,7 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
       const matchesSearch =
         subject.toLowerCase().includes(subjectSearch.toLowerCase()) ||
         getSubjectCode(subject).toLowerCase().includes(subjectSearch.toLowerCase());
-      const cat = getSubjectCategory(subject);
-      const matchesCat = categoryFilter === 'ALL' || cat === categoryFilter;
+      const matchesCat = matchesSubjectCategory(subject, categoryFilter);
       return matchesSearch && matchesCat;
     });
   }, [subjectSearch, categoryFilter]);
@@ -96,6 +96,29 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
     setSelectedSubjects((prev) =>
       prev.includes(subject) ? prev.filter((s) => s !== subject) : [...prev, subject]
     );
+  };
+
+  // Bulk subject toggles
+  const selectAllVisibleSubjects = () => {
+    setSelectedSubjects((prev) => {
+      const set = new Set(prev);
+      filteredSubjects.forEach((s) => set.add(s));
+      return Array.from(set);
+    });
+  };
+
+  const deselectAllVisibleSubjects = () => {
+    setSelectedSubjects((prev) =>
+      prev.filter((s) => !filteredSubjects.includes(s))
+    );
+  };
+
+  const selectAllSchoolSubjects = () => {
+    setSelectedSubjects([...ALL_SCHOOL_SUBJECTS]);
+  };
+
+  const clearAllSelectedSubjects = () => {
+    setSelectedSubjects([]);
   };
 
   // Toggle single class selection
@@ -260,28 +283,28 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
                   onClick={() => applySubjectPreset('Junior Curriculum', JUNIOR_CURRICULUM)}
                   className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold rounded-lg border border-blue-200 transition-colors"
                 >
-                  Junior Std (9)
+                  Junior Std ({JUNIOR_CURRICULUM.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => applySubjectPreset('Senior Science', SENIOR_SCIENCE_CURRICULUM)}
                   className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold rounded-lg border border-blue-200 transition-colors"
                 >
-                  Senior Sci (9)
+                  Senior Sci ({SENIOR_SCIENCE_CURRICULUM.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => applySubjectPreset('Senior Art', SENIOR_ART_CURRICULUM)}
                   className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold rounded-lg border border-blue-200 transition-colors"
                 >
-                  Senior Art (9)
+                  Senior Art ({SENIOR_ART_CURRICULUM.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => applySubjectPreset('Senior Commercial', SENIOR_COMMERCIAL_CURRICULUM)}
                   className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold rounded-lg border border-blue-200 transition-colors"
                 >
-                  Senior Com (9)
+                  Senior Com ({SENIOR_COMMERCIAL_CURRICULUM.length})
                 </button>
               </div>
             </div>
@@ -294,7 +317,7 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
                   type="text"
                   value={subjectSearch}
                   onChange={(e) => setSubjectSearch(e.target.value)}
-                  placeholder="Filter subjects by name or code (e.g. English, MTH)..."
+                  placeholder="Filter subjects by name or code (e.g. Geography, Marketing, MTH)..."
                   className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/20"
                 />
               </div>
@@ -314,6 +337,48 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
                     {cat}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Quick Bulk Selection Helpers */}
+            <div className="flex items-center justify-between gap-2 px-1 text-[11px]">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-medium">
+                  Showing {filteredSubjects.length} of {ALL_SCHOOL_SUBJECTS.length} subjects:
+                </span>
+                <button
+                  type="button"
+                  onClick={selectAllVisibleSubjects}
+                  className="text-blue-900 hover:text-blue-700 font-bold hover:underline cursor-pointer"
+                >
+                  Select Visible ({filteredSubjects.length})
+                </button>
+                <span className="text-slate-300">·</span>
+                <button
+                  type="button"
+                  onClick={deselectAllVisibleSubjects}
+                  className="text-slate-600 hover:text-slate-900 font-medium hover:underline cursor-pointer"
+                >
+                  Deselect Visible
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={selectAllSchoolSubjects}
+                  className="text-indigo-900 hover:text-indigo-700 font-bold hover:underline cursor-pointer"
+                >
+                  Select All ({ALL_SCHOOL_SUBJECTS.length})
+                </button>
+                <span className="text-slate-300">·</span>
+                <button
+                  type="button"
+                  onClick={clearAllSelectedSubjects}
+                  className="text-rose-700 hover:text-rose-900 font-bold hover:underline cursor-pointer"
+                >
+                  Clear Selection ({selectedSubjects.length})
+                </button>
               </div>
             </div>
 

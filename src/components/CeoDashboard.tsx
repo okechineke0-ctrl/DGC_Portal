@@ -48,6 +48,7 @@ import {
   SENIOR_COMMERCIAL_CURRICULUM,
   getSubjectCategory,
   getSubjectCode,
+  matchesSubjectCategory,
   calculateGrade,
 } from '../data/mockData';
 import { StaffAllocationModal } from './StaffAllocationModal';
@@ -1197,8 +1198,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       const matchesSearch =
                         subject.toLowerCase().includes(curriculumSearchQuery.toLowerCase()) ||
                         getSubjectCode(subject).toLowerCase().includes(curriculumSearchQuery.toLowerCase());
-                      const cat = getSubjectCategory(subject);
-                      const matchesCat = curriculumCategoryFilter === 'ALL' || cat === curriculumCategoryFilter;
+                      const matchesCat = matchesSubjectCategory(subject, curriculumCategoryFilter);
                       return matchesSearch && matchesCat;
                     }).map((subject) => {
                       const code = getSubjectCode(subject);
@@ -1315,8 +1315,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 const matchesSearch =
                   subject.toLowerCase().includes(curriculumSearchQuery.toLowerCase()) ||
                   getSubjectCode(subject).toLowerCase().includes(curriculumSearchQuery.toLowerCase());
-                const cat = getSubjectCategory(subject);
-                const matchesCat = curriculumCategoryFilter === 'ALL' || cat === curriculumCategoryFilter;
+                const matchesCat = matchesSubjectCategory(subject, curriculumCategoryFilter);
                 return matchesSearch && matchesCat;
               }).map((subject) => {
                 const teachers = staffList.filter((s) => s.subjectsTaught.includes(subject));

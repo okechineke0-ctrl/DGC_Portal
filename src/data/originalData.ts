@@ -64,10 +64,12 @@ export const ALL_SCHOOL_SUBJECTS = [
   'Biology',
   'Further Mathematics',
   'Economics',
+  'Geography',
   'Government',
   'Literature-in-English',
   'Financial Accounting',
   'Commerce',
+  'Marketing',
   'Book Keeping',
   'Data Processing / ICT',
   'Civic Education',
@@ -114,6 +116,7 @@ export const SENIOR_ART_CURRICULUM = [
   'Civic Education',
   'Economics',
   'Data Processing / ICT',
+  'Geography',
 ];
 
 export const SENIOR_COMMERCIAL_CURRICULUM = [
@@ -126,6 +129,7 @@ export const SENIOR_COMMERCIAL_CURRICULUM = [
   'Civic Education',
   'Data Processing / ICT',
   'Business Studies',
+  'Marketing',
 ];
 
 export const SCHOOL_CLASSES_DEFINITIONS: SchoolClassDefinition[] = [
@@ -679,6 +683,8 @@ export function getSubjectCode(subjectName: string, level?: string): string {
   else if (norm.includes('chem')) prefix = 'CHM';
   else if (norm.includes('bio')) prefix = 'BIO';
   else if (norm.includes('econ')) prefix = 'ECO';
+  else if (norm.includes('geo')) prefix = 'GEO';
+  else if (norm.includes('market')) prefix = 'MKT';
   else if (norm.includes('gov')) prefix = 'GOV';
   else if (norm.includes('civic')) prefix = 'CIV';
   else if (norm.includes('lit')) prefix = 'LIT';
@@ -719,16 +725,34 @@ export function getSubjectCategory(subjectName: string): 'Sciences' | 'Arts & Hu
   if (norm.includes('math') || norm.includes('physics') || norm.includes('chem') || norm.includes('bio') || norm.includes('further')) {
     return 'Sciences';
   }
-  if (norm.includes('english') || norm.includes('lit') || norm.includes('gov') || norm.includes('relig') || norm.includes('crs') || norm.includes('igbo') || norm.includes('french')) {
+  if (norm.includes('english') || norm.includes('lit') || norm.includes('gov') || norm.includes('geo') || norm.includes('relig') || norm.includes('crs') || norm.includes('igbo') || norm.includes('french')) {
     return 'Arts & Humanities';
   }
-  if (norm.includes('econ') || norm.includes('account') || norm.includes('comm') || norm.includes('book') || norm.includes('business')) {
+  if (norm.includes('econ') || norm.includes('account') || norm.includes('comm') || norm.includes('market') || norm.includes('book') || norm.includes('business')) {
     return 'Commercial';
   }
   if (norm.includes('data') || norm.includes('ict') || norm.includes('basic sci') || norm.includes('technology') || norm.includes('agri')) {
     return 'Vocational & Technology';
   }
   return 'General Curriculum';
+}
+
+/**
+ * Fuzzy/Robust Subject Category Matcher
+ * Seamlessly matches 'General' with 'General Curriculum' and 'Vocational & Tech' with 'Vocational & Technology'
+ */
+export function matchesSubjectCategory(subjectName: string, categoryFilter: string): boolean {
+  if (!categoryFilter || categoryFilter === 'ALL') return true;
+  const cat = getSubjectCategory(subjectName);
+  if (cat === categoryFilter) return true;
+  const normFilter = categoryFilter.toLowerCase();
+  const normCat = cat.toLowerCase();
+  if (normFilter.includes('general') && normCat.includes('general')) return true;
+  if (normFilter.includes('vocational') && normCat.includes('vocational')) return true;
+  if (normFilter.includes('art') && normCat.includes('art')) return true;
+  if (normFilter.includes('sci') && normCat.includes('sci')) return true;
+  if (normFilter.includes('com') && normCat.includes('com')) return true;
+  return false;
 }
 
 /* Class Broadsheet & Ranking Algorithm: Computes exact ordinal positions (1st, 2nd, 3rd) within class arm */
