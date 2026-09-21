@@ -5,6 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
+  initializeFirestore,
   collection,
   getDocs,
   doc,
@@ -17,6 +18,8 @@ import {
   SCHOOL_CLASSES_DEFINITIONS,
   SCHOOL_CLASSES_LIST,
   ALL_SCHOOL_SUBJECTS,
+  INITIAL_STUDENTS,
+  INITIAL_STAFF_MEMBERS,
   calculateGrade,
   computeCaTotal,
   createSubjectScore,
@@ -49,66 +52,97 @@ if (!firebaseConfig) {
   );
 }
 
-// Initialize Firebase App and target Firestore Database
+// Initialize Firebase App and target Firestore Database with ignoreUndefinedProperties
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+const db = initializeFirestore(
+  firebaseApp,
+  {
+    ignoreUndefinedProperties: true,
+  },
+  firebaseConfig.firestoreDatabaseId || '(default)'
+);
+
+// Deep data sanitizer to guarantee safe Firestore JSON serialization (strips undefined fields)
+function cleanFirestoreData<T>(obj: T): T {
+  if (obj === undefined) return null as unknown as T;
+  return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
+}
 
 // ============================================================================
 // FIRESTORE ASYNC PERSISTENCE HELPERS
 // ============================================================================
-async function dbSaveStudent(student: StudentProfile): Promise<void> {
+async function dbSaveStudent(student: StudentProfile): Promise<boolean> {
   try {
-    await setDoc(doc(db, 'students', student.id), student, { merge: true });
+    const cleanData = cleanFirestoreData(student);
+    await setDoc(doc(db, 'students', cleanData.id), cleanData, { merge: true });
+    return true;
   } catch (err) {
-    console.error(`[Firestore Error] Failed to persist student ${student.id}:`, err);
+    console.error(`[Firestore Error] Failed to persist student ${student.id} to database:`, err);
+    return false;
   }
 }
 
-async function dbDeleteStudent(id: string): Promise<void> {
+async function dbDeleteStudent(id: string): Promise<boolean> {
   try {
     await deleteDoc(doc(db, 'students', id));
+    return true;
   } catch (err) {
     console.error(`[Firestore Error] Failed to delete student ${id}:`, err);
+    return false;
   }
 }
 
-async function dbSaveStaff(staff: StaffMember): Promise<void> {
+async function dbSaveStaff(staff: StaffMember): Promise<boolean> {
   try {
-    await setDoc(doc(db, 'staff', staff.id), staff, { merge: true });
+    const cleanData = cleanFirestoreData(staff);
+    await setDoc(doc(db, 'staff', cleanData.id), cleanData, { merge: true });
+    return true;
   } catch (err) {
     console.error(`[Firestore Error] Failed to persist staff ${staff.id}:`, err);
+    return false;
   }
 }
 
-async function dbDeleteStaff(id: string): Promise<void> {
+async function dbDeleteStaff(id: string): Promise<boolean> {
   try {
     await deleteDoc(doc(db, 'staff', id));
+    return true;
   } catch (err) {
     console.error(`[Firestore Error] Failed to delete staff ${id}:`, err);
+    return false;
   }
 }
 
-async function dbSaveClass(cls: SchoolClassDefinition): Promise<void> {
+async function dbSaveClass(cls: SchoolClassDefinition): Promise<boolean> {
   try {
-    await setDoc(doc(db, 'classes', cls.id), cls, { merge: true });
+    const cleanData = cleanFirestoreData(cls);
+    await setDoc(doc(db, 'classes', cleanData.id), cleanData, { merge: true });
+    return true;
   } catch (err) {
     console.error(`[Firestore Error] Failed to persist class ${cls.id}:`, err);
+    return false;
   }
 }
 
-async function dbSaveAttendance(recordId: string, record: any): Promise<void> {
+async function dbSaveAttendance(recordId: string, record: any): Promise<boolean> {
   try {
-    await setDoc(doc(db, 'attendance', recordId), record);
+    const cleanData = cleanFirestoreData(record);
+    await setDoc(doc(db, 'attendance', recordId), cleanData);
+    return true;
   } catch (err) {
     console.error(`[Firestore Error] Failed to persist attendance ${recordId}:`, err);
+    return false;
   }
 }
 
-async function dbSaveFeeSchedule(schedule: CollegeFeeSchedule): Promise<void> {
+async function dbSaveFeeSchedule(schedule: CollegeFeeSchedule): Promise<boolean> {
   try {
-    await setDoc(doc(db, 'system', 'fee_schedule'), schedule, { merge: true });
+    const cleanData = cleanFirestoreData(schedule);
+    await setDoc(doc(db, 'system', 'fee_schedule'), cleanData, { merge: true });
+    return true;
   } catch (err) {
     console.error('[Firestore Error] Failed to persist fee schedule:', err);
+    return false;
   }
 }
 
@@ -215,8 +249,15 @@ async function startServer() {
       students = recalculateClassRankings(loadedStudents);
       console.log(`[Firestore] Synchronized ${students.length} real students.`);
     } else {
-      console.log('[Firestore] No student records in database. Ready for student registration.');
-      students = [];
+      console.log('[Firestore] No student records in database. Seeding foundation student body...');
+      const batch = writeBatch(db);
+      INITIAL_STUDENTS.forEach((st) => {
+        const cleanSt = cleanFirestoreData(st);
+        batch.set(doc(db, 'students', cleanSt.id), cleanSt);
+      });
+      await batch.commit();
+      students = recalculateClassRankings(INITIAL_STUDENTS);
+      console.log(`[Firestore] Successfully seeded ${students.length} foundation students into Cloud Firestore.`);
     }
 
     if (!stfSnap.empty) {
@@ -225,8 +266,15 @@ async function startServer() {
       staffMembers = loadedStaff;
       console.log(`[Firestore] Synchronized ${staffMembers.length} real staff.`);
     } else {
-      console.log('[Firestore] No staff records in database. Ready for teacher additions.');
-      staffMembers = [];
+      console.log('[Firestore] No staff records in database. Seeding faculty members...');
+      const batch = writeBatch(db);
+      INITIAL_STAFF_MEMBERS.forEach((sm) => {
+        const cleanSm = cleanFirestoreData(sm);
+        batch.set(doc(db, 'staff', cleanSm.id), cleanSm);
+      });
+      await batch.commit();
+      staffMembers = JSON.parse(JSON.stringify(INITIAL_STAFF_MEMBERS));
+      console.log(`[Firestore] Successfully seeded ${staffMembers.length} faculty staff members.`);
     }
 
     if (!clsSnap.empty) {
@@ -997,21 +1045,32 @@ async function startServer() {
 
     if (q && typeof q === 'string' && q.trim()) {
       const cleanQ = q.trim().toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.name.toLowerCase().includes(cleanQ) ||
-          cleanQ.includes(s.name.toLowerCase()) ||
-          s.admissionNo.toLowerCase().includes(cleanQ)
-      );
+      const numOnly = cleanQ.replace(/[^a-z0-9]/g, '');
+      filtered = filtered.filter((s) => {
+        const sName = (s.name || '').toLowerCase();
+        const sAdm = (s.admissionNo || '').toLowerCase();
+        const sClass = (s.classArm || '').toLowerCase();
+        const sStream = (s.stream || '').toLowerCase();
+        const sNum = sAdm.replace(/[^a-z0-9]/g, '');
+
+        return (
+          sName.includes(cleanQ) ||
+          cleanQ.includes(sName) ||
+          sAdm.includes(cleanQ) ||
+          sClass.includes(cleanQ) ||
+          sStream.includes(cleanQ) ||
+          (numOnly.length >= 3 && sNum.includes(numOnly))
+        );
+      });
     }
 
-    if (classArm && classArm !== 'All') {
+    if (classArm && classArm !== 'All' && classArm !== 'ALL') {
       filtered = filtered.filter((s) => s.classArm === classArm);
     }
-    if (stream && stream !== 'All') {
+    if (stream && stream !== 'All' && stream !== 'ALL') {
       filtered = filtered.filter((s) => s.stream === stream);
     }
-    if (feeStatus && feeStatus !== 'All') {
+    if (feeStatus && feeStatus !== 'All' && feeStatus !== 'ALL') {
       filtered = filtered.filter((s) => s.feeStatus === feeStatus);
     }
     if (held !== undefined) {
@@ -1023,237 +1082,287 @@ async function startServer() {
 
   app.get('/api/students/:id', (req, res) => {
     const { id } = req.params;
-    const student = students.find((s) => s.id === id || s.admissionNo.toLowerCase() === id.toLowerCase());
+    const student = students.find((s) => s.id === id || (s.admissionNo && s.admissionNo.toLowerCase() === id.toLowerCase()));
     if (!student) {
       return res.status(404).json({ error: 'Student record not found in database' });
     }
     res.json({ student });
   });
 
-  // Create / Register a new student
-  app.post('/api/students', (req, res) => {
-    const {
-      name,
-      admissionNo,
-      admissionYear,
-      enrollmentType,
-      transferClassJoined,
-      lastClassPassed,
-      classArm,
-      stream,
-      gender,
-      dateOfBirth,
-      guardianName,
-      guardianPhone,
-      guardianEmail,
-      guardianAddress,
-      bloodGroup,
-      genotype,
-      stateOfOrigin,
-      previousSchool,
-      medicalNotes,
-      feeStatus,
-      session,
-      term,
-      customSubjects,
-      attendanceRate,
-      photoUrl,
-    } = req.body;
+  // Create / Register a new student (Saved directly to Cloud Firestore & Memory)
+  app.post('/api/students', async (req, res) => {
+    try {
+      const {
+        name,
+        surname,
+        firstName,
+        middleName,
+        admissionNo,
+        admissionYear,
+        enrollmentType,
+        transferClassJoined,
+        lastClassPassed,
+        classArm,
+        stream,
+        gender,
+        dateOfBirth,
+        religion,
+        nationality,
+        stateOfOrigin,
+        lga,
+        residentialAddress,
+        phone,
+        session,
+        term,
+        boardingStatus,
+        houseAllocation,
+        previousSchool,
+        entranceExamScore,
+        guardianName,
+        guardianRelationship,
+        guardianPhone,
+        guardianAltPhone,
+        guardianEmail,
+        guardianOccupation,
+        emergencyContactName,
+        emergencyContactPhone,
+        bloodGroup,
+        genotype,
+        allergies,
+        medicalConditions,
+        feeStatus,
+        scholarshipStatus,
+        tellerNumber,
+        photoUrl,
+        customSubjects,
+      } = req.body;
 
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Student full name is required' });
-    }
-    if (!classArm || !classArm.trim()) {
-      return res.status(400).json({ error: 'Class arm is required' });
-    }
-
-    // Determine Level from class name
-    let level: 'JSS 1' | 'JSS 2' | 'JSS 3' | 'SS 1' | 'SS 2' | 'SS 3' = 'JSS 1';
-    if (classArm.startsWith('JSS 1')) level = 'JSS 1';
-    else if (classArm.startsWith('JSS 2')) level = 'JSS 2';
-    else if (classArm.startsWith('JSS 3')) level = 'JSS 3';
-    else if (classArm.startsWith('SS 1')) level = 'SS 1';
-    else if (classArm.startsWith('SS 2')) level = 'SS 2';
-    else if (classArm.startsWith('SS 3')) level = 'SS 3';
-
-    // Calculate cohort admission year based on Nigerian 6-Year Secondary education
-    const sessionStartYear = parseInt(String(session || '2026').split('/')[0], 10) || 2026;
-    let finalAdmissionYear = admissionYear ? Number(admissionYear) : undefined;
-    const isTransfer = enrollmentType === 'Transfer Student';
-
-    if (!finalAdmissionYear) {
-      const levelOrder: Record<string, number> = { 'JSS 1': 1, 'JSS 2': 2, 'JSS 3': 3, 'SS 1': 4, 'SS 2': 5, 'SS 3': 6 };
-      const curOrder = levelOrder[level] || 1;
-      if (isTransfer && transferClassJoined) {
-        const jOrder = levelOrder[transferClassJoined.trim()] || curOrder;
-        const diff = Math.max(0, curOrder - Math.min(jOrder, curOrder));
-        finalAdmissionYear = sessionStartYear - diff;
-      } else {
-        const diff = Math.max(0, curOrder - 1);
-        finalAdmissionYear = sessionStartYear - diff;
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: 'Student full name is required' });
       }
-    }
+      if (!classArm || !classArm.trim()) {
+        return res.status(400).json({ error: 'Class arm is required' });
+      }
 
-    // Auto-generate official DGC Registration / Admission number if not provided
-    let finalAdmissionNo = admissionNo && admissionNo.trim() ? admissionNo.trim().toUpperCase() : '';
-    if (!finalAdmissionNo) {
-      const yearPattern = new RegExp(`^DGC\\/${finalAdmissionYear}\\/(\\d+)$`, 'i');
-      let highestSeq = 0;
-      students.forEach((s) => {
-        const m = (s.admissionNo || '').trim().match(yearPattern);
-        if (m && m[1]) {
-          const num = parseInt(m[1], 10);
-          if (num > highestSeq) highestSeq = num;
+      // Determine Level from class name
+      let level: 'JSS 1' | 'JSS 2' | 'JSS 3' | 'SS 1' | 'SS 2' | 'SS 3' = 'JSS 1';
+      if (classArm.startsWith('JSS 1')) level = 'JSS 1';
+      else if (classArm.startsWith('JSS 2')) level = 'JSS 2';
+      else if (classArm.startsWith('JSS 3')) level = 'JSS 3';
+      else if (classArm.startsWith('SS 1')) level = 'SS 1';
+      else if (classArm.startsWith('SS 2')) level = 'SS 2';
+      else if (classArm.startsWith('SS 3')) level = 'SS 3';
+
+      // Calculate cohort admission year based on Nigerian 6-Year Secondary education
+      const sessionStartYear = parseInt(String(session || '2026').split('/')[0], 10) || 2026;
+      let finalAdmissionYear = admissionYear ? Number(admissionYear) : undefined;
+      const isTransfer = enrollmentType === 'Transfer Student';
+
+      if (!finalAdmissionYear) {
+        const levelOrder: Record<string, number> = { 'JSS 1': 1, 'JSS 2': 2, 'JSS 3': 3, 'SS 1': 4, 'SS 2': 5, 'SS 3': 6 };
+        const curOrder = levelOrder[level] || 1;
+        if (isTransfer && transferClassJoined) {
+          const jOrder = levelOrder[transferClassJoined.trim()] || curOrder;
+          const diff = Math.max(0, curOrder - Math.min(jOrder, curOrder));
+          finalAdmissionYear = sessionStartYear - diff;
+        } else {
+          const diff = Math.max(0, curOrder - 1);
+          finalAdmissionYear = sessionStartYear - diff;
         }
-      });
+      }
 
-      const nextSeq = highestSeq > 0 ? highestSeq + 1 : Math.floor(100 + Math.random() * 800);
-      finalAdmissionNo = `DGC/${finalAdmissionYear}/${String(nextSeq).padStart(4, '0')}`;
+      // Determine official DGC Registration / Admission number with collision prevention
+      let finalAdmissionNo = admissionNo && admissionNo.trim() ? admissionNo.trim().toUpperCase() : '';
+      
+      // Check if the provided admission number collides with an existing record
+      const existing = finalAdmissionNo
+        ? students.find((s) => s.admissionNo && s.admissionNo.toLowerCase() === finalAdmissionNo.toLowerCase())
+        : null;
+
+      // If no admission number was provided, OR if the client-sent number already belongs to another student,
+      // auto-generate the next guaranteed-unique sequential number for this cohort year
+      if (!finalAdmissionNo || existing) {
+        const yearPattern = new RegExp(`^DGC\\/${finalAdmissionYear}\\/(\\d+)$`, 'i');
+        let highestSeq = 100;
+        students.forEach((s) => {
+          const m = (s.admissionNo || '').trim().match(yearPattern);
+          if (m && m[1]) {
+            const num = parseInt(m[1], 10);
+            if (num > highestSeq) highestSeq = num;
+          }
+        });
+
+        // Loop until guaranteed unique
+        let candidateSeq = highestSeq + 1;
+        let candidateNo = `DGC/${finalAdmissionYear}/${String(candidateSeq).padStart(4, '0')}`;
+        while (students.some((s) => s.admissionNo && s.admissionNo.toLowerCase() === candidateNo.toLowerCase())) {
+          candidateSeq++;
+          candidateNo = `DGC/${finalAdmissionYear}/${String(candidateSeq).padStart(4, '0')}`;
+        }
+        finalAdmissionNo = candidateNo;
+      }
+
+      // Standard subjects allocation based on academic division
+      let initialSubjects: any[] = [];
+      if (customSubjects && Array.isArray(customSubjects) && customSubjects.length > 0) {
+        initialSubjects = customSubjects.map((subName: string) => ({
+          code: getSubjectCode(subName, level),
+          name: subName,
+          homework: 0,
+          test1: 0,
+          test2: 0,
+          practical: 0,
+          quiz: 0,
+          caTotal: 0,
+          exam: 0,
+          total: 0,
+          grade: '-',
+          remark: 'Pending Assessment',
+          updatedBy: 'Registration System',
+          updatedAt: new Date().toISOString(),
+        }));
+      } else {
+        // Check if target class has defined curriculum subjects
+        const targetClass = schoolClasses.find((c) => c.name === classArm);
+        const subjectsToAssign = (targetClass?.curriculumSubjects && targetClass.curriculumSubjects.length > 0)
+          ? targetClass.curriculumSubjects
+          : level.startsWith('JSS')
+          ? [
+              'Mathematics',
+              'English Language',
+              'Basic Science',
+              'Basic Technology',
+              'Social Studies',
+              'Civic Education',
+              'Agricultural Science',
+              'Christian Religious Studies',
+              'Business Studies',
+              'Computer Studies / ICT',
+            ]
+          : [
+              'English Language',
+              'General Mathematics',
+              'Civic Education',
+              'Economics',
+              'Biology',
+              'Computer Studies / Data Processing',
+              stream === 'Science' ? 'Physics' : stream === 'Art' ? 'Literature-in-English' : 'Financial Accounting',
+              stream === 'Science' ? 'Chemistry' : stream === 'Art' ? 'Government' : 'Commerce',
+            ];
+
+        initialSubjects = subjectsToAssign.map((subName) => ({
+          code: getSubjectCode(subName, level),
+          name: subName,
+          homework: 0,
+          test1: 0,
+          test2: 0,
+          practical: 0,
+          quiz: 0,
+          caTotal: 0,
+          exam: 0,
+          total: 0,
+          grade: '-',
+          remark: 'Pending Assessment',
+          updatedBy: 'Registration System',
+          updatedAt: new Date().toISOString(),
+        }));
+      }
+
+      const newStudent: StudentProfile = {
+        ...req.body,
+        id: `std-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: name.trim(),
+        surname: surname ? surname.trim() : undefined,
+        firstName: firstName ? firstName.trim() : undefined,
+        middleName: middleName ? middleName.trim() : undefined,
+        admissionNo: finalAdmissionNo,
+        admissionYear: finalAdmissionYear,
+        enrollmentType: isTransfer ? 'Transfer Student' : 'Regular Intake',
+        transferClassJoined: isTransfer ? (transferClassJoined || level) : undefined,
+        lastClassPassed: lastClassPassed || undefined,
+        classArm,
+        level,
+        stream: stream || (level.startsWith('JSS') ? 'Junior' : 'General'),
+        gender: gender || 'Male',
+        dateOfBirth: dateOfBirth || '2010-05-15',
+        religion: religion || 'Christianity',
+        nationality: nationality || 'Nigerian',
+        stateOfOrigin: stateOfOrigin || 'Enugu State',
+        lga: lga || 'Enugu North',
+        residentialAddress: residentialAddress || req.body.guardianAddress || 'Enugu, Nigeria',
+        phone: phone || '',
+        session: session || '2026/2027',
+        term: term || 'First Term',
+        boardingStatus: boardingStatus || 'Day Student',
+        houseAllocation: houseAllocation || 'Blue Sapphire',
+        previousSchool: previousSchool || '',
+        entranceExamScore: entranceExamScore ? Number(entranceExamScore) : undefined,
+        guardianName: guardianName || 'Guardian',
+        guardianRelationship: guardianRelationship || 'Parent',
+        guardianPhone: guardianPhone || '+234 800 000 0000',
+        guardianAltPhone: guardianAltPhone || '',
+        guardianEmail: guardianEmail || '',
+        guardianOccupation: guardianOccupation || '',
+        emergencyContactName: emergencyContactName || guardianName || 'Guardian',
+        emergencyContactPhone: emergencyContactPhone || guardianPhone || '+234 800 000 0000',
+        bloodGroup: bloodGroup || 'O+',
+        genotype: genotype || 'AA',
+        allergies: allergies || 'None reported',
+        medicalConditions: medicalConditions || req.body.medicalNotes || 'None reported',
+        feeStatus: feeStatus || 'Cleared',
+        scholarshipStatus: scholarshipStatus || 'None',
+        tellerNumber: tellerNumber || '',
+        photoUrl: photoUrl || undefined,
+        resultHeld: false,
+        attendanceRate: 0,
+        termGpa: 0,
+        termRank: 'Pending Assessment',
+        subjects: initialSubjects,
+        affectiveDomain: {
+          punctuality: 4,
+          neatness: 4,
+          politeness: 4,
+          honesty: 5,
+          relationshipWithOthers: 4,
+          leadership: 4,
+          emotionalStability: 4,
+          attentiveness: 4,
+        },
+        psychomotorDomain: {
+          handwriting: 4,
+          sportsAndGames: 4,
+          manualSkills: 4,
+          speechFluency: 4,
+          musicalSkills: 3,
+          drawingAndArt: 4,
+        },
+        formTeacherComment: 'A newly enrolled scholar at Dominate Star College. Ready to pursue academic excellence.',
+        principalComment: 'Welcome to Dominate Star College. Maintain steadfast discipline and strive for high moral standards.',
+        nextTermBegins: '12th January, 2027',
+        timesSchoolOpened: 0,
+        timesPresent: 0,
+        timesPunctual: 0,
+      };
+
+      students.unshift(newStudent);
+      students = recalculateClassRankings(students);
+      const registered = students.find((s) => s.id === newStudent.id) || newStudent;
+
+      // Persist directly to live Firestore database and AWAIT confirmation
+      const saved = await dbSaveStudent(registered);
+      if (!saved) {
+        console.warn(`[Firestore Warning] Could not persist student ${registered.id} immediately; kept in working memory`);
+      }
+
+      return res.status(201).json({ success: true, student: registered, dbPersisted: saved });
+    } catch (err: any) {
+      console.error('[API Error] Student registration failed:', err);
+      return res.status(500).json({ error: err.message || 'Internal server error during registration' });
     }
-
-    // Check duplicate admission numbers
-    const existing = students.find((s) => s.admissionNo.toLowerCase() === finalAdmissionNo.toLowerCase());
-    if (existing) {
-      return res.status(409).json({
-        error: `Registration Number '${finalAdmissionNo}' already belongs to ${existing.name}. Please enter a unique registration number.`,
-      });
-    }
-
-    // Standard subjects allocation based on academic division
-    let initialSubjects: any[] = [];
-    if (customSubjects && Array.isArray(customSubjects) && customSubjects.length > 0) {
-      initialSubjects = customSubjects.map((subName: string) => ({
-        code: getSubjectCode(subName, level),
-        name: subName,
-        homework: 0,
-        test1: 0,
-        test2: 0,
-        practical: 0,
-        quiz: 0,
-        caTotal: 0,
-        exam: 0,
-        total: 0,
-        grade: '-',
-        remark: 'Pending Assessment',
-        updatedBy: 'Registration System',
-        updatedAt: new Date().toISOString(),
-      }));
-    } else {
-      // Check if target class has defined curriculum subjects
-      const targetClass = schoolClasses.find((c) => c.name === classArm);
-      const subjectsToAssign = (targetClass?.curriculumSubjects && targetClass.curriculumSubjects.length > 0)
-        ? targetClass.curriculumSubjects
-        : level.startsWith('JSS')
-        ? [
-            'Mathematics',
-            'English Language',
-            'Basic Science',
-            'Basic Technology',
-            'Social Studies',
-            'Civic Education',
-            'Agricultural Science',
-            'Christian Religious Studies',
-            'Business Studies',
-            'Computer Studies / ICT',
-          ]
-        : [
-            'English Language',
-            'General Mathematics',
-            'Civic Education',
-            'Economics',
-            'Biology',
-            'Computer Studies / Data Processing',
-            stream === 'Science' ? 'Physics' : stream === 'Art' ? 'Literature-in-English' : 'Financial Accounting',
-            stream === 'Science' ? 'Chemistry' : stream === 'Art' ? 'Government' : 'Commerce',
-          ];
-
-      initialSubjects = subjectsToAssign.map((subName) => ({
-        code: getSubjectCode(subName, level),
-        name: subName,
-        homework: 0,
-        test1: 0,
-        test2: 0,
-        practical: 0,
-        quiz: 0,
-        caTotal: 0,
-        exam: 0,
-        total: 0,
-        grade: '-',
-        remark: 'Pending Assessment',
-        updatedBy: 'Registration System',
-        updatedAt: new Date().toISOString(),
-      }));
-    }
-
-    const newStudent: StudentProfile = {
-      id: `std-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      name: name.trim(),
-      admissionNo: finalAdmissionNo,
-      admissionYear: finalAdmissionYear,
-      enrollmentType: isTransfer ? 'Transfer Student' : 'Regular Intake',
-      transferClassJoined: isTransfer ? (transferClassJoined || level) : undefined,
-      lastClassPassed: lastClassPassed || undefined,
-      classArm,
-      level,
-      stream: stream || (level.startsWith('JSS') ? 'Junior' : 'General'),
-      gender: gender || 'Male',
-      dateOfBirth: dateOfBirth || '2010-05-15',
-      session: session || '2026/2027',
-      term: term || 'First Term',
-      guardianName: guardianName || 'Guardian',
-      guardianPhone: guardianPhone || '+234 800 000 0000',
-      guardianEmail: guardianEmail || '',
-      residentialAddress: guardianAddress || 'Enugu, Nigeria',
-      bloodGroup: bloodGroup || 'O+',
-      genotype: genotype || 'AA',
-      stateOfOrigin: stateOfOrigin || 'Enugu State',
-      previousSchool: previousSchool || '',
-      medicalConditions: medicalNotes || 'None reported',
-      feeStatus: feeStatus || 'Cleared',
-      resultHeld: false,
-      photoUrl: photoUrl || undefined,
-      attendanceRate: 0,
-      termGpa: 0,
-      termRank: 'N/A',
-      subjects: initialSubjects,
-      affectiveDomain: {
-        punctuality: 4,
-        neatness: 4,
-        politeness: 4,
-        honesty: 5,
-        relationshipWithOthers: 4,
-        leadership: 4,
-        emotionalStability: 4,
-        attentiveness: 4,
-      },
-      psychomotorDomain: {
-        handwriting: 4,
-        sportsAndGames: 4,
-        manualSkills: 4,
-        speechFluency: 4,
-        musicalSkills: 3,
-        drawingAndArt: 4,
-      },
-      formTeacherComment: 'A newly enrolled scholar at Dominate Star College. Ready to pursue academic excellence.',
-      principalComment: 'Welcome to Dominate Star College. Maintain steadfast discipline and strive for high moral standards.',
-      nextTermBegins: '12th January, 2027',
-      timesSchoolOpened: 0,
-      timesPresent: 0,
-      timesPunctual: 0,
-    };
-
-    students.unshift(newStudent);
-    students = recalculateClassRankings(students);
-    const registered = students.find((s) => s.id === newStudent.id) || newStudent;
-
-    // Asynchronously write to live Firestore database
-    dbSaveStudent(registered);
-
-    return res.status(201).json({ success: true, student: registered });
   });
 
   // Update Student Profile
-  app.put('/api/students/:id', (req, res) => {
+  app.put('/api/students/:id', async (req, res) => {
     const { id } = req.params;
     const index = students.findIndex((s) => s.id === id);
     if (index === -1) {
@@ -1264,28 +1373,28 @@ async function startServer() {
     students = recalculateClassRankings(students);
     const updated = students.find((s) => s.id === id) || students[index];
 
-    // Asynchronously persist to Firestore
-    dbSaveStudent(updated);
+    // Persist to Firestore
+    const saved = await dbSaveStudent(updated);
 
-    return res.json({ success: true, student: updated });
+    return res.json({ success: true, student: updated, dbPersisted: saved });
   });
 
   // Delete Student
-  app.delete('/api/students/:id', (req, res) => {
+  app.delete('/api/students/:id', async (req, res) => {
     const { id } = req.params;
     const exists = students.some((s) => s.id === id);
     if (!exists) {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    dbDeleteStudent(id);
+    await dbDeleteStudent(id);
     students = students.filter((s) => s.id !== id);
     students = recalculateClassRankings(students);
     return res.json({ success: true, message: 'Student deleted successfully from live database', remainingCount: students.length });
   });
 
   // Hold or Release Student Result
-  app.post('/api/students/:id/toggle-hold', (req, res) => {
+  app.post('/api/students/:id/toggle-hold', async (req, res) => {
     const { id } = req.params;
     const { hold, reason } = req.body;
     const index = students.findIndex((s) => s.id === id);
@@ -1302,7 +1411,7 @@ async function startServer() {
       holdReason: newHoldStatus ? reason || 'Outstanding Bursary or Administrative Clearance' : undefined,
     };
 
-    dbSaveStudent(students[index]);
+    await dbSaveStudent(students[index]);
 
     return res.json({
       success: true,
@@ -1313,7 +1422,7 @@ async function startServer() {
   });
 
   // Batch Hold/Release for entire class
-  app.post('/api/classes/batch-hold', (req, res) => {
+  app.post('/api/classes/batch-hold', async (req, res) => {
     const { classArm, hold, reason } = req.body;
     if (!classArm) {
       return res.status(400).json({ error: 'Class arm is required' });
@@ -1321,6 +1430,7 @@ async function startServer() {
 
     const isHold = Boolean(hold);
     let affectedCount = 0;
+    const updatePromises: Promise<boolean>[] = [];
     students = students.map((s) => {
       if (s.classArm === classArm) {
         affectedCount++;
@@ -1329,11 +1439,13 @@ async function startServer() {
           resultHeld: isHold,
           holdReason: isHold ? reason || `Class-wide administrative hold for ${classArm}` : undefined,
         };
-        dbSaveStudent(updated);
+        updatePromises.push(dbSaveStudent(updated));
         return updated;
       }
       return s;
     });
+
+    await Promise.all(updatePromises);
 
     return res.json({
       success: true,
@@ -1344,7 +1456,7 @@ async function startServer() {
   });
 
   // Insert or Update Subject Score
-  app.post('/api/students/:id/scores', (req, res) => {
+  app.post('/api/students/:id/scores', async (req, res) => {
     const { id } = req.params;
     const { subjectCode, subjectName, homework, test1, test2, practical, quiz, exam, updatedBy } = req.body;
 
@@ -1396,13 +1508,13 @@ async function startServer() {
     students = recalculateClassRankings(students);
 
     const updatedStudent = students.find((s) => s.id === id) || student;
-    dbSaveStudent(updatedStudent);
+    await dbSaveStudent(updatedStudent);
 
     return res.json({ success: true, student: updatedStudent, updatedScore });
   });
 
   // Batch Upload Scores for Class Arm
-  app.post('/api/students/bulk-scores', (req, res) => {
+  app.post('/api/students/bulk-scores', async (req, res) => {
     const { classArm, subjectCode, subjectName, scores, updatedBy } = req.body;
     if (!classArm || !scores || !Array.isArray(scores)) {
       return res.status(400).json({ error: 'classArm and scores array are required' });
@@ -1453,7 +1565,7 @@ async function startServer() {
 
     students = recalculateClassRankings(students);
     const affectedStudents = students.filter((s) => s.classArm === classArm);
-    affectedStudents.forEach((std) => dbSaveStudent(std));
+    await Promise.all(affectedStudents.map((std) => dbSaveStudent(std)));
 
     return res.json({ success: true, count: scores.length, students: affectedStudents });
   });
@@ -1939,7 +2051,7 @@ async function startServer() {
   });
 
   // Mark single student fee status (Paid / Not Paid / Cleared / Pending)
-  app.put('/api/students/:id/fee-status', (req, res) => {
+  app.put('/api/students/:id/fee-status', async (req, res) => {
     const { id } = req.params;
     const { feeStatus, amountPaid, remarks, receiptNo } = req.body;
     const index = students.findIndex((s) => s.id === id);
@@ -1981,7 +2093,7 @@ async function startServer() {
     };
 
     students[index] = updatedStudent;
-    dbSaveStudent(updatedStudent);
+    await dbSaveStudent(updatedStudent);
 
     return res.json({
       success: true,
@@ -1991,7 +2103,7 @@ async function startServer() {
   });
 
   // Bulk update fee status across students / class arms
-  app.post('/api/students/bulk-fee-status', (req, res) => {
+  app.post('/api/students/bulk-fee-status', async (req, res) => {
     const { studentIds, classArm, feeStatus, remarks } = req.body;
     const isCleared = feeStatus === 'Cleared' || feeStatus === 'Paid';
     const newStatus: 'Cleared' | 'Pending' = isCleared ? 'Cleared' : 'Pending';
@@ -1999,6 +2111,7 @@ async function startServer() {
     const now = new Date().toISOString();
 
     let affectedCount = 0;
+    const updatePromises: Promise<boolean>[] = [];
     students = students.map((s) => {
       const match = (Array.isArray(studentIds) && studentIds.includes(s.id)) ||
                     (classArm && (classArm === 'ALL' || s.classArm === classArm));
@@ -2016,9 +2129,11 @@ async function startServer() {
         resultHeld: newStatus === 'Cleared' && s.holdReason?.toLowerCase().includes('fee') ? false : s.resultHeld,
         holdReason: newStatus === 'Cleared' && s.holdReason?.toLowerCase().includes('fee') ? undefined : s.holdReason,
       };
-      dbSaveStudent(updated);
+      updatePromises.push(dbSaveStudent(updated));
       return updated;
     });
+
+    await Promise.all(updatePromises);
 
     return res.json({
       success: true,

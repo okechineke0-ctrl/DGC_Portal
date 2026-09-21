@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Copy,
@@ -104,22 +104,65 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedRegNo, setCopiedRegNo] = useState<string | null>(null);
+  const [dbRemoteStudents, setDbRemoteStudents] = useState<StudentProfile[]>([]);
+  const [isSearchingDb, setIsSearchingDb] = useState(false);
+
+  // Trigger live database search whenever query is submitted
+  useEffect(() => {
+    const q = (submittedQuery.trim() || nameInput.trim());
+    if (!q || q.length < 2) {
+      setDbRemoteStudents([]);
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearchingDb(true);
+    fetch(`/api/students?q=${encodeURIComponent(q)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data && Array.isArray(data.students)) {
+          setDbRemoteStudents(data.students);
+        }
+      })
+      .catch((err) => console.warn('Live student search notice:', err))
+      .finally(() => {
+        if (isMounted) setIsSearchingDb(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [submittedQuery, nameInput]);
+
+  // Combined pool of local props and server database results
+  const combinedStudentsPool = useMemo(() => {
+    const map = new Map<string, StudentProfile>();
+    students.forEach((s) => map.set(s.id || s.admissionNo, s));
+    dbRemoteStudents.forEach((s) => map.set(s.id || s.admissionNo, s));
+    return Array.from(map.values());
+  }, [students, dbRemoteStudents]);
 
   // Search results computed strictly based on submittedQuery or active typing
   const searchResults = useMemo(() => {
     const query = submittedQuery.trim() || nameInput.trim();
     if (!query) return [];
 
-    const scored = students
+    const scored = combinedStudentsPool
       .map((st) => {
         const res = calculateNameResemblance(st.name, query);
-        return { student: st, ...res };
+        // Also check direct match on admission number or class
+        const admMatch = (st.admissionNo || '').toLowerCase().includes(query.toLowerCase());
+        return {
+          student: st,
+          matches: res.matches || admMatch,
+          score: admMatch ? 100 : res.score,
+        };
       })
       .filter((item) => item.matches)
       .sort((a, b) => b.score - a.score);
 
     return scored.map((item) => item.student);
-  }, [submittedQuery, nameInput, students]);
+  }, [submittedQuery, nameInput, combinedStudentsPool]);
 
   if (!isOpen) return null;
 

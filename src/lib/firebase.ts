@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
+  initializeFirestore,
   getFirestore,
   doc,
   getDoc,
@@ -23,9 +24,21 @@ import {
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// CRITICAL: Connect to the specific provisioned Firestore database instance
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// CRITICAL: Connect to the specific provisioned Firestore database instance with undefined property tolerance
+export const db = initializeFirestore(
+  app,
+  {
+    ignoreUndefinedProperties: true,
+  },
+  firebaseConfig.firestoreDatabaseId || '(default)'
+);
 export const auth = getAuth(app);
+
+// Data sanitizer that strips undefined properties so Firestore writes never fail
+function cleanFirestoreData<T>(obj: T): T {
+  if (obj === undefined) return null as unknown as T;
+  return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -109,7 +122,8 @@ export async function getLiveStudents(): Promise<StudentProfile[]> {
 
 export async function saveLiveStudent(student: StudentProfile): Promise<void> {
   try {
-    await setDoc(doc(db, 'students', student.id), student, { merge: true });
+    const cleaned = cleanFirestoreData(student);
+    await setDoc(doc(db, 'students', student.id), cleaned, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `students/${student.id}`);
   }
@@ -138,7 +152,8 @@ export async function getLiveStaff(): Promise<StaffMember[]> {
 
 export async function saveLiveStaff(staff: StaffMember): Promise<void> {
   try {
-    await setDoc(doc(db, 'staff', staff.id), staff, { merge: true });
+    const cleaned = cleanFirestoreData(staff);
+    await setDoc(doc(db, 'staff', staff.id), cleaned, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `staff/${staff.id}`);
   }
@@ -167,7 +182,8 @@ export async function getLiveClasses(): Promise<SchoolClassDefinition[]> {
 
 export async function saveLiveClass(cls: SchoolClassDefinition): Promise<void> {
   try {
-    await setDoc(doc(db, 'classes', cls.id), cls, { merge: true });
+    const cleaned = cleanFirestoreData(cls);
+    await setDoc(doc(db, 'classes', cls.id), cleaned, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `classes/${cls.id}`);
   }
@@ -188,7 +204,8 @@ export async function getLiveAnnouncements(): Promise<Announcement[]> {
 
 export async function saveLiveAnnouncement(announcement: Announcement): Promise<void> {
   try {
-    await setDoc(doc(db, 'announcements', announcement.id), announcement, { merge: true });
+    const cleaned = cleanFirestoreData(announcement);
+    await setDoc(doc(db, 'announcements', announcement.id), cleaned, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `announcements/${announcement.id}`);
   }

@@ -916,6 +916,45 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         </div>
                       </div>
 
+                      {/* Quick Transfer Timing Selector */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTransferClassJoined(currentPlacementLevel);
+                            setIsManualYearOverride(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            transferClassJoined === currentPlacementLevel && !isManualYearOverride
+                              ? 'bg-blue-900 text-white border-blue-950 shadow-xs'
+                              : 'bg-white text-slate-700 border-sky-300 hover:bg-sky-100/60'
+                          }`}
+                        >
+                          Transferred this session into {currentPlacementLevel} (2026)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // If currently at current placement, pick one level below if available
+                            const currOrder = CLASS_LEVEL_ORDER[currentPlacementLevel] || 1;
+                            const prevLevels = SECONDARY_CLASS_LEVELS.filter(
+                              (lvl) => (CLASS_LEVEL_ORDER[lvl] || 1) < currOrder
+                            );
+                            if (prevLevels.length > 0) {
+                              setTransferClassJoined(prevLevels[prevLevels.length - 1]);
+                            }
+                            setIsManualYearOverride(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            transferClassJoined !== currentPlacementLevel || isManualYearOverride
+                              ? 'bg-blue-900 text-white border-blue-950 shadow-xs'
+                              : 'bg-white text-slate-700 border-sky-300 hover:bg-sky-100/60'
+                          }`}
+                        >
+                          Transferred in earlier session (2022–2025)
+                        </button>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <div>
                           <label className="text-xs font-bold text-sky-950 block mb-1">
@@ -925,6 +964,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                             value={transferClassJoined}
                             onChange={(e) => {
                               setTransferClassJoined(e.target.value as SecondaryClassLevel);
+                              setIsManualYearOverride(false);
                             }}
                             className="w-full px-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-900"
                           >
@@ -1073,26 +1113,45 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                           Official Admission Year
                         </span>
                         <div className="flex items-baseline gap-2 mt-0.5">
-                          {isManualYearOverride ? (
-                            <select
-                              value={customAdmissionYear || cohortCalculation.admissionYear}
-                              onChange={(e) => setCustomAdmissionYear(Number(e.target.value))}
-                              className="px-2 py-1 bg-white text-slate-900 rounded-lg text-sm font-black focus:outline-none"
-                            >
-                              {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map((yr) => (
-                                <option key={yr} value={yr}>
-                                  {yr}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-2xl font-black text-amber-300 font-mono">
-                              {cohortCalculation.admissionYear}
-                            </span>
-                          )}
+                          <span className="text-2xl font-black text-amber-300 font-mono">
+                            {cohortCalculation.admissionYear}
+                          </span>
                           <span className="text-[11px] text-slate-300 font-medium">
                             {isManualYearOverride ? '(Manual Override)' : '(Auto-Calculated)'}
                           </span>
+                        </div>
+
+                        {/* Quick Cohort Year Pills */}
+                        <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsManualYearOverride(false)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                              !isManualYearOverride
+                                ? 'bg-amber-400 text-slate-950 shadow-xs'
+                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                            }`}
+                            title="Reset to automatic calculation based on current class"
+                          >
+                            Auto
+                          </button>
+                          {[2021, 2022, 2023, 2024, 2025, 2026].map((yr) => (
+                            <button
+                              key={yr}
+                              type="button"
+                              onClick={() => {
+                                setIsManualYearOverride(true);
+                                setCustomAdmissionYear(yr);
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                                isManualYearOverride && (customAdmissionYear || cohortCalculation.admissionYear) === yr
+                                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                              }`}
+                            >
+                              {yr}
+                            </button>
+                          ))}
                         </div>
                       </div>
 

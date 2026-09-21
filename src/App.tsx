@@ -488,11 +488,21 @@ export default function App() {
 
       if (res.ok) {
         const data = await res.json();
-        setStudents((prev) => [data.student, ...prev]);
-        return true;
+        if (data && data.student) {
+          setStudents((prev) => [data.student, ...prev.filter((p) => p.id !== data.student.id && p.admissionNo !== data.student.admissionNo)]);
+          // Also persist directly to client-side Firestore for multi-tier persistence
+          saveLiveStudent(data.student).catch((e) => console.warn('Firestore client backup write:', e));
+          return true;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server rejected registration (Status: ${res.status})`);
       }
-    } catch {
-      // Fallback
+    } catch (err: any) {
+      console.warn('Backend API registration notice, verifying local fallback:', err);
+      if (err.message && !err.message.includes('fetch')) {
+        throw err;
+      }
     }
 
     const targetClass = classes.find((c) => c.name === (studentData.classArm || 'SS 1A'));
@@ -548,8 +558,22 @@ export default function App() {
     };
 
     saveLiveStudent(fallbackStudent).catch((e) => console.warn('Firestore direct write failed:', e));
-    setStudents((prev) => [fallbackStudent, ...prev]);
+    setStudents((prev) => [fallbackStudent, ...prev.filter((p) => p.id !== fallbackStudent.id)]);
     return true;
+  };
+
+  const refreshStudentsFromDb = async () => {
+    try {
+      const res = await fetch('/api/students');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.students)) {
+          setStudents(data.students);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to refresh students:', e);
+    }
   };
 
   // 5. Update Student File (CEO Action)
@@ -1245,6 +1269,7 @@ export default function App() {
               onBulkUpdateStudentFeeStatus={handleBulkUpdateStudentFeeStatus}
               onBatchAssignSubjects={handleBatchAssignSubjects}
               onUpdateClassCurriculum={handleUpdateClassCurriculum}
+              onRefreshStudents={refreshStudentsFromDb}
             />
           )}
 

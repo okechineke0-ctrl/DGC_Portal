@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldCheck,
   Users,
@@ -103,6 +103,7 @@ interface CeoDashboardProps {
     classArm: string | null,
     feeStatus: 'Cleared' | 'Pending'
   ) => Promise<boolean>;
+  onRefreshStudents?: () => Promise<void> | void;
 }
 
 export const CeoDashboard: React.FC<CeoDashboardProps> = ({
@@ -125,6 +126,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   onUpdateClassCurriculum,
   onUpdateStudentFeeStatus,
   onBulkUpdateStudentFeeStatus,
+  onRefreshStudents,
 }) => {
   // Navigation Tabs (Secondary School Administration)
   const [activeTab, setActiveTab] = useState<
@@ -228,24 +230,34 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
     }
   };
 
-  // Filter students based on UI selections
-  const filteredStudents = students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.admissionNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.classArm.toLowerCase().includes(searchQuery.toLowerCase());
+  const [isRefreshingDb, setIsRefreshingDb] = useState(false);
 
-    const matchesClass = filterClass === 'ALL' || s.classArm === filterClass;
-    const matchesLevel = filterLevel === 'ALL' || s.level === filterLevel;
-    const matchesHold =
-      filterHoldStatus === 'ALL'
-        ? true
-        : filterHoldStatus === 'HELD'
-        ? s.resultHeld
-        : !s.resultHeld;
+  // Filter students based on UI selections with intelligent global search
+  const filteredStudents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return students.filter((s) => {
+      const matchesSearch =
+        !q ||
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.admissionNo || '').toLowerCase().includes(q) ||
+        (s.classArm || '').toLowerCase().includes(q) ||
+        (s.level || '').toLowerCase().includes(q) ||
+        (s.stream || '').toLowerCase().includes(q) ||
+        (s.guardianName || '').toLowerCase().includes(q);
 
-    return matchesSearch && matchesClass && matchesLevel && matchesHold;
-  });
+      // When searching by name/reg number, don't let class filter hide the match
+      const matchesClass = q ? true : (filterClass === 'ALL' || s.classArm === filterClass);
+      const matchesLevel = q ? true : (filterLevel === 'ALL' || s.level === filterLevel);
+      const matchesHold =
+        filterHoldStatus === 'ALL'
+          ? true
+          : filterHoldStatus === 'HELD'
+          ? s.resultHeld
+          : !s.resultHeld;
+
+      return matchesSearch && matchesClass && matchesLevel && matchesHold;
+    });
+  }, [students, searchQuery, filterClass, filterLevel, filterHoldStatus]);
 
   // Filter staff
   const filteredStaff = staffList.filter((st) => {
@@ -1505,12 +1517,54 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Search by name, reg no..."
+                  placeholder="Search by name, reg no, class..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden"
+                  className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:bg-white focus:ring-1 focus:ring-blue-900"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
+              {/* Database Refresh & Sync Button */}
+              <button
+                type="button"
+                disabled={isRefreshingDb}
+                onClick={async () => {
+                  setIsRefreshingDb(true);
+                  try {
+                    if (onRefreshStudents) {
+                      await onRefreshStudents();
+                    } else {
+                      const res = await fetch('/api/students');
+                      if (res.ok) {
+                        const fresh = await res.json();
+                        if (Array.isArray(fresh)) {
+                          notify(`Live database synchronized: ${fresh.length} students loaded.`);
+                        }
+                      }
+                    }
+                    notify(`Database sync completed. Total records: ${students.length}`);
+                  } catch (e) {
+                    console.error('Refresh failed:', e);
+                  } finally {
+                    setIsRefreshingDb(false);
+                  }
+                }}
+                className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px] border border-slate-200"
+                title="Synchronize and pull latest student records from live Cloud Database"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshingDb ? 'animate-spin text-blue-600' : ''}`} />
+                <span className="hidden sm:inline">{isRefreshingDb ? 'Syncing...' : 'Sync DB'}</span>
+              </button>
 
               <button
                 type="button"
@@ -2272,6 +2326,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClose={() => setIsRegisterStudentOpen(false)}
           onRegisterStudent={onRegisterStudent || (async () => false)}
           classes={classes}
+          existingStudents={students}
         />
       )}
     </div>
