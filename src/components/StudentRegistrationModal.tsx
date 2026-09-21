@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   UserPlus,
@@ -20,17 +20,34 @@ import {
   Info,
   Copy,
   Check,
+  GraduationCap,
+  School,
+  RefreshCw,
+  SlidersHorizontal,
+  RotateCcw,
+  ArrowRight,
+  Calendar,
 } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { DGCLogo } from './DGCLogo';
 import { compressPassportPhoto } from '../utils/imageCompressor';
+import {
+  calculateAdmissionYear,
+  generateNextRegNumber,
+  validateRegNumber,
+  extractLevelFromClass,
+  SECONDARY_CLASS_LEVELS,
+  SecondaryClassLevel,
+  CLASS_LEVEL_ORDER,
+} from '../utils/regNoCalculator';
 
 interface StudentRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRegisterStudent: (studentData: Partial<StudentProfile>) => Promise<boolean>;
   classes: { name: string; level: string; stream: string }[];
+  existingStudents?: StudentProfile[];
 }
 
 const CLASS_OPTIONS = [
@@ -80,10 +97,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   onClose,
   onRegisterStudent,
   classes,
+  existingStudents,
 }) => {
-  const currentYear = new Date().getFullYear();
-  const defaultRegNo = `DGC/${currentYear}/0${Math.floor(200 + Math.random() * 700)}`;
-
   // Form step / tab
   const [activeSection, setActiveSection] = useState<'biodata' | 'academic' | 'guardian' | 'medical' | 'bursary'>('biodata');
 
@@ -100,12 +115,17 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   const [residentialAddress, setResidentialAddress] = useState('Enugu State, Nigeria');
   const [studentPhone, setStudentPhone] = useState('');
 
-  // Academic Placement
-  const [admissionNo, setAdmissionNo] = useState(defaultRegNo);
-  const [isCustomRegNo, setIsCustomRegNo] = useState(false);
+  // Academic Placement & Cohort Engine
   const [classArm, setClassArm] = useState('JSS 1A');
   const [session, setSession] = useState('2026/2027');
   const [entryTerm, setEntryTerm] = useState('First Term');
+  const [enrollmentType, setEnrollmentType] = useState<'Regular Intake' | 'Transfer Student'>('Regular Intake');
+  const [transferClassJoined, setTransferClassJoined] = useState<SecondaryClassLevel>('JSS 1');
+  const [customAdmissionYear, setCustomAdmissionYear] = useState<number>(2026);
+  const [isManualYearOverride, setIsManualYearOverride] = useState(false);
+  const [admissionNo, setAdmissionNo] = useState('');
+  const [isCustomRegNo, setIsCustomRegNo] = useState(false);
+
   const [boardingStatus, setBoardingStatus] = useState<'Day Student' | 'Boarder'>('Day Student');
   const [houseAllocation, setHouseAllocation] = useState(SPORT_HOUSES[0].name);
   const [previousSchool, setPreviousSchool] = useState('');
@@ -161,6 +181,43 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
     return { level, stream };
   };
 
+  const currentPlacementLevel = useMemo(() => extractLevelFromClass(classArm), [classArm]);
+
+  // Dynamic Nigerian 6-Year Secondary Education Cohort Calculation
+  const cohortCalculation = useMemo(() => {
+    return calculateAdmissionYear({
+      currentSession: session,
+      targetClass: classArm,
+      enrollmentType,
+      transferClassJoined: enrollmentType === 'Transfer Student' ? transferClassJoined : undefined,
+      customAdmissionYear: isManualYearOverride ? customAdmissionYear : undefined,
+    });
+  }, [session, classArm, enrollmentType, transferClassJoined, isManualYearOverride, customAdmissionYear]);
+
+  // Restrict transferClassJoined so it cannot exceed current placement level
+  useEffect(() => {
+    if (enrollmentType === 'Transfer Student') {
+      const curOrd = CLASS_LEVEL_ORDER[currentPlacementLevel] || 1;
+      const joinedOrd = CLASS_LEVEL_ORDER[transferClassJoined] || curOrd;
+      if (joinedOrd > curOrd) {
+        setTransferClassJoined(currentPlacementLevel);
+      }
+    }
+  }, [currentPlacementLevel, enrollmentType]);
+
+  // Synchronize official Registration Number with computed cohort year (unless customized manually)
+  useEffect(() => {
+    if (!isCustomRegNo) {
+      const nextReg = generateNextRegNumber(cohortCalculation.admissionYear, existingStudents || []);
+      setAdmissionNo(nextReg);
+    }
+  }, [cohortCalculation.admissionYear, isCustomRegNo, existingStudents]);
+
+  // Real-time registry verification against existing database students
+  const regValidation = useMemo(() => {
+    return validateRegNumber(admissionNo, existingStudents || []);
+  }, [admissionNo, existingStudents]);
+
   const handleClassChange = (newArm: string) => {
     setClassArm(newArm);
   };
@@ -181,6 +238,12 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
       return;
     }
 
+    if (!regValidation.isValid) {
+      setErrorMsg(regValidation.error || 'Please correct the Registration Number before proceeding.');
+      setActiveSection('academic');
+      return;
+    }
+
     setIsSubmitting(true);
     const fullName = `${surname.trim()} ${firstName.trim()}${middleName.trim() ? ' ' + middleName.trim() : ''}`;
     const { level, stream } = detectLevelAndStream(classArm);
@@ -190,7 +253,10 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
       surname: surname.trim(),
       firstName: firstName.trim(),
       middleName: middleName.trim(),
-      admissionNo: admissionNo.trim(),
+      admissionNo: admissionNo.trim().toUpperCase(),
+      admissionYear: cohortCalculation.admissionYear,
+      enrollmentType,
+      transferClassJoined: enrollmentType === 'Transfer Student' ? transferClassJoined : undefined,
       classArm,
       level,
       stream,
@@ -206,8 +272,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
       term: entryTerm,
       boardingStatus,
       houseAllocation,
-      previousSchool,
-      lastClassPassed,
+      previousSchool: previousSchool.trim() || undefined,
+      lastClassPassed: lastClassPassed.trim() || undefined,
       entranceExamScore: Number(entranceExamScore),
       guardianName: guardianName.trim(),
       guardianRelationship,
@@ -347,6 +413,21 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   </span>
                   <span className="text-sm font-bold text-blue-900">
                     {registeredStudent.classArm} ({registeredStudent.stream})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                    Admission Year & Track
+                  </span>
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-900 rounded font-black">
+                      {registeredStudent.admissionYear || cohortCalculation.admissionYear}
+                    </span>
+                    <span className="text-slate-600 font-medium">
+                      {registeredStudent.enrollmentType === 'Transfer Student'
+                        ? `Transfer (${registeredStudent.transferClassJoined || 'Direct'})`
+                        : 'Regular Intake'}
+                    </span>
                   </span>
                 </div>
                 <div>
@@ -696,69 +777,212 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
 
               {/* SECTION 2: ACADEMIC PLACEMENT */}
               {activeSection === 'academic' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="border-b border-slate-100 pb-2">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                      Academic Enrolment & Placement Class
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Standardized class arm assignment, curriculum stream, and college registration number.
-                    </p>
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  <div className="border-b border-slate-100 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4 text-blue-900" />
+                        Academic Enrolment & Placement Class
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Institutional cohort progression, transfer admissions, and official DGC registration number generation.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2.5 py-1 bg-blue-100 text-blue-900 rounded-full shrink-0 w-fit">
+                      Session {session}
+                    </span>
                   </div>
 
-                  {/* Admission / Registration Number Generator Box */}
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold text-slate-800">
-                          Official College Registration Number (Reg No)
-                        </span>
-                        <p className="text-[11px] text-slate-500">
-                          This code serves as the student's unique institutional ID and portal login username/password.
-                        </p>
-                      </div>
+                  {/* 1. ENROLMENT CLASSIFICATION: REGULAR INTAKE VS TRANSFER STUDENT */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                      <span>Enrolment Pathway & Admission Category *</span>
+                      <span className="text-[10px] text-slate-500 font-normal">
+                        Determines historical cohort year calculations
+                      </span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Regular Intake Option */}
                       <button
                         type="button"
-                        onClick={() => setIsCustomRegNo(!isCustomRegNo)}
-                        className="text-xs font-bold text-blue-900 hover:underline cursor-pointer"
-                      >
-                        {isCustomRegNo ? 'Lock Format' : 'Customize Reg No'}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        required
-                        disabled={!isCustomRegNo}
-                        value={admissionNo}
-                        onChange={(e) => setAdmissionNo(e.target.value)}
-                        className={`w-full max-w-sm px-3.5 py-2.5 rounded-xl border text-sm font-mono font-black ${
-                          isCustomRegNo
-                            ? 'border-blue-950 bg-white text-blue-950 ring-2 ring-blue-900/20'
-                            : 'border-slate-300 bg-slate-100 text-slate-700 cursor-not-allowed'
+                        onClick={() => {
+                          setEnrollmentType('Regular Intake');
+                          setIsManualYearOverride(false);
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          enrollmentType === 'Regular Intake'
+                            ? 'border-blue-900 bg-blue-50/70 shadow-sm ring-2 ring-blue-900/20'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
-                      />
-                      {!isCustomRegNo && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAdmissionNo(
-                              `DGC/${currentYear}/0${Math.floor(200 + Math.random() * 700)}`
-                            )
-                          }
-                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                        >
-                          Generate New
-                        </button>
-                      )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              enrollmentType === 'Regular Intake'
+                                ? 'bg-blue-900 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            <School className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-0.5 flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold text-slate-900">
+                                Regular Intake (Standard Track)
+                              </span>
+                              <span
+                                className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
+                                  enrollmentType === 'Regular Intake'
+                                    ? 'border-blue-900 bg-blue-900'
+                                    : 'border-slate-300'
+                                }`}
+                              >
+                                {enrollmentType === 'Regular Intake' && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                )}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 leading-tight">
+                              Enrolled initially into JSS 1 at Dominate Star College and progressed chronologically through secondary classes.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Transfer Student Option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEnrollmentType('Transfer Student');
+                          setIsManualYearOverride(false);
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          enrollmentType === 'Transfer Student'
+                            ? 'border-blue-900 bg-blue-50/70 shadow-sm ring-2 ring-blue-900/20'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              enrollmentType === 'Transfer Student'
+                                ? 'bg-blue-900 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            <ArrowRight className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-0.5 flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold text-slate-900">
+                                Transfer Student (Mid-Stream)
+                              </span>
+                              <span
+                                className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
+                                  enrollmentType === 'Transfer Student'
+                                    ? 'border-blue-900 bg-blue-900'
+                                    : 'border-slate-300'
+                                }`}
+                              >
+                                {enrollmentType === 'Transfer Student' && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                )}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 leading-tight">
+                              Transferred to Dominate Star College mid-way from an external secondary school into a specific junior/senior class.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
+                  {/* 2. IF TRANSFER STUDENT: DEDICATED TRANSFER ENTRY SPECIFICATION */}
+                  {enrollmentType === 'Transfer Student' && (
+                    <div className="p-4 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-3 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0">
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-sky-950 uppercase tracking-wide">
+                            Transfer Admission Parameters & Prior Records
+                          </h4>
+                          <p className="text-[11px] text-sky-700">
+                            Specify the exact class level where this student joined Dominate Star College to calculate their admission cohort year.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="text-xs font-bold text-sky-950 block mb-1">
+                            Entry Class Joined at DGC *
+                          </label>
+                          <select
+                            value={transferClassJoined}
+                            onChange={(e) => {
+                              setTransferClassJoined(e.target.value as SecondaryClassLevel);
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-900"
+                          >
+                            {SECONDARY_CLASS_LEVELS.filter(
+                              (lvl) =>
+                                (CLASS_LEVEL_ORDER[lvl] || 1) <=
+                                (CLASS_LEVEL_ORDER[currentPlacementLevel] || 1)
+                            ).map((lvl) => (
+                              <option key={lvl} value={lvl}>
+                                {lvl} (Entered DGC at {lvl})
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-[10px] text-sky-700 block mt-0.5">
+                            Cannot exceed current class ({currentPlacementLevel})
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-sky-950 block mb-1">
+                            Previous School Attended *
+                          </label>
+                          <input
+                            type="text"
+                            value={previousSchool}
+                            onChange={(e) => setPreviousSchool(e.target.value)}
+                            placeholder="e.g. Federal Govt College, Enugu"
+                            className="w-full px-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white focus:ring-2 focus:ring-blue-900"
+                          />
+                          <span className="text-[10px] text-sky-700 block mt-0.5">
+                            Last institution attended
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-sky-950 block mb-1">
+                            Last Class Passed Before Transfer
+                          </label>
+                          <input
+                            type="text"
+                            value={lastClassPassed}
+                            onChange={(e) => setLastClassPassed(e.target.value)}
+                            placeholder="e.g. JSS 3 (BECE Pass) or SS 1"
+                            className="w-full px-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white focus:ring-2 focus:ring-blue-900"
+                          />
+                          <span className="text-[10px] text-sky-700 block mt-0.5">
+                            Official clearance basis
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. CURRENT CLASS PLACEMENT & SESSION */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Class Arm Placement *
+                        Current Class Arm Placement *
                       </label>
                       <select
                         value={classArm}
@@ -771,18 +995,24 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                           </option>
                         ))}
                       </select>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Current active arm at Dominate Star College
+                      </span>
                     </div>
 
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Enrolment Session
+                        Current Enrolment Session
                       </label>
                       <input
                         type="text"
                         value={session}
                         onChange={(e) => setSession(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
                       />
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Active academic school calendar
+                      </span>
                     </div>
 
                     <div>
@@ -796,10 +1026,171 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         <option value="Second Term">Second Term</option>
                         <option value="Third Term">Third Term</option>
                       </select>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Term of resumption
+                      </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* 4. EXECUTIVE ADMISSION COHORT CALCULATION HUB */}
+                  <div className="p-4 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white rounded-2xl space-y-3 shadow-md">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center justify-center shrink-0">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 block">
+                            DGC Institutional Cohort Engine
+                          </span>
+                          <h4 className="text-sm font-bold text-white">
+                            Admission Year & Academic Timeline Calculation
+                          </h4>
+                        </div>
+                      </div>
+
+                      {/* Manual Override Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isManualYearOverride) {
+                            setIsManualYearOverride(false);
+                          } else {
+                            setIsManualYearOverride(true);
+                            setCustomAdmissionYear(cohortCalculation.admissionYear);
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold rounded-lg border border-white/20 flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-center"
+                      >
+                        <SlidersHorizontal className="w-3 h-3" />
+                        <span>{isManualYearOverride ? 'Lock to Auto-Calculated' : 'Manual Year Override'}</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                      <div className="bg-white/10 p-3 rounded-xl border border-white/10">
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block">
+                          Official Admission Year
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          {isManualYearOverride ? (
+                            <select
+                              value={customAdmissionYear || cohortCalculation.admissionYear}
+                              onChange={(e) => setCustomAdmissionYear(Number(e.target.value))}
+                              className="px-2 py-1 bg-white text-slate-900 rounded-lg text-sm font-black focus:outline-none"
+                            >
+                              {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map((yr) => (
+                                <option key={yr} value={yr}>
+                                  {yr}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-2xl font-black text-amber-300 font-mono">
+                              {cohortCalculation.admissionYear}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-slate-300 font-medium">
+                            {isManualYearOverride ? '(Manual Override)' : '(Auto-Calculated)'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-2 bg-white/5 p-3 rounded-xl border border-white/10 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="text-xs font-bold text-white">
+                            Cohort Breakdown & Verification:
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-200 leading-relaxed font-sans">
+                          {cohortCalculation.explanation}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Expected secondary completion (SS 3 Graduation / WAEC):{' '}
+                          <strong className="text-slate-200">
+                            {cohortCalculation.admissionYear + 6}
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5. OFFICIAL COLLEGE REGISTRATION NUMBER GENERATOR & VERIFICATION */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">
+                          Official College Registration Number (Reg No)
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          Format: <code>DGC/YYYY/NNNN</code>. Serves as student ID and permanent portal login credential.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextReg = generateNextRegNumber(
+                              cohortCalculation.admissionYear,
+                              existingStudents || []
+                            );
+                            setAdmissionNo(nextReg);
+                            setIsCustomRegNo(false);
+                          }}
+                          className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Next Serial</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomRegNo(!isCustomRegNo)}
+                          className="text-xs font-bold text-blue-900 hover:underline cursor-pointer"
+                        >
+                          {isCustomRegNo ? 'Lock Number' : 'Custom Entry'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <input
+                        type="text"
+                        required
+                        disabled={!isCustomRegNo}
+                        value={admissionNo}
+                        onChange={(e) => setAdmissionNo(e.target.value.toUpperCase())}
+                        placeholder="e.g. DGC/2023/0432"
+                        className={`w-full max-w-sm px-3.5 py-2.5 rounded-xl border text-base font-mono font-black tracking-wide ${
+                          isCustomRegNo
+                            ? 'border-blue-950 bg-white text-blue-950 ring-2 ring-blue-900/20'
+                            : 'border-slate-300 bg-slate-100 text-slate-800 cursor-not-allowed'
+                        }`}
+                      />
+
+                      {/* Live Uniqueness & Validity Badge */}
+                      <div className="flex-1">
+                        {regValidation.isValid ? (
+                          <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs font-bold text-emerald-800">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>
+                              Verified: Official format & Unique in College Registry (Cohort {regValidation.year})
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs font-bold text-rose-800">
+                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                            <span>{regValidation.error}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. BOARDING, SPORT HOUSE & ENTRANCE SCORE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">
                         Boarding / Day Enrolment Type *
@@ -830,38 +1221,10 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         ))}
                       </select>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Previous School Attended
-                      </label>
-                      <input
-                        type="text"
-                        value={previousSchool}
-                        onChange={(e) => setPreviousSchool(e.target.value)}
-                        placeholder="e.g. St. Charles Primary, Enugu"
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
-                      />
-                    </div>
 
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Last Class Passed
-                      </label>
-                      <input
-                        type="text"
-                        value={lastClassPassed}
-                        onChange={(e) => setLastClassPassed(e.target.value)}
-                        placeholder="e.g. Primary 6 or JSS 3"
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Entrance Exam Aggregate (%)
+                        Entrance / Placement Aggregate (%)
                       </label>
                       <input
                         type="number"
@@ -869,7 +1232,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         max={100}
                         value={entranceExamScore}
                         onChange={(e) => setEntranceExamScore(Number(e.target.value))}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
                       />
                     </div>
                   </div>

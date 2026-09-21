@@ -1035,6 +1035,10 @@ async function startServer() {
     const {
       name,
       admissionNo,
+      admissionYear,
+      enrollmentType,
+      transferClassJoined,
+      lastClassPassed,
       classArm,
       stream,
       gender,
@@ -1072,12 +1076,39 @@ async function startServer() {
     else if (classArm.startsWith('SS 2')) level = 'SS 2';
     else if (classArm.startsWith('SS 3')) level = 'SS 3';
 
+    // Calculate cohort admission year based on Nigerian 6-Year Secondary education
+    const sessionStartYear = parseInt(String(session || '2026').split('/')[0], 10) || 2026;
+    let finalAdmissionYear = admissionYear ? Number(admissionYear) : undefined;
+    const isTransfer = enrollmentType === 'Transfer Student';
+
+    if (!finalAdmissionYear) {
+      const levelOrder: Record<string, number> = { 'JSS 1': 1, 'JSS 2': 2, 'JSS 3': 3, 'SS 1': 4, 'SS 2': 5, 'SS 3': 6 };
+      const curOrder = levelOrder[level] || 1;
+      if (isTransfer && transferClassJoined) {
+        const jOrder = levelOrder[transferClassJoined.trim()] || curOrder;
+        const diff = Math.max(0, curOrder - Math.min(jOrder, curOrder));
+        finalAdmissionYear = sessionStartYear - diff;
+      } else {
+        const diff = Math.max(0, curOrder - 1);
+        finalAdmissionYear = sessionStartYear - diff;
+      }
+    }
+
     // Auto-generate official DGC Registration / Admission number if not provided
     let finalAdmissionNo = admissionNo && admissionNo.trim() ? admissionNo.trim().toUpperCase() : '';
     if (!finalAdmissionNo) {
-      const year = new Date().getFullYear();
-      const randomSeq = Math.floor(1000 + Math.random() * 9000);
-      finalAdmissionNo = `DGC/${year}/${randomSeq}`;
+      const yearPattern = new RegExp(`^DGC\\/${finalAdmissionYear}\\/(\\d+)$`, 'i');
+      let highestSeq = 0;
+      students.forEach((s) => {
+        const m = (s.admissionNo || '').trim().match(yearPattern);
+        if (m && m[1]) {
+          const num = parseInt(m[1], 10);
+          if (num > highestSeq) highestSeq = num;
+        }
+      });
+
+      const nextSeq = highestSeq > 0 ? highestSeq + 1 : Math.floor(100 + Math.random() * 800);
+      finalAdmissionNo = `DGC/${finalAdmissionYear}/${String(nextSeq).padStart(4, '0')}`;
     }
 
     // Check duplicate admission numbers
@@ -1158,6 +1189,10 @@ async function startServer() {
       id: `std-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: name.trim(),
       admissionNo: finalAdmissionNo,
+      admissionYear: finalAdmissionYear,
+      enrollmentType: isTransfer ? 'Transfer Student' : 'Regular Intake',
+      transferClassJoined: isTransfer ? (transferClassJoined || level) : undefined,
+      lastClassPassed: lastClassPassed || undefined,
       classArm,
       level,
       stream: stream || (level.startsWith('JSS') ? 'Junior' : 'General'),

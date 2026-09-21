@@ -411,6 +411,17 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
                 <span>Admit: <strong className="text-white font-mono">{student.admissionNo}</strong></span>
                 <span>•</span>
+                {student.admissionYear && (
+                  <>
+                    <span>
+                      Cohort: <strong className="text-amber-300 font-mono">{student.admissionYear}</strong>
+                      <span className="text-[11px] text-slate-400 ml-1">
+                        ({student.enrollmentType === 'Transfer Student' ? `Transfer at ${student.transferClassJoined || 'Lateral'}` : 'Regular'})
+                      </span>
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
                 <span>Master: <strong className="text-white">{assignedFormMaster}</strong></span>
               </div>
             </div>

@@ -152,6 +152,9 @@ export interface StudentProfile {
   emergencyContactPhone?: string;
   previousSchool?: string;
   lastClassPassed?: string;
+  enrollmentType?: 'Regular Intake' | 'Transfer Student';
+  admissionYear?: number;
+  transferClassJoined?: string;
   boardingStatus?: 'Day Student' | 'Boarder';
   houseAllocation?: string;
   scholarshipStatus?: string;

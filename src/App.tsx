@@ -519,7 +519,12 @@ export default function App() {
     const fallbackStudent: StudentProfile = {
       id: `std-${Date.now()}`,
       name: studentData.name || 'New Enrollee',
-      admissionNo: studentData.admissionNo || `DGC/2026/0${Math.floor(400 + Math.random() * 500)}`,
+      admissionNo: studentData.admissionNo || `DGC/${studentData.admissionYear || 2026}/0${Math.floor(400 + Math.random() * 500)}`,
+      admissionYear: studentData.admissionYear || 2026,
+      enrollmentType: studentData.enrollmentType || 'Regular Intake',
+      transferClassJoined: studentData.transferClassJoined,
+      previousSchool: studentData.previousSchool,
+      lastClassPassed: studentData.lastClassPassed,
       level: studentData.level || 'SS 1',
       classArm: studentData.classArm || 'SS 1A',
       stream: studentData.stream || 'General',
@@ -1675,6 +1680,7 @@ export default function App() {
           onClose={() => setIsRegisterModalOpen(false)}
           onRegisterStudent={handleRegisterStudent}
           classes={classes}
+          existingStudents={students}
         />
       )}
     </div>

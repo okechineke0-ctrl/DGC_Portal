@@ -88,7 +88,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
             </div>
 
             {/* Student Biodata Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Student Name</span>
                 <span className="font-bold text-slate-900">{formatStudentShortName(student.name)}</span>
@@ -98,12 +98,18 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                 <span className="font-mono font-bold text-slate-900">{student.admissionNo}</span>
               </div>
               <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Cohort / Track</span>
+                <span className="font-bold text-slate-900">
+                  {student.admissionYear || student.admissionNo.split('/')[1] || '2026'} · {student.enrollmentType === 'Transfer Student' ? 'Transfer' : 'Regular'}
+                </span>
+              </div>
+              <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Class Arm</span>
                 <span className="font-bold text-slate-900">{student.classArm}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Assigned Form Master</span>
-                <span className="font-bold text-blue-950">{assignedFormMaster}</span>
+                <span className="font-bold text-blue-950 truncate block">{assignedFormMaster}</span>
               </div>
             </div>
 
