@@ -4,7 +4,6 @@ import {
   Calendar,
   Menu,
   Clock,
-  Lock,
   ShieldCheck,
   UserCheck,
   ChevronDown,
@@ -22,8 +21,7 @@ interface TopNavbarProps {
   portalMode: 'director' | 'student';
   setPortalMode: (mode: 'director' | 'student') => void;
   onOpenAnnouncements: () => void;
-  onOpenGateway?: () => void;
-  onLogoTripleClick?: () => void;
+  onLogoSixClick?: () => void;
   currentRole?: 'portal' | 'staff' | 'ceo';
   isLoggedOut?: boolean;
   isDbLive?: boolean;
@@ -43,8 +41,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   portalMode,
   setPortalMode,
   onOpenAnnouncements,
-  onOpenGateway,
-  onLogoTripleClick,
+  onLogoSixClick,
   currentRole = 'portal',
   isLoggedOut = false,
   isDbLive = true,
@@ -130,7 +127,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
           {/* Logo on mobile/top bar */}
           <div className="lg:hidden shrink-0">
-            <DGCLogo size="sm" showText={false} onClick={onLogoTripleClick} />
+            <DGCLogo size="sm" showText={false} onClick={onLogoSixClick} />
           </div>
 
           <div className="flex flex-col min-w-0 overflow-hidden">
@@ -177,20 +174,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: Quick Action, Session Info, Notifications, Responsive Profile */}
+        {/* Right Controls: Session Info, Notifications, Responsive Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Quick Gateway Button if in standard student portal mode (hidden on very small screens) */}
-          {currentRole === 'portal' && !isLoggedOut && onOpenGateway && (
-            <button
-              onClick={onOpenGateway}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer shrink-0"
-              title="Staff & Administration Portal Access"
-            >
-              <Lock className="w-3.5 h-3.5 text-slate-300" />
-              <span>Staff / Admin</span>
-            </button>
-          )}
-
           {/* Current Session Badge */}
           <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 shrink-0">
             <Calendar className="w-3.5 h-3.5 text-slate-600 shrink-0" />
@@ -377,22 +362,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                         <span>Return to Student Portal</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 text-blue-600" />
-                    </button>
-                  )}
-
-                  {currentRole === 'portal' && onOpenGateway && (
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        onOpenGateway();
-                      }}
-                      className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-slate-300 shrink-0" />
-                        <span>Faculty & Admin Gateway</span>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                     </button>
                   )}
 

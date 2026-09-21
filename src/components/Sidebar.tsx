@@ -24,7 +24,7 @@ interface SidebarProps {
   setIsMobileOpen?: (open: boolean) => void;
   currentStudent?: StudentProfile | null;
   onLogout?: () => void;
-  onLogoTripleClick?: () => void;
+  onLogoSixClick?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen,
   currentStudent,
   onLogout,
-  onLogoTripleClick,
+  onLogoSixClick,
 }) => {
   // Navigation items strictly adhering to secondary school student portal scope:
   // 1. Check assigned subjects & curriculum (allocated by administration)
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top: School Identity Banner */}
         <div className="p-5 border-b border-sky-100 flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <DGCLogo size="md" onClick={onLogoTripleClick} />
+            <DGCLogo size="md" onClick={onLogoSixClick} />
             {setIsMobileOpen && (
               <button
                 id="close-sidebar-mobile-btn"

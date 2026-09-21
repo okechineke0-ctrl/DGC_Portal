@@ -27,8 +27,17 @@ export const DGCLogo: React.FC<DGCLogoProps> = ({
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       title="Dominate Star College - Awgu, Enugu"
-      className={`flex items-center gap-2.5 select-none relative group ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      aria-label="Dominate Star College Official Crest"
+      className={`flex items-center gap-2.5 select-none relative group ${onClick ? 'cursor-pointer active:scale-95' : ''} ${className}`}
     >
       {/* Official Dominate Star College Crest Logo in Clean White Emblem Badge */}
       <div className={`bg-white ${pad} ${rounded} shadow-xs border border-slate-200/90 shrink-0 flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105`}>

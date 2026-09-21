@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Calendar,
   Users,
@@ -176,20 +176,37 @@ export default function App() {
     setIsGatewayOpen(true);
   };
 
-  // Discreet sliding-window timestamp tracker for rapid triple-click administrative shortcut (zero intrusive popups/toasts)
+  // High-precision sliding-window algorithm for rapid 6-click administrative shortcut (zero intrusive UI elements)
   const logoClicksRef = useRef<number[]>([]);
+  const logoResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleLogoTripleClick = () => {
+  const handleLogoSixClick = useCallback(() => {
     const now = Date.now();
-    // Keep clicks occurring within the last 1500ms
-    const recentClicks = [...logoClicksRef.current.filter((t) => now - t < 1500), now];
-    logoClicksRef.current = recentClicks;
+    const prevClicks = logoClicksRef.current;
 
-    if (recentClicks.length >= 3) {
-      logoClicksRef.current = [];
-      handleOpenGateway();
+    if (logoResetTimeoutRef.current) {
+      clearTimeout(logoResetTimeoutRef.current);
     }
-  };
+
+    // If gap between this click and previous click is > 900ms, start fresh
+    if (prevClicks.length > 0 && now - prevClicks[prevClicks.length - 1] > 900) {
+      logoClicksRef.current = [now];
+    } else {
+      const validClicks = [...prevClicks.filter((t) => now - t <= 3500), now];
+      logoClicksRef.current = validClicks;
+
+      if (validClicks.length >= 6) {
+        logoClicksRef.current = [];
+        setIsGatewayOpen(true);
+        return;
+      }
+    }
+
+    // Auto-clear sequence after 1200ms of inactivity
+    logoResetTimeoutRef.current = setTimeout(() => {
+      logoClicksRef.current = [];
+    }, 1200);
+  }, []);
 
   // Student Authentication: Reg Number and Password (which is also the Reg Number)
   const handleStudentLogin = async (e?: React.FormEvent) => {
@@ -1131,7 +1148,7 @@ export default function App() {
           setIsMobileOpen={setIsMobileMenuOpen}
           currentStudent={selectedStudent}
           onLogout={() => setIsLogoutModalOpen(true)}
-          onLogoTripleClick={handleLogoTripleClick}
+          onLogoSixClick={handleLogoSixClick}
         />
       )}
 
@@ -1143,8 +1160,7 @@ export default function App() {
           portalMode="student"
           setPortalMode={() => {}}
           onOpenAnnouncements={() => setIsAnnouncementsOpen(true)}
-          onOpenGateway={handleOpenGateway}
-          onLogoTripleClick={handleLogoTripleClick}
+          onLogoSixClick={handleLogoSixClick}
           currentRole={activeRole}
           isLoggedOut={isLoggedOut}
           isDbLive={isDbLive}
@@ -1232,11 +1248,11 @@ export default function App() {
             <>
               {isLoggedOut ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
-                  {/* Dominate Star College Official Crest Emblem with Administrative Triple-Click Shortcut */}
+                  {/* Dominate Star College Official Crest Emblem with 6-Click Administrative Shortcut */}
                   <div className="inline-block mx-auto">
                     <button
                       type="button"
-                      onClick={handleLogoTripleClick}
+                      onClick={handleLogoSixClick}
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
                       title="Dominate Star College"
                       aria-label="Dominate Star College Crest"
@@ -1348,16 +1364,9 @@ export default function App() {
                     </button>
                   </form>
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-                    <span className="text-[11px] text-slate-400">Senior Academic Division · 2026/2027</span>
-                    <button
-                      type="button"
-                      onClick={handleOpenGateway}
-                      className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Staff & Administration Gateway</span>
-                    </button>
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                    <span className="text-[11px]">Senior Academic Division · 2026/2027</span>
+                    <span className="text-[11px] text-slate-400 font-medium">Official Portal</span>
                   </div>
                 </div>
               ) : (
@@ -1587,14 +1596,7 @@ export default function App() {
             <div className="flex items-center gap-3 text-slate-400 text-[11px]">
               <span>6-Year Secondary Education</span>
               <span>•</span>
-              <button
-                onClick={handleOpenGateway}
-                className="text-slate-600 font-semibold hover:text-blue-950 flex items-center gap-1.5 transition-colors"
-                title="Teachers and Institutional Administration Portal"
-              >
-                <Lock className="w-3 h-3 text-slate-500" />
-                <span>Institutional Portal</span>
-              </button>
+              <span className="text-slate-500">Institutional Registry System</span>
             </div>
           </div>
         </footer>
