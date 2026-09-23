@@ -132,41 +132,41 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 rounded-3xl p-6 sm:p-7 text-white shadow-md relative overflow-hidden">
+      <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-800 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 font-bold text-xl shadow-inner shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400 font-bold text-xl shrink-0 overflow-hidden">
               {photoPreview ? (
                 <img
                   src={photoPreview}
                   alt={student.name}
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full object-cover rounded-xl"
                 />
               ) : (
-                <User className="w-7 h-7 text-amber-300" />
+                <User className="w-7 h-7 text-slate-400" />
               )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/70 text-blue-200 border border-blue-700/50">
                   Student Portal Settings
                 </span>
-                <span className="text-[11px] text-blue-200 font-mono">
+                <span className="text-[11px] text-slate-400 font-mono tabular-nums">
                   {student.admissionNo}
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-white mt-1">
                 Profile & Passport Photo Settings
               </h2>
-              <p className="text-xs text-blue-200/90 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5">
                 {formatStudentShortName(student.name)} · {student.classArm}
               </p>
             </div>
           </div>
 
-          <div className="text-left sm:text-right text-xs bg-white/10 py-2.5 px-3.5 rounded-xl border border-white/15">
-            <span className="text-[10px] text-blue-300 uppercase font-bold block">Academic Record</span>
-            <span className="font-bold text-white">{CURRENT_SESSION} · {CURRENT_TERM}</span>
+          <div className="text-left sm:text-right text-xs bg-slate-800/80 py-2.5 px-3.5 rounded-xl border border-slate-700/60">
+            <span className="text-[10px] text-slate-400 uppercase font-bold block">Academic Record</span>
+            <span className="font-bold text-white font-mono tabular-nums">{CURRENT_SESSION} · {CURRENT_TERM}</span>
           </div>
         </div>
       </div>

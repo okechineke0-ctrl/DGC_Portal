@@ -115,26 +115,26 @@ export const IndividualHoldResultModal: React.FC<IndividualHoldResultModalProps>
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white relative shrink-0 border-b border-slate-800">
           <button
             onClick={onClose}
-            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
+            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer border border-slate-700"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2 mb-1.5 pr-8">
-            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest bg-blue-600 text-white">
+            <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white">
               Administrative Control
             </span>
-            <span className="text-[11px] text-blue-200">Directorate Office</span>
+            <span className="text-[11px] text-slate-400 font-mono">Directorate Office</span>
           </div>
 
           <h2 className="text-lg sm:text-xl font-bold font-serif-title tracking-tight text-white pr-8">
             Individual Student Result Hold & Release
           </h2>
-          <p className="text-[11px] sm:text-xs text-blue-200/90 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
             Hold or release an individual student's terminal result independently.
           </p>
         </div>

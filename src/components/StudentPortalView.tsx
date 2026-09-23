@@ -24,6 +24,7 @@ import {
   Table as TableIcon,
   Layers,
   UserCheck,
+  Receipt,
 } from 'lucide-react';
 import {
   BarChart,
@@ -41,6 +42,7 @@ import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAtten
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE } from '../data/originalData';
 import { StudentReportCardModal } from './StudentReportCardModal';
+import { BursaryReceiptModal } from './BursaryReceiptModal';
 import { formatStudentShortName } from '../utils/formatters';
 
 interface StudentPortalViewProps {
@@ -290,6 +292,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
   // Subject Chart Data
   const [isReportCardOpen, setIsReportCardOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   const liveOpenDays = studentAttendance?.summary?.openDays ?? (student.timesSchoolOpened || 0);
   const livePresentDays = studentAttendance?.summary?.presentDays ?? (student.timesPresent || 0);
@@ -668,22 +671,25 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {(student.subjects || []).map((sub, idx) => {
-                  const isAssessed = (sub.total !== undefined && sub.total > 0) || (sub.caTotal !== undefined && sub.caTotal > 0) || (sub.exam !== undefined && sub.exam > 0) || (sub.grade && sub.grade !== '-' && sub.grade !== 'Ungraded' && sub.grade !== 'Pending');
+                {resolvedStudentSubjects.map((sub, idx) => {
+                  const isAssessed = sub.isAssessed;
                   return (
                     <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-900">{sub.name}</td>
-                      <td className="py-3 px-2 font-mono text-slate-400 text-[11px]">{sub.code}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.homework ?? 0) : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.test1 ?? 0) : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700">{isAssessed ? (sub.test2 ?? 0) : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-blue-950 font-semibold">{isAssessed ? (sub.practical ?? sub.quiz ?? 0) : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono font-bold text-blue-900 bg-blue-50/30">
-                        {isAssessed ? (sub.caTotal ?? 0) : '—'}
+                      <td className="py-3 px-3 font-bold text-slate-900">
+                        {sub.name}
+                        <span className="ml-1 text-[10px] font-mono text-slate-400">({sub.code})</span>
                       </td>
-                      <td className="py-3 px-2 text-center font-mono font-semibold text-slate-800">{isAssessed ? (sub.exam ?? 0) : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono font-black text-blue-950 text-sm bg-slate-100/40">
-                        {isAssessed ? (sub.total ?? 0) : '—'}
+                      <td className="py-3 px-2 font-mono text-slate-400 text-[11px]">{sub.code}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.homework : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.test1 : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.test2 : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono text-blue-950 font-semibold tabular-nums">{isAssessed ? sub.practical : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono font-bold text-blue-900 bg-blue-50/30 tabular-nums">
+                        {isAssessed ? sub.caTotal : '—'}
+                      </td>
+                      <td className="py-3 px-2 text-center font-mono font-semibold text-slate-800 tabular-nums">{isAssessed ? sub.exam : '—'}</td>
+                      <td className="py-3 px-2 text-center font-mono font-black text-blue-950 text-sm bg-slate-100/40 tabular-nums">
+                        {isAssessed ? sub.total : '—'}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {isAssessed ? (
@@ -1622,18 +1628,17 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               <div>
                 <span className="font-bold text-slate-800 block">Official Bursary Endorsement</span>
                 <span className="text-[11px] text-slate-500">
-                  Receipt Ref: DGC-BUR-2026-{(student.admissionNo || '000').replace(/[^0-9]/g, '')} · Certified by Administration Office
+                  Receipt Ref: {student.feeReceiptNo || `DGC-BUR-2026-${(student.admissionNo || '000').replace(/[^0-9]/g, '')}`} · Certified by Directorate of Bursary
                 </span>
               </div>
               <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                type="button"
+                onClick={() => setIsReceiptModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
                 id="student-print-clearance-btn"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Clearance</span>
+                <Receipt className="w-3.5 h-3.5 text-blue-300" />
+                <span>View & Print Official Receipt</span>
               </button>
             </div>
           </div>
@@ -2044,6 +2049,30 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
           student={student}
           classes={classes || []}
           onClose={() => setIsReportCardOpen(false)}
+        />
+      )}
+
+      {/* Official Bursary & Fees Clearance Receipt Modal */}
+      {isReceiptModalOpen && (
+        <BursaryReceiptModal
+          student={student}
+          feeSchedule={
+            feeSchedule || {
+              id: 'current_schedule',
+              session: student.session || '2026/2027',
+              term: student.term || 'First Term',
+              baseSchoolFee: 85000,
+              items: [],
+              totalFee: 155000,
+              bankName: 'First Bank of Nigeria',
+              accountNumber: '3128940022',
+              accountName: 'Dominate Star College Bursary Account',
+              paymentInstructions: 'Direct bank deposit or transfer',
+              updatedAt: new Date().toISOString(),
+              updatedBy: 'College Bursar',
+            }
+          }
+          onClose={() => setIsReceiptModalOpen(false)}
         />
       )}
     </div>

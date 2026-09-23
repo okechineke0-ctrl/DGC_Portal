@@ -144,6 +144,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     practical: string;
     exam: string;
   }>>({});
+  const [hasUnsavedScores, setHasUnsavedScores] = useState<boolean>(false);
+
+  // Warn on accidental tab close or page exit if unsaved scores are present
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedScores) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedScores]);
 
   // Determine Form Master or Form Mistress title
   const formDesignation =
@@ -199,14 +212,89 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   }, [formClass, students]);
 
   const handleInputChange = (studentId: string, field: 'homework' | 'test1' | 'test2' | 'practical' | 'exam', value: string) => {
-    if (value !== '' && isNaN(Number(value))) return;
+    if (value === '') {
+      setHasUnsavedScores(true);
+      setScoreInputs((prev) => ({
+        ...prev,
+        [studentId]: {
+          ...prev[studentId],
+          [field]: '',
+        },
+      }));
+      return;
+    }
+    const num = Number(value);
+    if (isNaN(num)) return;
+    const maxVal = field === 'exam' ? 60 : 10;
+    const clamped = Math.max(0, Math.min(maxVal, num));
+    setHasUnsavedScores(true);
     setScoreInputs((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        [field]: value,
+        [field]: String(clamped),
       },
     }));
+  };
+
+  const handleExportBroadsheetCSV = () => {
+    const headers = [
+      'Admission No',
+      'Student Name',
+      'Gender',
+      'Class',
+      'Subject',
+      'Homework (10)',
+      'Test 1 (10)',
+      'Test 2 (10)',
+      'Practical (10)',
+      'CA Total (40)',
+      'Exam (60)',
+      'Total Score (100)',
+      'Letter Grade',
+      'Remark',
+    ];
+
+    const rows = classStudents.map((s) => {
+      const input = scoreInputs[s.id] || { homework: '', test1: '', test2: '', practical: '', exam: '' };
+      const hw = input.homework !== '' ? Number(input.homework) : 0;
+      const t1 = input.test1 !== '' ? Number(input.test1) : 0;
+      const t2 = input.test2 !== '' ? Number(input.test2) : 0;
+      const prac = input.practical !== '' ? Number(input.practical) : 0;
+      const ex = input.exam !== '' ? Number(input.exam) : 0;
+      const ca = computeCaTotal(hw, t1, t2, prac);
+      const tot = Math.min(100, ca + ex);
+      const hasEntered = input.homework !== '' || input.test1 !== '' || input.test2 !== '' || input.practical !== '' || input.exam !== '';
+      const { grade, remark } = hasEntered ? calculateGrade(tot) : { grade: 'Pending', remark: 'Pending Assessment' };
+
+      return [
+        `"${s.admissionNo}"`,
+        `"${s.name.replace(/"/g, '""')}"`,
+        `"${s.gender || 'N/A'}"`,
+        `"${selectedClass}"`,
+        `"${selectedSubject}"`,
+        hw,
+        t1,
+        t2,
+        prac,
+        ca,
+        ex,
+        tot,
+        `"${grade}"`,
+        `"${remark.replace(/"/g, '""')}"`,
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Broadsheet_${selectedClass.replace(/\s+/g, '_')}_${selectedSubject.replace(/\s+/g, '_')}_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleSaveStudentScore = async (studentId: string) => {
@@ -242,6 +330,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
     setSavingId(null);
     if (success) {
+      setHasUnsavedScores(false);
       setSaveSuccessMsg(`Grades synchronized for student.`);
       setTimeout(() => setSaveSuccessMsg(null), 3000);
     }
@@ -304,6 +393,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       }
     }
     setSavingId(null);
+    setHasUnsavedScores(false);
     setSaveSuccessMsg(`Successfully saved and synced scores for all ${count} students in ${selectedClass}!`);
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
@@ -601,13 +691,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       )}
 
       {/* Staff Tab Switcher */}
-      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-sky-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
         <button
           onClick={() => setActiveTab('grading')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'grading'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -618,14 +708,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
           onClick={() => setActiveTab('attendance')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
           id="tab-mark-attendance-btn"
         >
           <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>Attendance</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-100 text-blue-900 font-extrabold">
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-100 text-blue-900 font-extrabold tabular-nums">
             {staff.assignedClasses.length}
           </span>
         </button>
@@ -634,8 +724,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
           onClick={() => setActiveTab('form_master')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'form_master'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -648,8 +738,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
           onClick={() => setActiveTab('workload')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'workload'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -716,17 +806,38 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
               </div>
             </div>
 
-            {/* CA Guidance */}
-            <div className="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-blue-900">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-700 shrink-0" />
-                <span>
-                  <strong>Continuous Assessment Structure:</strong> Homework (10%) + Test 1 (10%) + Test 2 (10%) + Practical/Quiz (10%) = <strong>CA Max 40%</strong>. Exam = <strong>60%</strong>. Total = <strong>100%</strong>.
+            {/* CA Guidance & Unsaved Changes Alert */}
+            <div className="space-y-2">
+              <div className="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-blue-900">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-700 shrink-0" />
+                  <span>
+                    <strong>Continuous Assessment Structure:</strong> Homework (10%) + Test 1 (10%) + Test 2 (10%) + Practical/Quiz (10%) = <strong>CA Max 40%</strong>. Exam = <strong>60%</strong>. Total = <strong>100%</strong>. Scores clamp safely to prescribed boundaries.
+                  </span>
+                </div>
+                <span className="text-[11px] text-blue-700 font-semibold bg-white px-2.5 py-1 rounded-lg border border-blue-200 shrink-0">
+                  {classStudents.length} Students in {selectedClass}
                 </span>
               </div>
-              <span className="text-[11px] text-blue-700 font-semibold bg-white px-2.5 py-1 rounded-lg border border-blue-200">
-                {classStudents.length} Students in {selectedClass}
-              </span>
+
+              {hasUnsavedScores && (
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between gap-3 text-xs text-amber-900 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-semibold">
+                      Unsaved continuous assessment entries detected. Click <strong>"Sync Class Sheet"</strong> or save individual rows to commit changes.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveAllClassScores}
+                    disabled={savingId === 'ALL'}
+                    className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    {savingId === 'ALL' ? 'Saving...' : 'Sync Now'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -741,14 +852,25 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   Enter individual CA tests and exam scores. WAEC Grade & Remarks calculate automatically.
                 </p>
               </div>
-              <button
-                onClick={() => window.print()}
-                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
-                title="Print Broadsheet"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Results</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleExportBroadsheetCSV}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+                  title="Export Broadsheet to CSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Broadsheet (CSV)</span>
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  title="Print Broadsheet"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Results</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto w-full max-w-full">

@@ -597,11 +597,11 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
           /* REGISTRATION FORM */
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             {/* Section Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-sky-200 bg-sky-50/60 px-4 sm:px-6 overflow-x-auto text-xs font-bold py-2 shrink-0">
+            <div className="flex items-center gap-1 border-b border-sky-200 bg-sky-50/60 px-3 sm:px-6 overflow-x-auto text-xs font-bold py-2 shrink-0 scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveSection('biodata')}
-                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'biodata'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-sky-100/70'
@@ -614,7 +614,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
               <button
                 type="button"
                 onClick={() => setActiveSection('academic')}
-                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'academic'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-sky-100/70'
@@ -1829,7 +1829,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
             </div>
 
             {/* Footer Navigation & Submit */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+            <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
               <div className="flex items-center gap-2">
                 {activeSection !== 'biodata' && (
                   <button
@@ -1840,7 +1840,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       else if (activeSection === 'medical') setActiveSection('guardian');
                       else if (activeSection === 'bursary') setActiveSection('medical');
                     }}
-                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
                   >
                     ← Previous Step
                   </button>
@@ -1857,7 +1857,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       else if (activeSection === 'guardian') setActiveSection('medical');
                       else if (activeSection === 'medical') setActiveSection('bursary');
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[40px]"
                   >
                     <span>Next Step</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -1866,7 +1866,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                    className="px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50 min-h-[40px]"
                   >
                     {isSubmitting ? (
                       <span>Registering Student...</span>

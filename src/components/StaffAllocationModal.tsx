@@ -392,18 +392,18 @@ export const StaffAllocationModal: React.FC<StaffAllocationModalProps> = ({
           )}
 
           {/* Modal Footer */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors min-h-[40px] cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[40px] cursor-pointer"
             >
               <UserCheck className="w-4 h-4" />
               <span>{isSaving ? 'Saving Allocations...' : 'Save & Sync Workload'}</span>

@@ -110,19 +110,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         id="app-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white border-r border-sky-200/80 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
         {/* Top: School Identity Banner */}
-        <div className="p-5 border-b border-sky-100 flex flex-col gap-2">
+        <div className="p-5 border-b border-slate-100 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <DGCLogo size="md" onClick={onLogoSixClick} />
             {setIsMobileOpen && (
               <button
                 id="close-sidebar-mobile-btn"
                 onClick={() => setIsMobileOpen(false)}
-                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-sky-50"
+                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
                 aria-label="Close sidebar"
               >
                 <X className="w-4 h-4" />
@@ -130,9 +130,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
-          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600 bg-sky-50/70 px-2.5 py-1.5 rounded-xl border border-sky-200/60">
-            <span className="font-semibold text-blue-950">Senior Academic Division</span>
-            <span className="text-[10px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded-md border border-sky-200">
+          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
+            <span className="font-semibold text-slate-800">Senior Academic Division</span>
+            <span className="text-[10px] text-slate-600 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200 font-mono">
               2026/2027
             </span>
           </div>
@@ -144,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Student Academic Services
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1.5">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -160,8 +160,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick(item.id)}
                   className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group cursor-pointer ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-sky-50'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-start gap-3 min-w-0">
@@ -169,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className={`p-2 rounded-xl mt-0.5 shrink-0 ${
                         isActive
                           ? 'bg-blue-700 text-white'
-                          : 'bg-sky-100/70 text-blue-900 group-hover:bg-sky-200/80 group-hover:text-blue-950'
+                          : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200 group-hover:text-slate-900'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -190,10 +190,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                   {item.badge && (
                     <span
-                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 tabular-nums ${
                         isActive
                           ? 'bg-white text-blue-900 font-bold'
-                          : item.badgeColor || 'bg-sky-100/70 text-blue-900'
+                          : item.badgeColor || 'bg-slate-100 text-slate-700'
                       }`}
                     >
                       {item.badge}
@@ -206,15 +206,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom: Dignified Student Profile & Log Out */}
-        <div className="p-4 border-t border-sky-100 bg-sky-50/50">
-          <div className="p-3.5 bg-white border border-sky-200 rounded-2xl shadow-2xs space-y-3">
+        <div className="p-4 border-t border-slate-100 bg-slate-50/70">
+          <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-3">
             {/* Student Identity Mini Card */}
             <div
               onClick={() => handleNavClick('settings')}
-              className="flex items-center gap-3 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-sky-50 transition-colors group"
+              className="flex items-center gap-3 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-slate-50 transition-colors group"
               title="Click to manage profile & passport photo"
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-900 text-amber-300 flex items-center justify-center font-bold text-sm shadow-xs shrink-0 overflow-hidden border border-sky-200">
+              <div className="w-10 h-10 rounded-xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-sm shadow-xs shrink-0 overflow-hidden border border-slate-200">
                 {currentStudent?.photoUrl ? (
                   <img
                     src={currentStudent.photoUrl}
@@ -239,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                   <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-900 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono tabular-nums">
                   <span className="truncate">{currentStudent?.admissionNo || '—'}</span>
                   <span>•</span>
                   <span className="font-semibold text-blue-900">{currentStudent?.classArm || 'No Class'}</span>
@@ -251,7 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               id="sidebar-logout-btn"
               onClick={onLogout}
-              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 hover:shadow-xs active:scale-98 cursor-pointer"
+              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-white" />
               <span>Log Out</span>

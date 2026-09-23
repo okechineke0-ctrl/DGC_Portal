@@ -649,19 +649,19 @@ export const BatchSubjectAllocationModal: React.FC<BatchSubjectAllocationModalPr
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+                className="px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition-colors min-h-[40px] text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || selectedSubjects.length === 0 || selectedClasses.length === 0}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[40px]"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[40px]"
               >
                 {isSubmitting ? (
                   <>

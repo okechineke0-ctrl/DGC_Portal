@@ -2118,9 +2118,9 @@ async function startServer() {
       feeStatus: newStatus,
       amountPaid: newAmountPaid,
       totalFeeDue: totalDue,
-      feePaymentDate: newStatus === 'Cleared' ? (current.feePaymentDate || now) : undefined,
-      feeReceiptNo: newStatus === 'Cleared' ? genReceipt : undefined,
-      feeRemarks: remarks || (newStatus === 'Cleared' ? 'Official Bursary Clearance Verified' : 'Outstanding Bursary Dues'),
+      feePaymentDate: (newStatus === 'Cleared' || newAmountPaid > 0) ? (current.feePaymentDate || now) : undefined,
+      feeReceiptNo: (newStatus === 'Cleared' || newAmountPaid > 0) ? genReceipt : undefined,
+      feeRemarks: remarks || (newStatus === 'Cleared' ? 'Official Bursary Clearance Verified' : (newAmountPaid > 0 ? `Part payment of ₦${newAmountPaid.toLocaleString()}` : 'Outstanding Bursary Dues')),
       // Automatically unlock report card hold if it was held for fees
       resultHeld: newStatus === 'Cleared' && current.holdReason?.toLowerCase().includes('fee') ? false : current.resultHeld,
       holdReason: newStatus === 'Cleared' && current.holdReason?.toLowerCase().includes('fee') ? undefined : current.holdReason,

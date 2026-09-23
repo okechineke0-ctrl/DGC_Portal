@@ -430,15 +430,15 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </button>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-sky-200/80 shadow-xs flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
               School Fees & Bursary
             </span>
-            <div className="text-2xl font-black text-blue-950 mt-1 font-mono">
+            <div className="text-2xl font-black text-slate-900 mt-1 font-mono">
               {students.filter(s => s.feeStatus === 'Cleared').length} / {totalStudentsCount}
             </div>
-            <span className="text-[11px] text-blue-800 font-semibold mt-0.5 block">
+            <span className="text-[11px] text-slate-600 font-semibold mt-0.5 block">
               Scholars Cleared · {students.filter(s => s.feeStatus !== 'Cleared').length} Outstanding
             </span>
           </div>
@@ -454,13 +454,13 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       </div>
 
       {/* Main Administrative Navigation Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-sky-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
         <button
           onClick={() => setActiveTab('classes')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'classes'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -471,8 +471,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('staff')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'staff'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -483,8 +483,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('curriculum')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'curriculum'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -495,8 +495,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('students')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'students'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -507,8 +507,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('attendance')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-attendance-btn"
         >
@@ -520,8 +520,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           onClick={() => setActiveTab('fees')}
           className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
             activeTab === 'fees'
-              ? 'bg-blue-600 text-white shadow-md border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-sky-50 border border-sky-200'
+              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-school-fees-btn"
         >
@@ -1018,7 +1018,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     if (!onBatchAssignSubjects) return;
                     setIsProcessingCurriculumAction(true);
                     const compulsory = ['English Language', 'Mathematics', 'Civic Education', 'Data Processing / ICT'];
-                    await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, compulsory, 'add');
+                    await onBatchAssignSubjects([...SCHOOL_CLASSES_LIST], compulsory, 'add');
                     setIsProcessingCurriculumAction(false);
                     setCurriculumSuccessNotice('Assigned 4 Core Compulsory subjects (English, Maths, Civic Ed, ICT) to all 14 classes.');
                     setTimeout(() => setCurriculumSuccessNotice(null), 3500);
@@ -1233,7 +1233,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                               onClick={async () => {
                                 if (!onBatchAssignSubjects) return;
                                 setIsProcessingCurriculumAction(true);
-                                await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, [subject], 'add');
+                                await onBatchAssignSubjects([...SCHOOL_CLASSES_LIST], [subject], 'add');
                                 setIsProcessingCurriculumAction(false);
                                 setCurriculumSuccessNotice(`Assigned ${subject} across all 14 class arms.`);
                                 setTimeout(() => setCurriculumSuccessNotice(null), 3000);
@@ -1394,7 +1394,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                           onClick={async () => {
                             if (!onBatchAssignSubjects) return;
                             setIsProcessingCurriculumAction(true);
-                            await onBatchAssignSubjects(SCHOOL_CLASSES_LIST, [subject], 'add');
+                            await onBatchAssignSubjects([...SCHOOL_CLASSES_LIST], [subject], 'add');
                             setIsProcessingCurriculumAction(false);
                             setCurriculumSuccessNotice(`Assigned ${subject} to all 14 classes.`);
                             setTimeout(() => setCurriculumSuccessNotice(null), 3000);
@@ -2008,7 +2008,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {/* ========================================================================= */}
       {quickFormMasterClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
                 <ShieldCheck className="w-5 h-5 text-amber-600" />
@@ -2065,7 +2065,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {/* ========================================================================= */}
       {isAddStaffOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">Add New Teacher</h3>
               <button onClick={() => setIsAddStaffOpen(false)} className="p-1 rounded-lg hover:bg-slate-100">
@@ -2242,7 +2242,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {/* ========================================================================= */}
       {deletingStaffMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>

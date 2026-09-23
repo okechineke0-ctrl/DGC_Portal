@@ -261,5 +261,15 @@ export interface StudentAttendanceFullData {
   totalRecords?: number;
   selectedTerm?: string;
   statusNote?: string;
+  summary?: {
+    openDays?: number;
+    presentDays?: number;
+    absentDays?: number;
+    punctualDays?: number;
+    lateDays?: number;
+    excusedDays?: number;
+    attendanceRate?: number;
+    isCleared?: boolean;
+  };
 }
 

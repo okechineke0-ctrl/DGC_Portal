@@ -1014,13 +1014,13 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
         {/* ========================================================================= */}
         {/* MODAL FOOTER                                                              */}
         {/* ========================================================================= */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
-          <span className="font-semibold">
+        <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs text-slate-600">
+          <span className="font-semibold text-center sm:text-left text-[11px] sm:text-xs">
             Secondary School Academic Governance · Dominate Star College
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors min-h-[40px] cursor-pointer text-center"
           >
             Close Teachers Hub
           </button>
@@ -1032,11 +1032,11 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
       {/* ========================================================================= */}
       {deletingTeacher && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
           onClick={() => setDeletingTeacher(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-rose-200"
+            className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl border border-rose-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 text-rose-700 font-bold text-base">
@@ -1067,17 +1067,17 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
               </ul>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs font-bold">
+            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 text-xs font-bold">
               <button
                 onClick={() => setDeletingTeacher(null)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl min-h-[40px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-50 min-h-[40px]"
               >
                 {isSubmitting ? 'Deleting...' : 'Yes, Delete Teacher'}
               </button>
@@ -1091,11 +1091,11 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
       {/* ========================================================================= */}
       {editingFormMasterTeacher && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
           onClick={() => setEditingFormMasterTeacher(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-amber-200"
+            className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl border border-amber-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -1178,17 +1178,17 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
               Form Masters and Form Mistresses are responsible for daily student attendance, conduct remarks, and certifying terminal broadsheets and report cards for their class arm.
             </p>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs font-bold">
+            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 text-xs font-bold">
               <button
                 onClick={() => setEditingFormMasterTeacher(null)}
-                className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-3.5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl min-h-[40px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveFormMaster}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-950 hover:bg-blue-900 text-amber-300 rounded-xl shadow-xs transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-blue-950 hover:bg-blue-900 text-amber-300 rounded-xl shadow-xs transition-colors disabled:opacity-50 min-h-[40px]"
               >
                 {isSubmitting ? 'Saving...' : 'Save Form Role'}
               </button>
@@ -1202,11 +1202,11 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
       {/* ========================================================================= */}
       {editingClassesTeacher && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in"
           onClick={() => setEditingClassesTeacher(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+            className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl border border-slate-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -1222,18 +1222,18 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="text-slate-600 font-semibold">
-                Select the class arms this teacher instructs: ({tempAssignedClasses.length} selected)
+                Select class arms: ({tempAssignedClasses.length} selected)
               </span>
-              <div className="flex items-center gap-1 text-[11px]">
+              <div className="flex items-center gap-1 text-[11px] flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
                     const junior = SCHOOL_CLASSES_LIST.filter((c) => c.startsWith('JSS'));
                     setTempAssignedClasses((prev) => Array.from(new Set([...prev, ...junior])));
                   }}
-                  className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-900 font-bold hover:bg-blue-200"
+                  className="px-2 py-1 rounded-lg bg-blue-100 text-blue-900 font-bold hover:bg-blue-200"
                 >
                   All Junior
                 </button>
@@ -1243,14 +1243,14 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
                     const senior = SCHOOL_CLASSES_LIST.filter((c) => c.startsWith('SS'));
                     setTempAssignedClasses((prev) => Array.from(new Set([...prev, ...senior])));
                   }}
-                  className="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200"
+                  className="px-2 py-1 rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200"
                 >
                   All Senior
                 </button>
                 <button
                   type="button"
                   onClick={() => setTempAssignedClasses([])}
-                  className="px-2 py-0.5 rounded-lg bg-slate-200 text-slate-700 font-bold hover:bg-slate-300"
+                  className="px-2 py-1 rounded-lg bg-slate-200 text-slate-700 font-bold hover:bg-slate-300"
                 >
                   Clear
                 </button>
@@ -1267,7 +1267,7 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
                     key={clsName}
                     type="button"
                     onClick={() => toggleTempClass(clsName)}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all flex items-center justify-between ${
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all flex items-center justify-between min-h-[40px] ${
                       isSelected
                         ? 'bg-blue-950 text-white border-blue-950 shadow-2xs'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -1293,17 +1293,17 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
               })}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs font-bold">
+            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 text-xs font-bold">
               <button
                 onClick={() => setEditingClassesTeacher(null)}
-                className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-3.5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl min-h-[40px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveClasses}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-950 hover:bg-blue-900 text-amber-300 rounded-xl shadow-xs transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-blue-950 hover:bg-blue-900 text-amber-300 rounded-xl shadow-xs transition-colors disabled:opacity-50 min-h-[40px]"
               >
                 {isSubmitting ? 'Saving...' : 'Save Assigned Classes'}
               </button>

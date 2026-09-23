@@ -21,9 +21,11 @@ import {
   X,
   RefreshCw,
   Landmark,
+  Download,
 } from 'lucide-react';
 import { StudentProfile, SchoolClassDefinition, FeeItem, CollegeFeeSchedule } from '../types';
 import { formatStudentShortName } from '../utils/formatters';
+import { BursaryReceiptModal } from './BursaryReceiptModal';
 
 interface SchoolFeesManagementProps {
   students: StudentProfile[];
@@ -146,6 +148,30 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'NOT_PAID'>('ALL');
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
+  // Bursary Receipt & Custom Payment Modals
+  const [selectedReceiptStudent, setSelectedReceiptStudent] = useState<StudentProfile | null>(null);
+  const [selectedPaymentStudent, setSelectedPaymentStudent] = useState<StudentProfile | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<'Bank Transfer' | 'Cash' | 'POS' | 'Cheque'>('Bank Transfer');
+  const [paymentRefInput, setPaymentRefInput] = useState<string>('');
+  const [paymentRemarksInput, setPaymentRemarksInput] = useState<string>('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState<boolean>(false);
+
+  // Quick keyboard shortcut to focus search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchEl = document.getElementById('fees-student-search-input');
+        if (searchEl) {
+          searchEl.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load Fee Schedule from server on mount
   useEffect(() => {
@@ -370,6 +396,109 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
     }
   };
 
+  // Open Custom Payment Dialog
+  const handleOpenPaymentModal = (student: StudentProfile) => {
+    setSelectedPaymentStudent(student);
+    const totalDue = feeSchedule.totalFee || 155000;
+    const currentPaid = student.feeStatus === 'Cleared' ? totalDue : (student.amountPaid || 0);
+    const balance = Math.max(0, totalDue - currentPaid);
+    setPaymentAmountInput(balance > 0 ? balance : totalDue);
+    setPaymentMethod('Bank Transfer');
+    setPaymentRefInput(`TXN-${Date.now().toString().slice(-6)}`);
+    setPaymentRemarksInput('Term fees payment reconciled by Bursary');
+  };
+
+  // Submit Custom / Partial Payment
+  const handleSaveCustomPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaymentStudent) return;
+    setIsSubmittingPayment(true);
+    const totalDue = feeSchedule.totalFee || 155000;
+    const amount = Number(paymentAmountInput);
+    const isFullSettlement = amount >= totalDue;
+    const targetStatus: 'Cleared' | 'Pending' = isFullSettlement ? 'Cleared' : 'Pending';
+
+    try {
+      if (onUpdateStudentFeeStatus) {
+        await onUpdateStudentFeeStatus(
+          selectedPaymentStudent.id,
+          targetStatus,
+          amount,
+          `${paymentMethod}: ${paymentRemarksInput || 'Payment credited'}`
+        );
+      } else {
+        const res = await fetch(`/api/students/${selectedPaymentStudent.id}/fee-status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            feeStatus: targetStatus,
+            amountPaid: amount,
+            remarks: `${paymentMethod} (Ref: ${paymentRefInput}): ${paymentRemarksInput || 'Payment reconciled'}`,
+            receiptNo: `DGC-BUR-${paymentRefInput.replace(/[^a-zA-Z0-9]/g, '') || Math.floor(100000 + Math.random() * 900000)}`,
+          }),
+        });
+        if (res.ok && onRefreshData) {
+          onRefreshData();
+        }
+      }
+      showToast(`Payment of ₦${amount.toLocaleString()} recorded for ${selectedPaymentStudent.name}!`);
+      setSelectedPaymentStudent(null);
+    } catch (err) {
+      console.error('Failed to record payment:', err);
+      showToast('Error recording custom payment.', 'info');
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
+  // Export Full Bursary Ledger to CSV
+  const handleExportLedgerCSV = () => {
+    const totalDue = feeSchedule.totalFee || 155000;
+    const headers = [
+      'Admission No',
+      'Student Name',
+      'Class Arm',
+      'Gender',
+      'Payment Status',
+      'Total Prescribed Dues (NGN)',
+      'Amount Settled (NGN)',
+      'Outstanding Balance (NGN)',
+      'Receipt Reference',
+      'Payment Date',
+      'Remarks',
+    ];
+
+    const rows = filteredStudents.map((std) => {
+      const isPaid = std.feeStatus === 'Cleared';
+      const amountPaid = isPaid ? totalDue : (std.amountPaid || 0);
+      const balance = Math.max(0, totalDue - amountPaid);
+      return [
+        `"${std.admissionNo}"`,
+        `"${std.name.replace(/"/g, '""')}"`,
+        `"${std.classArm}"`,
+        `"${std.gender || 'N/A'}"`,
+        `"${isPaid ? 'PAID' : (amountPaid > 0 ? 'PARTIAL' : 'NOT PAID')}"`,
+        totalDue,
+        amountPaid,
+        balance,
+        `"${std.feeReceiptNo || (isPaid ? 'DGC-BUR-CLEARED' : 'PENDING')}"`,
+        `"${std.feePaymentDate ? new Date(std.feePaymentDate).toLocaleDateString() : 'N/A'}"`,
+        `"${(std.feeRemarks || '').replace(/"/g, '""')}"`,
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Dominate_Star_College_Bursary_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Filtered Students List
   const filteredStudents = students.filter((std) => {
     const matchesSearch =
@@ -502,14 +631,14 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-blue-200 shadow-2xs">
-          <span className="text-[10px] font-extrabold tracking-wider text-blue-900 uppercase block">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs">
+          <span className="text-[10px] font-extrabold tracking-wider text-slate-500 uppercase block">
             Total Bursary Collected
           </span>
-          <span className="text-xl sm:text-2xl font-black text-blue-950 font-mono mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums mt-1 block">
             ₦{totalRevenueCollected.toLocaleString()}
           </span>
-          <span className="text-[11px] text-blue-800 mt-1 block font-semibold">
+          <span className="text-[11px] text-slate-600 mt-1 block font-semibold tabular-nums">
             {collectionRate}% Overall Bursary Settlement
           </span>
         </div>
@@ -518,10 +647,10 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           <span className="text-[10px] font-extrabold tracking-wider text-slate-500 uppercase block">
             Paid Scholars (Cleared)
           </span>
-          <span className="text-xl sm:text-2xl font-black text-blue-950 font-mono mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums mt-1 block">
             {paidStudentsCount} <span className="text-xs text-slate-400 font-normal">/ {totalStudentsCount}</span>
           </span>
-          <span className="text-[11px] text-blue-900 mt-1 block font-medium">
+          <span className="text-[11px] text-emerald-700 mt-1 block font-medium">
             Full Examination Clearance
           </span>
         </div>
@@ -530,10 +659,10 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           <span className="text-[10px] font-extrabold tracking-wider text-slate-500 uppercase block">
             Outstanding / Not Paid
           </span>
-          <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums mt-1 block">
             {notPaidStudentsCount} <span className="text-xs text-slate-400 font-normal">Defaulters</span>
           </span>
-          <span className="text-[11px] text-slate-600 mt-1 block font-mono">
+          <span className="text-[11px] text-slate-600 mt-1 block font-mono tabular-nums">
             Balance: ₦{totalOutstandingBalance.toLocaleString()}
           </span>
         </div>
@@ -885,8 +1014,19 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
             </p>
           </div>
 
-          {/* Batch Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Batch Action & Export Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportLedgerCSV}
+              disabled={filteredStudents.length === 0}
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              title="Export Current Bursary Ledger to CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-900" />
+              <span>Export Ledger (CSV)</span>
+            </button>
+
             <button
               onClick={() => handleBulkAction('Cleared')}
               disabled={isBulkProcessing || filteredStudents.length === 0}
@@ -1071,31 +1211,51 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
                           )}
                         </td>
 
-                        {/* Mark Paid / Not Paid Action Button */}
+                        {/* Mark Paid / Not Paid & Receipt Actions */}
                         <td className="py-3 px-4 text-right">
-                          {isPaid ? (
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => handleToggleStudentFee(std)}
-                              disabled={isProcessing}
-                              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold transition-all shadow-2xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              id={`mark-not-paid-btn-${std.id}`}
-                              title="Click to mark student as Not Paid"
+                              type="button"
+                              onClick={() => setSelectedReceiptStudent(std)}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-950 transition-colors cursor-pointer"
+                              title="View & Print Official Bursary Receipt"
                             >
-                              <X className="w-3.5 h-3.5 text-slate-500" />
-                              <span>{isProcessing ? 'Updating...' : 'Mark as Not Paid'}</span>
+                              <Receipt className="w-4 h-4" />
                             </button>
-                          ) : (
+
                             <button
-                              onClick={() => handleToggleStudentFee(std)}
-                              disabled={isProcessing}
-                              className="px-3.5 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              id={`mark-paid-btn-${std.id}`}
-                              title="Click to mark student as Paid"
+                              type="button"
+                              onClick={() => handleOpenPaymentModal(std)}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 transition-colors cursor-pointer"
+                              title="Record Custom or Partial Payment"
                             >
-                              <Check className="w-3.5 h-3.5 text-blue-300" />
-                              <span>{isProcessing ? 'Updating...' : 'Mark as Paid'}</span>
+                              <CreditCard className="w-4 h-4" />
                             </button>
-                          )}
+
+                            {isPaid ? (
+                              <button
+                                onClick={() => handleToggleStudentFee(std)}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold transition-all shadow-2xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                id={`mark-not-paid-btn-${std.id}`}
+                                title="Click to mark student as Not Paid"
+                              >
+                                <X className="w-3.5 h-3.5 text-slate-500" />
+                                <span>{isProcessing ? 'Updating...' : 'Not Paid'}</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleToggleStudentFee(std)}
+                                disabled={isProcessing}
+                                className="px-3.5 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                id={`mark-paid-btn-${std.id}`}
+                                title="Click to mark student as Paid"
+                              >
+                                <Check className="w-3.5 h-3.5 text-blue-300" />
+                                <span>{isProcessing ? 'Updating...' : 'Mark Paid'}</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1123,6 +1283,138 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Official College Bursary Receipt Modal */}
+      {selectedReceiptStudent && (
+        <BursaryReceiptModal
+          student={selectedReceiptStudent}
+          feeSchedule={feeSchedule}
+          onClose={() => setSelectedReceiptStudent(null)}
+        />
+      )}
+
+      {/* Record Custom / Partial Payment Modal */}
+      {selectedPaymentStudent && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col my-auto">
+            {/* Modal Header */}
+            <div className="p-5 bg-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <CreditCard className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="text-sm font-bold">Record Custom / Partial Payment</h3>
+                  <p className="text-[11px] text-blue-200">Bursary payment ledger reconciliation</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPaymentStudent(null)}
+                className="p-1.5 rounded-xl text-blue-300 hover:text-white hover:bg-blue-900 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveCustomPayment} className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Scholar Credential</span>
+                <strong className="text-slate-900 text-sm block">{selectedPaymentStudent.name}</strong>
+                <div className="flex items-center justify-between text-slate-600 font-mono text-[11px] pt-1">
+                  <span>Adm: {selectedPaymentStudent.admissionNo}</span>
+                  <span>Class: {selectedPaymentStudent.classArm}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Statutory Due</span>
+                  <span className="font-mono text-slate-900 font-bold text-sm block mt-0.5">
+                    ₦{(feeSchedule.totalFee || 155000).toLocaleString()}.00
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Already Credited</span>
+                  <span className="font-mono text-blue-950 font-bold text-sm block mt-0.5">
+                    ₦{(selectedPaymentStudent.amountPaid || 0).toLocaleString()}.00
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Payment Amount to Record (₦):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={feeSchedule.totalFee || 155000}
+                  value={paymentAmountInput}
+                  onChange={(e) => setPaymentAmountInput(Number(e.target.value))}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Payment Method:</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e: any) => setPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="Bank Transfer">Direct Bank Transfer</option>
+                    <option value="Cash">Cash Deposit</option>
+                    <option value="POS">POS Terminal Card</option>
+                    <option value="Cheque">Bank Draft / Cheque</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Receipt / Teller Ref:</label>
+                  <input
+                    type="text"
+                    value={paymentRefInput}
+                    onChange={(e) => setPaymentRefInput(e.target.value)}
+                    placeholder="e.g. TXN-893021"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Bursar Remarks / Narration:</label>
+                <input
+                  type="text"
+                  value={paymentRemarksInput}
+                  onChange={(e) => setPaymentRemarksInput(e.target.value)}
+                  placeholder="e.g. First installment paid via First Bank teller"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentStudent(null)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingPayment}
+                  className="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSubmittingPayment ? 'Saving...' : 'Record Payment'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

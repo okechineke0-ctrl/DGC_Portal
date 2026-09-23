@@ -15,6 +15,7 @@ import {
   ArrowRight,
   FileSpreadsheet,
   Trash2,
+  Download,
 } from 'lucide-react';
 import { SchoolClassDefinition, StudentProfile, StaffMember } from '../types';
 import {
@@ -661,7 +662,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           {/* TAB 3: BROADSHEET */}
           {activeTab === 'broadsheet' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
                     Official Broad Sheet · {schoolClass.name} (First Term 2026/2027)
@@ -670,13 +671,58 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     Form Master: <strong>{schoolClass.classMaster}</strong> · Enrolled: {classStudents.length} Students
                   </p>
                 </div>
-                <button
-                  onClick={() => window.print()}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print Sheet</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const headers = [
+                        'Rank',
+                        'Admission No',
+                        'Student Name',
+                        'Gender',
+                        'Class',
+                        'Term GPA (%)',
+                        'Attendance Rate (%)',
+                        'Result Status',
+                        'Fee Status',
+                      ];
+
+                      const rows = classStudents.map((s) => [
+                        `"${s.termRank || '—'}"`,
+                        `"${s.admissionNo}"`,
+                        `"${s.name.replace(/"/g, '""')}"`,
+                        `"${s.gender || 'N/A'}"`,
+                        `"${schoolClass.name}"`,
+                        s.termGpa ?? 0,
+                        s.attendanceRate ?? 0,
+                        `"${s.resultHeld ? 'Held' : 'Cleared'}"`,
+                        `"${s.feeStatus || 'Pending'}"`,
+                      ].join(','));
+
+                      const csvContent = [headers.join(','), ...rows].join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `Master_Broadsheet_${schoolClass.name.replace(/\s+/g, '_')}_2026.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors border border-slate-200 cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-4 h-4 text-blue-900" />
+                    <span>Export CSV</span>
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Sheet</span>
+                  </button>
+                </div>
               </div>
 
               <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
