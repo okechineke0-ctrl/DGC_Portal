@@ -108,7 +108,7 @@ const DEFAULT_SCHEDULE: CollegeFeeSchedule = {
   totalFee: 155000,
   bankName: 'First Bank of Nigeria',
   accountNumber: '3128940022',
-  accountName: 'Dominate Star College Bursary Account',
+  accountName: 'Dominion Star Global College Bursary Account',
   paymentInstructions: 'Payment should be made through direct bank deposit or electronic bank transfer into the official Bursary account. Quote student registration number as payment narration.',
   updatedAt: new Date().toISOString(),
   updatedBy: 'College Administrator / Bursar',
@@ -139,7 +139,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
   // Bank Account Settings
   const [bankName, setBankName] = useState('First Bank of Nigeria');
   const [accountNumber, setAccountNumber] = useState('3128940022');
-  const [accountName, setAccountName] = useState('Dominate Star College Bursary Account');
+  const [accountName, setAccountName] = useState('Dominion Star Global College Bursary Account');
   const [isBankEditing, setIsBankEditing] = useState(false);
 
   // Whole Student Filter & Search
@@ -189,7 +189,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
           setBaseSchoolFeeInput(data.schedule.baseSchoolFee || 85000);
           setBankName(data.schedule.bankName || 'First Bank of Nigeria');
           setAccountNumber(data.schedule.accountNumber || '3128940022');
-          setAccountName(data.schedule.accountName || 'Dominate Star College Bursary Account');
+          setAccountName(data.schedule.accountName || 'Dominion Star Global College Bursary Account');
         }
       }
     } catch {
@@ -492,7 +492,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Dominate_Star_College_Bursary_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Dominion_Star_Global_College_Bursary_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

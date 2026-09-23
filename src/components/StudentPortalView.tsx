@@ -754,7 +754,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
           {/* Print Controls */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
             <span className="text-xs text-slate-500">
-              Official document issued by Dominate Star College.
+              Official document issued by Dominion Star Global College.
             </span>
             <button
               onClick={handlePrintReportCard}
@@ -1393,7 +1393,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
         const bankName = (feeSchedule as any)?.bankName || (feeSchedule as any)?.bankDetails?.bankName || 'First Bank of Nigeria';
         const accountNumber = (feeSchedule as any)?.accountNumber || (feeSchedule as any)?.bankDetails?.accountNumber || '3128940022';
-        const accountName = (feeSchedule as any)?.accountName || (feeSchedule as any)?.bankDetails?.accountName || 'Dominate Star College Bursary Account';
+        const accountName = (feeSchedule as any)?.accountName || (feeSchedule as any)?.bankDetails?.accountName || 'Dominion Star Global College Bursary Account';
         const paymentInstructions = (feeSchedule as any)?.paymentInstructions || 'Please indicate the student admission number and full name on the payment narration/deposit slip.';
 
         const handleCopyAccount = () => {
@@ -2066,7 +2066,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               totalFee: 155000,
               bankName: 'First Bank of Nigeria',
               accountNumber: '3128940022',
-              accountName: 'Dominate Star College Bursary Account',
+              accountName: 'Dominion Star Global College Bursary Account',
               paymentInstructions: 'Direct bank deposit or transfer',
               updatedAt: new Date().toISOString(),
               updatedBy: 'College Bursar',

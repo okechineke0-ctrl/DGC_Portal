@@ -105,7 +105,7 @@ export default function App() {
   useEffect(() => {
     testFirestoreConnection().then((connected) => {
       setIsDbLive(connected);
-      console.log(`[Dominate Star College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
+      console.log(`[Dominion Star Global College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
     });
 
     fetch('/api/students')
@@ -1286,14 +1286,14 @@ export default function App() {
             <>
               {isLoggedOut ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
-                  {/* Dominate Star College Official Crest Emblem with 6-Click Administrative Shortcut */}
+                  {/* Dominion Star Global College Official Crest Emblem with 6-Click Administrative Shortcut */}
                   <div className="inline-block mx-auto">
                     <button
                       type="button"
                       onClick={handleLogoSixClick}
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
-                      title="Dominate Star College"
-                      aria-label="Dominate Star College Crest"
+                      title="Dominion Star Global College"
+                      aria-label="Dominion Star Global College Crest"
                     >
                       <DGCLogo size="md" showText={false} />
                     </button>
@@ -1301,7 +1301,7 @@ export default function App() {
 
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                      Dominate Star College
+                      Dominion Star Global College
                     </span>
                     <h2 className="text-2xl font-bold font-serif-title text-slate-900">
                       Student Academic Portal Sign-In
@@ -1590,7 +1590,7 @@ export default function App() {
                       College Bulletins & Official Notices
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Dominate Star College official notifications for students and guardians.
+                      Dominion Star Global College official notifications for students and guardians.
                     </p>
                   </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   X,
   Printer,
@@ -9,10 +9,12 @@ import {
   Building,
   Landmark,
   Receipt,
+  RefreshCw,
 } from 'lucide-react';
 import { StudentProfile, CollegeFeeSchedule } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
+import { printElement } from '../utils/printReportCard';
 
 interface BursaryReceiptModalProps {
   student: StudentProfile;
@@ -25,6 +27,19 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
   feeSchedule,
   onClose,
 }) => {
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+    const safeTitle = `Bursary_Receipt_${student.name.replace(/\s+/g, '_')}_${student.admissionNo.replace(/[/\\:]/g, '_')}`;
+    printElement(receiptRef.current, {
+      title: safeTitle,
+      onBeforePrint: () => setIsPrinting(true),
+      onAfterPrint: () => setIsPrinting(false),
+    });
+    setTimeout(() => setIsPrinting(false), 1800);
+  };
   const isPaid = student.feeStatus === 'Cleared';
   const totalPrescribed = feeSchedule.totalFee || 155000;
   const amountPaid = isPaid ? totalPrescribed : (student.amountPaid || 0);
@@ -56,15 +71,11 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
         { id: '6', name: 'Parents-Teachers Association (PTA) Term Levy', amount: 5000, category: 'General' },
       ];
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col my-auto print:border-none print:shadow-none print:max-w-none print:w-full">
         {/* Modal Action Bar (Hidden on print) */}
-        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between print:hidden">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between no-print print:hidden">
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-blue-400" />
             <div>
@@ -75,14 +86,24 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              disabled={isPrinting}
+              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-70 min-h-[38px]"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Receipt</span>
+              {isPrinting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-200" />
+                  <span>Preparing Receipt...</span>
+                </>
+              ) : (
+                <>
+                  <Printer className="w-4 h-4" />
+                  <span>Print Receipt</span>
+                </>
+              )}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
@@ -90,7 +111,7 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
         </div>
 
         {/* Printable Official Receipt Body */}
-        <div className="p-6 sm:p-8 space-y-6 text-slate-900 bg-white">
+        <div ref={receiptRef} className="p-6 sm:p-8 space-y-6 text-slate-900 bg-white">
           {/* Official College Header */}
           <div className="flex items-center justify-between pb-5 border-b-2 border-slate-900/80 gap-4">
             <div className="flex items-center gap-3.5">
@@ -209,7 +230,7 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
                 {feeSchedule.bankName || 'First Bank of Nigeria'} · {feeSchedule.accountNumber || '3128940022'}
               </span>
               <span className="text-[11px] text-slate-500 block truncate">
-                {feeSchedule.accountName || 'Dominate Star College Bursary Account'}
+                {feeSchedule.accountName || 'Dominion Star Global College Bursary Account'}
               </span>
             </div>
             <div>
@@ -244,7 +265,7 @@ export const BursaryReceiptModal: React.FC<BursaryReceiptModalProps> = ({
                 Chief Bursar / Authorized Signatory
               </span>
               <span className="text-[9px] text-slate-400 block">
-                Dominate Star College Central Bursary
+                Dominion Star Global College Central Bursary
               </span>
             </div>
           </div>

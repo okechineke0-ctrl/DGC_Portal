@@ -1,6 +1,6 @@
 /**
  * Institutional Registration Number and Admission Year Calculation Engine
- * Dominate Star College - Awgu, Enugu State
+ * Dominion Star Global College - Awgu, Enugu State
  *
  * Implements standard Nigerian 6-Year Secondary Education (JSS 1 - SS 3)
  * cohort tracking for regular admissions and mid-stream transfer students.
@@ -120,7 +120,7 @@ export function calculateAdmissionYear({
     };
   }
 
-  // Transfer Student: Joined Dominate Star College at a specific class level
+  // Transfer Student: Joined Dominion Star Global College at a specific class level
   const joinedClass = transferClassJoined ? extractLevelFromClass(transferClassJoined) : currentLevel;
   const joinedOrdinal = CLASS_LEVEL_ORDER[joinedClass] || currentOrdinal;
 

@@ -1,8 +1,8 @@
 /**
- * Unified formatting utilities for Dominate Star College
+ * Unified formatting utilities for Dominion Star Global College
  */
 
-export const SCHOOL_NAME_SHORT = 'Dominate Star College';
+export const SCHOOL_NAME_SHORT = 'Dominion Star Global College';
 
 /**
  * Formats full names to concise professional academic format

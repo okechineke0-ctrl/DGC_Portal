@@ -158,7 +158,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <h1 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 leading-tight flex items-center gap-2 truncate">
               <span className="truncate">
                 {isLoggedOut
-                  ? 'Dominate Star College'
+                  ? 'Dominion Star Global College'
                   : currentRole === 'ceo'
                   ? 'Directorate Console'
                   : currentRole === 'staff'

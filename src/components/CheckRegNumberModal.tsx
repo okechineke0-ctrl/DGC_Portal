@@ -215,7 +215,7 @@ export const CheckRegNumberModal: React.FC<CheckRegNumberModalProps> = ({
                 Retrieve Registration Number
               </h2>
               <p className="text-xs text-slate-300 mt-0.5">
-                Dominate Star College · Student Verification Directory
+                Dominion Star Global College · Student Verification Directory
               </p>
             </div>
           </div>

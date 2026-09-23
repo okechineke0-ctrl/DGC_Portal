@@ -58,7 +58,7 @@ export class PortalErrorBoundary extends React.Component<Props, State> {
                   System Diagnostics · Exception Caught
                 </span>
                 <h2 className="text-xl font-bold font-serif-title text-white">
-                  Dominate Star College Portal
+                  Dominion Star Global College Portal
                 </h2>
               </div>
             </div>

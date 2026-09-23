@@ -189,7 +189,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
                 Strict Regulatory Warning
               </span>
               <span className="text-xs font-extrabold text-amber-950 uppercase tracking-wide">
-                Dominate Star College Disciplinary Council
+                Dominion Star Global College Disciplinary Council
               </span>
             </div>
 
@@ -199,7 +199,7 @@ export const StudentSettingsView: React.FC<StudentSettingsViewProps> = ({
 
             <p className="text-xs sm:text-sm text-amber-900 leading-relaxed font-medium">
               The photograph you upload here serves as your <strong>official college passport identity</strong> across all terminal broadsheets, report cards, WAEC/NECO continuous assessment dossiers, and bursary clearance certificates.
-              You must upload a picture where you are <strong>strictly wearing the approved Dominate Star College school uniform</strong>.
+              You must upload a picture where you are <strong>strictly wearing the approved Dominion Star Global College school uniform</strong>.
             </p>
           </div>
         </div>

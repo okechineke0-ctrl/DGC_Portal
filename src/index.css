@@ -67,35 +67,54 @@
     display: none !important;
   }
 
-  /* Reset body and print area */
-  body {
+  /* Reset body, overlays and modals */
+  html, body {
     background-color: #ffffff !important;
-    color: #000000 !important;
-    font-size: 11pt;
+    color: #0f172a !important;
+    font-size: 10.5pt;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
 
-  /* Make sure modal content takes full printable page width */
+  /* Remove dark modal overlay backdrops during print */
+  .fixed.inset-0,
+  [role="dialog"] {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure card container fills page without borders or rounding */
   .print-content,
   .print-content * {
     visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .print-content {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
-    padding: 0.4in !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
   }
 
-  /* Prevent awkward page cuts in table rows */
+  /* Prevent awkward page cuts in table rows and signatures */
   table, tr, td, th {
     page-break-inside: avoid !important;
+  }
+
+  .break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

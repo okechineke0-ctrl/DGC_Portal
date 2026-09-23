@@ -446,7 +446,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 Student Enrolled Successfully!
               </h3>
               <p className="text-xs text-emerald-800 font-medium max-w-md mx-auto">
-                Official college academic record and portal credentials have been provisioned into the Dominate Star College database.
+                Official college academic record and portal credentials have been provisioned into the Dominion Star Global College database.
               </p>
             </div>
 
@@ -915,7 +915,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-600 leading-tight">
-                              Enrolled initially into JSS 1 at Dominate Star College and progressed chronologically through secondary classes.
+                              Enrolled initially into JSS 1 at Dominion Star Global College and progressed chronologically through secondary classes.
                             </p>
                           </div>
                         </div>
@@ -962,7 +962,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-600 leading-tight">
-                              Transferred to Dominate Star College mid-way from an external secondary school into a specific junior/senior class.
+                              Transferred to Dominion Star Global College mid-way from an external secondary school into a specific junior/senior class.
                             </p>
                           </div>
                         </div>
@@ -982,7 +982,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                             Transfer Admission Parameters & Prior Records
                           </h4>
                           <p className="text-[11px] text-sky-700">
-                            Specify the exact class level where this student joined Dominate Star College to calculate their admission cohort year.
+                            Specify the exact class level where this student joined Dominion Star Global College to calculate their admission cohort year.
                           </p>
                         </div>
                       </div>
@@ -1107,7 +1107,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         ))}
                       </select>
                       <span className="text-[10px] text-slate-500 block mt-0.5">
-                        Current active arm at Dominate Star College
+                        Current active arm at Dominion Star Global College
                       </span>
                     </div>
 
@@ -1642,7 +1642,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       Health, Medical Profile & Sick Bay Clearance
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Dominate Star College clinic emergency preparedness and dietary management.
+                      Dominion Star Global College clinic emergency preparedness and dietary management.
                     </p>
                   </div>
 

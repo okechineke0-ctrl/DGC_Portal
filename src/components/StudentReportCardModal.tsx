@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
-import { X, Printer, ShieldCheck, Award } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { X, Printer, ShieldCheck, Award, RefreshCw, FileText } from 'lucide-react';
 import { StudentProfile, SchoolClassDefinition } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { getSubjectCode, calculateGrade, computeCaTotal } from '../data/originalData';
 import { formatStudentShortName } from '../utils/formatters';
+import { printElement } from '../utils/printReportCard';
 
 interface StudentReportCardModalProps {
   student: StudentProfile;
@@ -17,6 +18,20 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
   classes,
   onClose,
 }) => {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+    const safeTitle = `${student.name.replace(/\s+/g, '_')}_Report_Card_${student.admissionNo.replace(/[/\\:]/g, '_')}`;
+    printElement(reportRef.current, {
+      title: safeTitle,
+      onBeforePrint: () => setIsPrinting(true),
+      onAfterPrint: () => setIsPrinting(false),
+    });
+    setTimeout(() => setIsPrinting(false), 1800);
+  };
+
   const classDef = classes.find((c) => c.name === student.classArm);
   const assignedFormMaster = classDef?.classMaster || 'Class Master';
 
@@ -111,28 +126,53 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
         className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[95dvh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
-        <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print shrink-0 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-900/80 text-blue-200 border border-blue-700/60 uppercase tracking-wider shrink-0">
-              Terminal Report Card
-            </span>
-            <span className="text-xs text-slate-300 truncate max-w-[200px] sm:max-w-none">
-              {formatStudentShortName(student.name)} ({student.admissionNo}) · {student.classArm}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
+        {/* Responsive Header Bar */}
+        <div className="p-3 sm:p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print shrink-0 border-b border-slate-800">
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-900/80 text-blue-200 border border-blue-700/60 uppercase tracking-wider shrink-0">
+                Terminal Report Card
+              </span>
+              <span className="text-xs text-slate-300 font-semibold truncate">
+                {formatStudentShortName(student.name)} ({student.admissionNo})
+              </span>
+            </div>
             <button
-              onClick={() => window.print()}
-              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[36px]"
+              type="button"
+              onClick={onClose}
+              className="sm:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center border border-slate-700 shrink-0"
+              title="Close"
+              aria-label="Close"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Print Official Broadsheet</span>
-              <span className="sm:hidden">Print</span>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              id="report-card-print-btn"
+              onClick={handlePrint}
+              disabled={isPrinting}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs min-h-[40px] disabled:opacity-75"
+              title="Print or Save Official Terminal Report Card as PDF"
+            >
+              {isPrinting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-200" />
+                  <span>Preparing Broadsheet...</span>
+                </>
+              ) : (
+                <>
+                  <Printer className="w-3.5 h-3.5 text-white" />
+                  <span>Print / Save PDF</span>
+                </>
+              )}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center border border-slate-700"
+              className="hidden sm:flex p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer min-h-[40px] min-w-[40px] items-center justify-center border border-slate-700 shrink-0"
               title="Close"
               aria-label="Close"
             >
@@ -142,8 +182,8 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
         </div>
 
         {/* Report Card Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/50 print-content">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-8 space-y-6 bg-slate-50/50 print-content">
+          <div ref={reportRef} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
             {/* School Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-200 text-center sm:text-left">
               <div className="flex items-center gap-4">
@@ -205,7 +245,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                     </div>
                   )}
                   <div className="absolute bottom-0 inset-x-0 bg-blue-950/90 text-[6px] font-mono text-amber-300 py-0.2 text-center uppercase tracking-widest">
-                    DOMINATE STAR
+                    DOMINION STAR
                   </div>
                 </div>
               </div>
@@ -348,7 +388,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                     </span>
                   </div>
                   <p className="text-slate-500 text-[10px] leading-tight">
-                    Issued under the authority of Dominate Star College Directorate of Academic Affairs.
+                    Issued under the authority of Dominion Star Global College Directorate of Academic Affairs.
                   </p>
                   <p className="font-mono text-[10px] text-slate-700 font-bold truncate">
                     Ref Hash: <span className="text-blue-950">{verificationHash}</span>
@@ -367,6 +407,32 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                   Session: 2026/2027 · T1
                 </span>
               </div>
+            </div>
+
+            {/* In-Document Print Action Footer for Mobile & Touch Screens (Excluded during print) */}
+            <div className="no-print pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl">
+              <div className="text-xs text-slate-600 text-center sm:text-left">
+                <span className="font-bold text-slate-900 block">Official Academic Broadsheet Document</span>
+                <span>Includes complete continuous assessment breakdown, signatures & institutional security seal.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={isPrinting}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer min-h-[42px] active:scale-[0.99]"
+              >
+                {isPrinting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                    <span>Preparing Broadsheet...</span>
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-4 h-4 text-amber-300" />
+                    <span>Print Official Broadsheet (A4 / PDF)</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

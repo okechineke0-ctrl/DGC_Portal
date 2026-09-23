@@ -226,7 +226,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-900/70 text-blue-200 border border-blue-700/50">
               Institutional Access
             </span>
-            <span className="text-xs text-slate-400 font-medium hidden xs:inline">Dominate Star College</span>
+            <span className="text-xs text-slate-400 font-medium hidden xs:inline">Dominion Star Global College</span>
           </div>
 
           <h2 className="text-lg sm:text-xl font-bold font-serif-title tracking-tight text-white pr-8">

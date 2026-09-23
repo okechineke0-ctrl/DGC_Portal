@@ -1213,7 +1213,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                       Official Daily Attendance Register
                     </span>
                     <span className="text-xs text-blue-200">
-                      Dominate Star College · Academic Session 2026/2027
+                      Dominion Star Global College · Academic Session 2026/2027
                     </span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-bold font-serif-title tracking-tight">
@@ -1716,7 +1716,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   Certification Authority:
                 </span>
                 <span>
-                  {staff.title} {staff.name} ({staff.role}, {staff.department}) · Dominate Star College
+                  {staff.title} {staff.name} ({staff.role}, {staff.department}) · Dominion Star Global College
                 </span>
               </div>
 

@@ -260,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="mt-2.5 text-center">
             <span className="text-[10px] text-slate-400 font-medium">
-              Dominate Star College
+              Dominion Star Global College
             </span>
           </div>
         </div>

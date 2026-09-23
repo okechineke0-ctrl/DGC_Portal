@@ -15,7 +15,7 @@ import {
 export const CURRENT_SESSION = '2026/2027';
 export const CURRENT_TERM = 'First Term';
 export const TODAY_DATE = 'Monday, 14 September 2026';
-export const SCHOOL_NAME = 'Dominate Star College';
+export const SCHOOL_NAME = 'Dominion Star Global College';
 export const SCHOOL_LOCATION = 'Enugu State, Nigeria';
 export const SCHOOL_MOTTO = 'Striving for the Crown of Excellence';
 
@@ -33,7 +33,7 @@ export const DEFAULT_FEE_SCHEDULE: CollegeFeeSchedule = {
   totalFee: 130000,
   bankName: 'First Bank of Nigeria',
   accountNumber: '3128492019',
-  accountName: 'Dominate Star College Ltd - School Fees',
+  accountName: 'Dominion Star Global College Ltd - School Fees',
   paymentInstructions: 'Please present your bank deposit slip or electronic transfer receipt at the College Bursary with student registration number.',
   updatedAt: '2026-09-01T08:00:00.000Z',
   updatedBy: 'College Bursary Directorate',
