@@ -139,30 +139,31 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     : ['Mathematics', 'English Language', 'Civic Education', 'Economics'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[94dvh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative">
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+            className="absolute top-4 sm:top-5 right-4 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+            title="Close Hub"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2 pr-8 sm:pr-0">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950">
               Class Command Hub
             </span>
             <span className="text-xs text-blue-200">{schoolClass.stream} Stream · {schoolClass.room}</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold font-serif-title">
+              <h2 className="text-xl sm:text-3xl font-bold font-serif-title">
                 {schoolClass.name}
               </h2>
               <p className="text-xs text-blue-200/90 mt-1">
@@ -171,45 +172,45 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
             </div>
 
             {/* Quick Metrics */}
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-center">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-center flex-1 sm:flex-initial">
                 <span className="text-[10px] uppercase font-bold text-emerald-300 block">Released</span>
                 <span className="text-sm font-bold text-white font-mono">{clearedCount}</span>
               </div>
-              <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-center">
+              <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-center flex-1 sm:flex-initial">
                 <span className="text-[10px] uppercase font-bold text-rose-300 block">Held</span>
                 <span className="text-sm font-bold text-white font-mono">{heldCount}</span>
               </div>
             </div>
           </div>
 
-          {/* Subtabs */}
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/15 text-xs font-semibold">
+          {/* Subtabs - Scrollable horizontally on small screens */}
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-4 pt-3 border-t border-white/15 text-xs font-semibold overflow-x-auto no-scrollbar scroll-smooth pb-0.5 -mx-1 px-1">
             <button
               onClick={() => setActiveTab('students')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === 'students' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5 shrink-0" />
               <span>Enrolled Students ({classStudents.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('curriculum')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === 'curriculum' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
               <span>Curriculum & Subject Teachers ({curriculumList.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('broadsheet')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === 'broadsheet' ? 'bg-white text-blue-950 shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
               <span>Class Broadsheet</span>
             </button>
           </div>
@@ -217,14 +218,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
         {/* Notice Alert */}
         {successNotice && (
-          <div className="p-3.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-semibold">
+          <div className="p-3.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-semibold shrink-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{successNotice}</span>
           </div>
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
           {/* Form Master Control Card - Always visible at top */}
           <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -246,11 +247,11 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <select
                 value={selectedFormMaster}
                 onChange={(e) => setSelectedFormMaster(e.target.value)}
-                className="px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30"
+                className="flex-1 sm:flex-initial px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30"
               >
                 <option value="Unassigned">-- Select Teacher --</option>
                 {staffList.map((staff) => (
@@ -262,7 +263,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
               <button
                 onClick={handleSaveFormMaster}
                 disabled={isUpdatingMaster || selectedFormMaster === schoolClass.classMaster}
-                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-40"
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-40 cursor-pointer shrink-0"
               >
                 {isUpdatingMaster
                   ? 'Updating...'
@@ -280,7 +281,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     setSuccessNotice(`Removed Form Master designation from ${schoolClass.name}.`);
                     setTimeout(() => setSuccessNotice(null), 3000);
                   }}
-                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors flex items-center gap-1"
+                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   title="Remove Form Master"
                 >
                   <UserMinus className="w-3.5 h-3.5" />
@@ -302,54 +303,55 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   className="px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-800/20 w-full sm:w-72"
                 />
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => onBatchHoldClass(schoolClass.name, false)}
-                    className="px-3 py-1.5 text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-colors"
+                    className="px-3 py-1.5 text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
                   >
                     Release All ({schoolClass.name})
                   </button>
                   <button
                     onClick={() => onBatchHoldClass(schoolClass.name, true, `Bursary Hold for ${schoolClass.name}`)}
-                    className="px-3 py-1.5 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-xl border border-rose-200 transition-colors"
+                    className="px-3 py-1.5 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-xl border border-rose-200 transition-colors cursor-pointer"
                   >
                     Hold All Results
                   </button>
                 </div>
               </div>
 
-              {/* Students Table */}
-              <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
-                <table className="w-full text-left text-xs min-w-[640px]">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-3">Adm No</th>
-                      <th className="py-3 px-3">Full Name</th>
-                      <th className="py-3 px-2 text-center">Gender</th>
-                      <th className="py-3 px-2 text-center">Fees</th>
-                      <th className="py-3 px-2 text-center">Term GPA</th>
-                      <th className="py-3 px-2 text-center">Rank</th>
-                      <th className="py-3 px-3 text-center">Result Status</th>
-                      <th className="py-3 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredClassStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="py-10 px-4 text-center">
-                          <div className="max-w-sm mx-auto space-y-2">
-                            <Users className="w-8 h-8 text-slate-300 mx-auto" />
-                            <h4 className="text-xs font-bold text-slate-700">
-                              {searchStudent ? 'No student found matching search' : `No data yet (0 students enrolled in ${schoolClass.name})`}
-                            </h4>
-                            <p className="text-[11px] text-slate-400">
-                              {searchStudent ? 'Try searching with a different name or admission number.' : 'Register new students and assign them to this class from the Administration Dashboard.'}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredClassStudents.map((student) => (
+              {/* Students Display */}
+              {filteredClassStudents.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-xs border border-slate-200 flex items-center justify-center mx-auto text-blue-900">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {searchStudent ? 'No student found matching search' : `No data yet (0 students enrolled in ${schoolClass.name})`}
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      {searchStudent ? 'Try searching with a different name or admission number.' : 'Register new students and assign them to this class from the Administration Dashboard.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs min-w-[640px]">
+                      <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="py-3 px-3">Adm No</th>
+                          <th className="py-3 px-3">Full Name</th>
+                          <th className="py-3 px-2 text-center">Gender</th>
+                          <th className="py-3 px-2 text-center">Fees</th>
+                          <th className="py-3 px-2 text-center">Term GPA</th>
+                          <th className="py-3 px-2 text-center">Rank</th>
+                          <th className="py-3 px-3 text-center">Result Status</th>
+                          <th className="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredClassStudents.map((student) => (
                       <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-3 font-mono text-[11px] font-bold text-slate-800">
                           {student.admissionNo}
@@ -438,12 +440,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           </div>
                         </td>
                       </tr>
-                    )))}
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
+        </div>
+      )}
 
           {/* TAB 2: CURRICULUM & SUBJECT TEACHER ALLOCATIONS */}
           {activeTab === 'curriculum' && (
@@ -521,140 +525,140 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 </div>
 
                 {/* Add Subject Controls: Pick from Catalog or Custom */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-200">
                   {/* Dropdown pick from master catalog */}
-                  <div className="flex-1 flex gap-2">
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value) handleAddSubjectToClass(e.target.value);
-                      }}
-                      className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
-                    >
-                      <option value="">+ Select Subject from Catalog to Add...</option>
-                      {ALL_SCHOOL_SUBJECTS.filter((s) => !curriculumList.includes(s)).map((subj) => (
-                        <option key={subj} value={subj}>
-                          {subj} ({getSubjectCode(subj)} · {getSubjectCategory(subj)})
-                        </option>
-                      ))}
-                    </select>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) handleAddSubjectToClass(e.target.value);
+                    }}
+                    className="w-full sm:flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
+                  >
+                    <option value="">+ Select Subject from Catalog to Add...</option>
+                    {ALL_SCHOOL_SUBJECTS.filter((s) => !curriculumList.includes(s)).map((subj) => (
+                      <option key={subj} value={subj}>
+                        {subj} ({getSubjectCode(subj)} · {getSubjectCategory(subj)})
+                      </option>
+                    ))}
+                  </select>
 
-                    {/* Or enter custom subject name */}
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        placeholder="Or custom subject..."
-                        value={newSubjectName}
-                        onChange={(e) => setNewSubjectName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubjectToClass()}
-                        className="w-36 sm:w-44 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleAddSubjectToClass()}
-                        disabled={!newSubjectName.trim()}
-                        className="px-3 py-1.5 text-xs font-bold bg-blue-900 hover:bg-blue-800 text-white rounded-xl disabled:opacity-50 transition-colors cursor-pointer shrink-0"
-                      >
-                        + Add
-                      </button>
-                    </div>
+                  {/* Or enter custom subject name */}
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Or custom subject..."
+                      value={newSubjectName}
+                      onChange={(e) => setNewSubjectName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubjectToClass()}
+                      className="flex-1 sm:w-44 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddSubjectToClass()}
+                      disabled={!newSubjectName.trim()}
+                      className="px-3.5 py-1.5 text-xs font-bold bg-blue-900 hover:bg-blue-800 text-white rounded-xl disabled:opacity-50 transition-colors cursor-pointer shrink-0"
+                    >
+                      + Add
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* Subject Allocations Table */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-3.5">Code</th>
-                      <th className="py-3 px-3.5">Subject Course</th>
-                      <th className="py-3 px-3.5">Category</th>
-                      <th className="py-3 px-3.5">Assigned Instructor</th>
-                      <th className="py-3 px-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {curriculumList.map((subj) => {
-                      const assignedTeacher = schoolClass.subjectTeachers?.[subj] || 'Unassigned';
-                      const isAssigned = assignedTeacher && assignedTeacher !== 'Unassigned';
-                      const code = getSubjectCode(subj);
-                      const category = getSubjectCategory(subj);
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[560px]">
+                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="py-3 px-3.5">Code</th>
+                        <th className="py-3 px-3.5">Subject Course</th>
+                        <th className="py-3 px-3.5">Category</th>
+                        <th className="py-3 px-3.5">Assigned Instructor</th>
+                        <th className="py-3 px-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {curriculumList.map((subj) => {
+                        const assignedTeacher = schoolClass.subjectTeachers?.[subj] || 'Unassigned';
+                        const isAssigned = assignedTeacher && assignedTeacher !== 'Unassigned';
+                        const code = getSubjectCode(subj);
+                        const category = getSubjectCategory(subj);
 
-                      return (
-                        <tr key={subj} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 px-3.5">
-                            <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                              {code}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 font-bold text-slate-900">
-                            {subj}
-                          </td>
-                          <td className="py-3 px-3.5 text-slate-500 text-[11px]">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              category === 'Sciences'
-                                ? 'bg-blue-100 text-blue-900'
-                                : category === 'Arts & Humanities'
-                                ? 'bg-purple-100 text-purple-900'
-                                : category === 'Commercial'
-                                ? 'bg-amber-100 text-amber-900'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}>
-                              {category}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5">
-                            {isAssigned ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-950 font-bold text-xs border border-emerald-200">
-                                <UserCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                                <span>{assignedTeacher}</span>
+                        return (
+                          <tr key={subj} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-3.5">
+                              <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                {code}
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-medium text-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                <span>No Teacher Assigned</span>
+                            </td>
+                            <td className="py-3 px-3.5 font-bold text-slate-900">
+                              {subj}
+                            </td>
+                            <td className="py-3 px-3.5 text-slate-500 text-[11px]">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                category === 'Sciences'
+                                  ? 'bg-blue-100 text-blue-900'
+                                  : category === 'Arts & Humanities'
+                                  ? 'bg-purple-100 text-purple-900'
+                                  : category === 'Commercial'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {category}
                               </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Teacher Selector */}
-                              <select
-                                value={isAssigned ? assignedTeacher : ''}
-                                onChange={(e) => handleTeacherChange(subj, e.target.value)}
-                                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-hidden cursor-pointer max-w-[150px] truncate"
-                                title="Assign or Change Instructor"
-                              >
-                                <option value="">{isAssigned ? assignedTeacher : '+ Assign Teacher'}</option>
-                                {staffList
-                                  .filter((st) => st.name !== assignedTeacher)
-                                  .map((st) => (
-                                    <option key={st.id} value={st.name}>
-                                      {st.title} {st.name} ({st.department})
-                                    </option>
-                                  ))}
-                                {isAssigned && (
-                                  <option value="Unassigned">-- Unassign Teacher --</option>
-                                )}
-                              </select>
+                            </td>
+                            <td className="py-3 px-3.5">
+                              {isAssigned ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-950 font-bold text-xs border border-emerald-200">
+                                  <UserCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                  <span>{assignedTeacher}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-medium text-xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                  <span>No Teacher Assigned</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* Teacher Selector */}
+                                <select
+                                  value={isAssigned ? assignedTeacher : ''}
+                                  onChange={(e) => handleTeacherChange(subj, e.target.value)}
+                                  className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-hidden cursor-pointer max-w-[150px] truncate"
+                                  title="Assign or Change Instructor"
+                                >
+                                  <option value="">{isAssigned ? assignedTeacher : '+ Assign Teacher'}</option>
+                                  {staffList
+                                    .filter((st) => st.name !== assignedTeacher)
+                                    .map((st) => (
+                                      <option key={st.id} value={st.name}>
+                                        {st.title} {st.name} ({st.department})
+                                      </option>
+                                    ))}
+                                  {isAssigned && (
+                                    <option value="Unassigned">-- Unassign Teacher --</option>
+                                  )}
+                                </select>
 
-                              {/* Remove Subject from Class */}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSubjectFromClass(subj)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
-                                title={`Remove ${subj} from ${schoolClass.name}`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                {/* Remove Subject from Class */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSubjectFromClass(subj)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                                  title={`Remove ${subj} from ${schoolClass.name}`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -671,7 +675,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     Form Master: <strong>{schoolClass.classMaster}</strong> · Enrolled: {classStudents.length} Students
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -710,14 +714,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                       document.body.removeChild(link);
                       URL.revokeObjectURL(url);
                     }}
-                    className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors border border-slate-200 cursor-pointer shadow-2xs"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-200 cursor-pointer shadow-2xs"
                   >
                     <Download className="w-4 h-4 text-blue-900" />
                     <span>Export CSV</span>
                   </button>
                   <button
                     onClick={() => window.print()}
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-colors shadow-xs cursor-pointer"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
                     <span>Print Sheet</span>
@@ -725,69 +729,88 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
-                <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
-                    <tr>
-                      <th className="py-3 px-3">Rank</th>
-                      <th className="py-3 px-3">Adm No</th>
-                      <th className="py-3 px-3">Student Name</th>
-                      <th className="py-3 px-2 text-center">CA (40%)</th>
-                      <th className="py-3 px-2 text-center">Exam (60%)</th>
-                      <th className="py-3 px-2 text-center">Total (100%)</th>
-                      <th className="py-3 px-2 text-center">Term GPA</th>
-                      <th className="py-3 px-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {classStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="py-12 px-4 text-center">
-                          <div className="max-w-md mx-auto space-y-2">
-                            <Users className="w-8 h-8 text-slate-300 mx-auto" />
-                            <h4 className="text-xs font-bold text-slate-700">
-                              No data yet (0 students in {schoolClass.name})
-                            </h4>
-                            <p className="text-[11px] text-slate-400">
-                              No students are enrolled in this class arm yet. Register students to view their broad sheet.
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      classStudents.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-900">{s.termRank || '—'}</td>
-                        <td className="py-3 px-3 font-mono text-slate-700">{s.admissionNo}</td>
-                        <td className="py-3 px-3 font-bold text-slate-900">{s.name}</td>
-                        <td className="py-3 px-2 text-center font-mono">
-                          {s.subjects[0]?.caTotal ?? '—'}
-                        </td>
-                        <td className="py-3 px-2 text-center font-mono">
-                          {s.subjects[0]?.exam ?? '—'}
-                        </td>
-                        <td className="py-3 px-2 text-center font-mono font-bold">
-                          {s.subjects[0]?.total ?? '—'}
-                        </td>
-                        <td className="py-3 px-2 text-center font-mono font-bold text-slate-950">
-                          {s.termGpa ?? 0}%
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              s.resultHeld ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
-                            }`}
-                          >
-                            {s.resultHeld ? 'Held' : 'Cleared'}
-                          </span>
-                        </td>
-                      </tr>
-                    )))}
-                  </tbody>
-                </table>
-              </div>
+              {classStudents.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-xs border border-slate-200 flex items-center justify-center mx-auto text-blue-900">
+                    <FileSpreadsheet className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      No Broadsheet Data (0 Students in {schoolClass.name})
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      No students are currently enrolled in this class arm yet. Register or assign students to view their broad sheet.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs whitespace-nowrap min-w-[680px]">
+                      <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
+                        <tr>
+                          <th className="py-3 px-3">Rank</th>
+                          <th className="py-3 px-3">Adm No</th>
+                          <th className="py-3 px-3">Student Name</th>
+                          <th className="py-3 px-2 text-center">CA (40%)</th>
+                          <th className="py-3 px-2 text-center">Exam (60%)</th>
+                          <th className="py-3 px-2 text-center">Total (100%)</th>
+                          <th className="py-3 px-2 text-center">Term GPA</th>
+                          <th className="py-3 px-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {classStudents.map((s) => (
+                          <tr key={s.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-3 font-mono font-bold text-blue-900">{s.termRank || '—'}</td>
+                            <td className="py-3 px-3 font-mono text-slate-700">{s.admissionNo}</td>
+                            <td className="py-3 px-3 font-bold text-slate-900">{s.name}</td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {s.subjects[0]?.caTotal ?? '—'}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {s.subjects[0]?.exam ?? '—'}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold">
+                              {s.subjects[0]?.total ?? '—'}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold text-slate-950">
+                              {s.termGpa ?? 0}%
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  s.resultHeld ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                                }`}
+                              >
+                                {s.resultHeld ? 'Held' : 'Cleared'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+
+        {/* Bottom Responsive Modal Footer */}
+        <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <span className="font-bold text-slate-800">{schoolClass.name} Hub</span>
+            <span className="text-slate-300">·</span>
+            <span>{classStudents.length} Students</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs"
+          >
+            Close Hub
+          </button>
         </div>
       </div>
     </div>
