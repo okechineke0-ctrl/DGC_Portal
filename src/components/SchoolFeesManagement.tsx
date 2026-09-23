@@ -1108,7 +1108,7 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
                   <th className="py-3 px-4">Bill Amount</th>
                   <th className="py-3 px-4">Amount Settled</th>
                   <th className="py-3 px-4">Receipt Ref</th>
-                  <th className="py-3 px-4 text-right">Fee Clearance Action</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Fee Clearance Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1212,8 +1212,8 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
                         </td>
 
                         {/* Mark Paid / Not Paid & Receipt Actions */}
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => setSelectedReceiptStudent(std)}

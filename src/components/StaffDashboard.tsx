@@ -645,26 +645,35 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`px-3.5 py-2 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
-                activeTab === 'attendance'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-              }`}
-              id="header-mark-attendance-btn"
-            >
-              <CalendarCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>Mark Attendance</span>
-            </button>
             {activeTab === 'grading' && (
+              <>
+                <button
+                  onClick={handleSaveAllClassScores}
+                  disabled={savingId === 'ALL'}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[38px]"
+                  title="Save and synchronize all currently entered student scores"
+                >
+                  <Save className="w-3.5 h-3.5 shrink-0" />
+                  <span>{savingId === 'ALL' ? 'Saving...' : 'Sync Class Sheet'}</span>
+                </button>
+                <button
+                  onClick={handleExportBroadsheetCSV}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+                  title="Export broadsheet for this class and subject to CSV"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>Export CSV</span>
+                </button>
+              </>
+            )}
+            {activeTab === 'attendance' && (
               <button
-                onClick={handleSaveAllClassScores}
-                disabled={savingId === 'ALL'}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[38px]"
+                onClick={handleExportAttendance}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+                title="Export statutory attendance register to CSV"
               >
-                <Save className="w-3.5 h-3.5 shrink-0" />
-                <span>{savingId === 'ALL' ? 'Saving...' : 'Sync Class Sheet'}</span>
+                <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Export Register</span>
               </button>
             )}
             <button

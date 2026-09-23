@@ -347,7 +347,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           <th className="py-3 px-2 text-center">Term GPA</th>
                           <th className="py-3 px-2 text-center">Rank</th>
                           <th className="py-3 px-3 text-center">Result Status</th>
-                          <th className="py-3 px-3 text-right">Actions</th>
+                          <th className="py-3 px-3 text-right whitespace-nowrap">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -393,11 +393,11 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => onToggleHoldResult(student.id, !student.resultHeld)}
-                              className={`p-1.5 rounded-lg border transition-colors ${
+                              className={`p-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs active:scale-95 ${
                                 student.resultHeld
                                   ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
                                   : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
@@ -408,14 +408,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                             </button>
                             <button
                               onClick={() => onPreviewReportCard(student)}
-                              className="px-2 py-1 text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg border border-blue-200 transition-colors"
+                              className="px-2.5 py-1 text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-xl border border-blue-200 transition-all cursor-pointer shadow-2xs active:scale-95"
                               title="Preview Report Card"
                             >
                               Report
                             </button>
                             <button
                               onClick={() => onEditStudent(student)}
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer shadow-2xs active:scale-95"
                               title="Edit Student"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -431,7 +431,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                                     }
                                   }
                                 }}
-                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
+                                className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all cursor-pointer shadow-2xs active:scale-95"
                                 title="Delete Student"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

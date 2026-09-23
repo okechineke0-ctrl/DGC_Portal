@@ -169,22 +169,10 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   const [quickFormMasterClass, setQuickFormMasterClass] = useState<string | null>(null);
   const [quickFormMasterTeacher, setQuickFormMasterTeacher] = useState<string>('');
 
-  // Add Staff Modal State
+  // Management Modal States
   const [isTeacherManagerOpen, setIsTeacherManagerOpen] = useState(false);
   const [isRegisterStudentOpen, setIsRegisterStudentOpen] = useState(false);
   const [deletingStaffMember, setDeletingStaffMember] = useState<StaffMember | null>(null);
-  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
-  const [newStaff, setNewStaff] = useState<Partial<StaffMember>>({
-    title: 'Mr.',
-    name: '',
-    department: 'Sciences',
-    role: 'Subject Tutor',
-    email: '',
-    phone: '',
-    qualification: "B.Sc (Ed)",
-    subjectsTaught: [],
-    assignedClasses: [],
-  });
 
   // Notifications
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -203,31 +191,6 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       notify(`Assigned ${quickFormMasterTeacher} as Form Master of ${className}`);
       setQuickFormMasterClass(null);
       setQuickFormMasterTeacher('');
-    }
-  };
-
-  // Add staff submission
-  const handleAddStaffSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStaff.name) {
-      alert('Please provide teacher name.');
-      return;
-    }
-    const success = await onAddStaff(newStaff);
-    if (success) {
-      notify(`Registered teacher: ${newStaff.name}`);
-      setIsAddStaffOpen(false);
-      setNewStaff({
-        title: 'Mr.',
-        name: '',
-        department: 'Sciences',
-        role: 'Subject Tutor',
-        email: '',
-        phone: '',
-        qualification: "B.Sc (Ed)",
-        subjectsTaught: [],
-        assignedClasses: [],
-      });
     }
   };
 
@@ -333,12 +296,22 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => setIsRegisterStudentOpen(true)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer min-h-[38px]"
               id="admin-register-student-header-btn"
               title="Register New Student: JSS 1 to SS 3"
             >
               <UserPlus className="w-3.5 h-3.5 text-white shrink-0" />
               <span>+ Register Student</span>
+            </button>
+
+            <button
+              onClick={() => setIsTeacherManagerOpen(true)}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              id="admin-teacher-management-header-btn"
+              title="Teacher & Staff Management: Add, Delete, Form Masters & Subjects"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Faculty Management</span>
             </button>
 
             <button
@@ -351,17 +324,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               title="Hold or Release an Individual Student's Result"
             >
               <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>Hold / Release</span>
-            </button>
-
-            <button
-              onClick={() => setIsTeacherManagerOpen(true)}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
-              id="admin-teacher-management-header-btn"
-              title="Teacher Management: Add, Delete, Assign Classes"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>Faculty Hub</span>
+              <span>Result Clearance</span>
             </button>
 
             <button
@@ -388,31 +351,55 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
         </div>
       )}
 
-      {/* Administration High-Level Metrics */}
+      {/* Administration High-Level Metrics (Interactive Overview Cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            School Class Arms
-          </span>
-          <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{totalClassesCount} Classes</div>
-          <span className="text-[11px] text-slate-500 mt-0.5 block">JSS 1A to SS 3 Commercial</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Form Masters Assigned
-          </span>
-          <div className="text-2xl font-black text-blue-900 mt-1 font-mono">
-            {assignedFormMastersCount} / {totalClassesCount}
-          </div>
-          <span className="text-[11px] text-blue-600 font-semibold mt-0.5 block">
-            {assignedFormMastersCount === totalClassesCount ? 'All Classes Covered' : 'Pending Allocation'}
-          </span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <button
+          type="button"
+          onClick={() => setActiveTab('classes')}
+          className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-400 hover:shadow-md transition-all text-left group cursor-pointer flex flex-col justify-between"
+        >
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block group-hover:text-blue-600 transition-colors">
+              School Class Arms
+            </span>
+            <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{totalClassesCount} Classes</div>
+            <span className="text-[11px] text-slate-500 mt-0.5 block">JSS 1A to SS 3 Commercial</span>
+          </div>
+          <span className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <span>Explore 14 Classes</span>
+            <ArrowRight className="w-3 h-3" />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('staff')}
+          className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-400 hover:shadow-md transition-all text-left group cursor-pointer flex flex-col justify-between"
+        >
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block group-hover:text-blue-600 transition-colors">
+              Form Masters Assigned
+            </span>
+            <div className="text-2xl font-black text-blue-900 mt-1 font-mono">
+              {assignedFormMastersCount} / {totalClassesCount}
+            </div>
+            <span className="text-[11px] text-blue-600 font-semibold mt-0.5 block">
+              {assignedFormMastersCount === totalClassesCount ? 'All Classes Covered' : 'Pending Allocation'}
+            </span>
+          </div>
+          <span className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <span>Manage Faculty Roster</span>
+            <ArrowRight className="w-3 h-3" />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('students')}
+          className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-400 hover:shadow-md transition-all text-left group cursor-pointer flex flex-col justify-between"
+        >
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block group-hover:text-blue-600 transition-colors">
               Enrolled Students
             </span>
             <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{totalStudentsCount}</div>
@@ -420,19 +407,19 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               {totalStudentsCount === 0 ? 'No data yet' : `${releasedCount} Released · ${heldCount} Held`}
             </span>
           </div>
-          <button
-            onClick={() => setIsRegisterStudentOpen(true)}
-            className="mt-3 w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
-            id="metric-card-register-student-btn"
-          >
-            <UserPlus className="w-3.5 h-3.5 text-white" />
-            <span>+ Register Student</span>
-          </button>
-        </div>
+          <span className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <span>View Student Registry</span>
+            <ArrowRight className="w-3 h-3" />
+          </span>
+        </button>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+        <button
+          type="button"
+          onClick={() => setActiveTab('fees')}
+          className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition-all text-left group cursor-pointer flex flex-col justify-between"
+        >
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block group-hover:text-blue-600 transition-colors">
               School Fees & Bursary
             </span>
             <div className="text-2xl font-black text-slate-900 mt-1 font-mono">
@@ -442,15 +429,11 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               Scholars Cleared · {students.filter(s => s.feeStatus !== 'Cleared').length} Outstanding
             </span>
           </div>
-          <button
-            onClick={() => setActiveTab('fees')}
-            className="mt-3 w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
-            id="metric-card-manage-fees-btn"
-          >
-            <CreditCard className="w-3.5 h-3.5 text-white" />
-            <span>Manage Fees & Clearance →</span>
-          </button>
-        </div>
+          <span className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <span>Review Fee Clearances</span>
+            <ArrowRight className="w-3 h-3" />
+          </span>
+        </button>
       </div>
 
       {/* Main Administrative Navigation Tabs */}
@@ -528,19 +511,6 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
           <span>Bursary & Fees</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setIndividualHoldStudent(null);
-            setIsIndividualHoldOpen(true);
-          }}
-          className="ml-auto px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[40px]"
-          title="Individual Result Hold & Release Controller"
-        >
-          <Lock className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-          <span>Hold / Release</span>
-        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -558,15 +528,16 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               </p>
             </div>
 
-            {/* Quick Filter and Register Action */}
+            {/* Class Actions & Level Filter */}
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => setIsRegisterStudentOpen(true)}
-                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                onClick={() => setActiveTab('curriculum')}
+                className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
+                title="View & manage subjects allocated across classes"
               >
-                <UserPlus className="w-3.5 h-3.5 text-white" />
-                <span>+ Register Student</span>
+                <BookOpen className="w-3.5 h-3.5 text-blue-900" />
+                <span>Curriculum Matrix →</span>
               </button>
 
               <div className="flex items-center gap-2">
@@ -574,7 +545,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 <select
                   value={filterLevel}
                   onChange={(e) => setFilterLevel(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-hidden"
                 >
                   <option value="ALL">All Levels</option>
                   <option value="JSS 1">JSS 1</option>
@@ -759,21 +730,15 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setIsTeacherManagerOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer min-h-[38px]"
                 id="open-teacher-management-hub-btn"
+                title="Add new teachers, manage faculty directory, and configure Form Masters & subjects"
               >
                 <GraduationCap className="w-4 h-4 text-white" />
-                <span>Teacher Management Hub</span>
-              </button>
-              <button
-                onClick={() => setIsTeacherManagerOpen(true)}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Add Teacher</span>
+                <span>+ Add & Manage Teachers</span>
               </button>
             </div>
           </div>
@@ -1010,68 +975,73 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!onBatchAssignSubjects) return;
-                    setIsProcessingCurriculumAction(true);
-                    const compulsory = ['English Language', 'Mathematics', 'Civic Education', 'Data Processing / ICT'];
-                    await onBatchAssignSubjects([...SCHOOL_CLASSES_LIST], compulsory, 'add');
-                    setIsProcessingCurriculumAction(false);
-                    setCurriculumSuccessNotice('Assigned 4 Core Compulsory subjects (English, Maths, Civic Ed, ICT) to all 14 classes.');
-                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
-                  }}
-                  disabled={isProcessingCurriculumAction}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Assign English, Mathematics, Civic Education & ICT to all 14 classes"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Assign 4 Core to All 14 Classes</span>
-                </button>
+              {/* Organized Action Suite: Presets + Custom Matrix */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 hidden sm:inline-block">
+                    Presets:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!onBatchAssignSubjects) return;
+                      setIsProcessingCurriculumAction(true);
+                      const compulsory = ['English Language', 'Mathematics', 'Civic Education', 'Data Processing / ICT'];
+                      await onBatchAssignSubjects([...SCHOOL_CLASSES_LIST], compulsory, 'add');
+                      setIsProcessingCurriculumAction(false);
+                      setCurriculumSuccessNotice('Assigned 4 Core Compulsory subjects (English, Maths, Civic Ed, ICT) to all 14 classes.');
+                      setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                    }}
+                    disabled={isProcessingCurriculumAction}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Assign English, Mathematics, Civic Education & ICT to all 14 classes"
+                  >
+                    <Zap className="w-3 h-3 text-amber-300" />
+                    <span>4 Core (All 14)</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!onBatchAssignSubjects) return;
-                    setIsProcessingCurriculumAction(true);
-                    const juniorClasses = ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'JSS 3A', 'JSS 3B'];
-                    await onBatchAssignSubjects(juniorClasses, JUNIOR_CURRICULUM, 'add');
-                    setIsProcessingCurriculumAction(false);
-                    setCurriculumSuccessNotice('Assigned Standard Junior Curriculum (9 subjects) to all 6 JSS class arms.');
-                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
-                  }}
-                  disabled={isProcessingCurriculumAction}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Assign 9 standard junior subjects to JSS 1A - JSS 3B"
-                >
-                  <span>⚡ Junior Std (6 Classes)</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!onBatchAssignSubjects) return;
+                      setIsProcessingCurriculumAction(true);
+                      const juniorClasses = ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'JSS 3A', 'JSS 3B'];
+                      await onBatchAssignSubjects(juniorClasses, JUNIOR_CURRICULUM, 'add');
+                      setIsProcessingCurriculumAction(false);
+                      setCurriculumSuccessNotice('Assigned Standard Junior Curriculum (9 subjects) to all 6 JSS class arms.');
+                      setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                    }}
+                    disabled={isProcessingCurriculumAction}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+                    title="Assign 9 standard junior subjects to JSS 1A - JSS 3B"
+                  >
+                    <span>Junior Standard (6 Arms)</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!onBatchAssignSubjects) return;
-                    setIsProcessingCurriculumAction(true);
-                    await onBatchAssignSubjects(['SS 2 Science', 'SS 3 Science'], SENIOR_SCIENCE_CURRICULUM, 'add');
-                    await onBatchAssignSubjects(['SS 2 Art', 'SS 3 Art'], SENIOR_ART_CURRICULUM, 'add');
-                    await onBatchAssignSubjects(['SS 2 Commercial', 'SS 3 Commercial'], SENIOR_COMMERCIAL_CURRICULUM, 'add');
-                    await onBatchAssignSubjects(
-                      ['SS 1A', 'SS 1B'],
-                      ['English Language', 'Mathematics', 'Civic Education', 'Economics', 'Biology', 'Chemistry', 'Physics', 'Government', 'Data Processing / ICT'],
-                      'add'
-                    );
-                    setIsProcessingCurriculumAction(false);
-                    setCurriculumSuccessNotice('Assigned Senior Secondary Science, Art & Commercial streams to respective classes.');
-                    setTimeout(() => setCurriculumSuccessNotice(null), 3500);
-                  }}
-                  disabled={isProcessingCurriculumAction}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Assign specialized streams to Senior Secondary classes"
-                >
-                  <span>⚡ Senior Streams (8 Classes)</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!onBatchAssignSubjects) return;
+                      setIsProcessingCurriculumAction(true);
+                      await onBatchAssignSubjects(['SS 2 Science', 'SS 3 Science'], SENIOR_SCIENCE_CURRICULUM, 'add');
+                      await onBatchAssignSubjects(['SS 2 Art', 'SS 3 Art'], SENIOR_ART_CURRICULUM, 'add');
+                      await onBatchAssignSubjects(['SS 2 Commercial', 'SS 3 Commercial'], SENIOR_COMMERCIAL_CURRICULUM, 'add');
+                      await onBatchAssignSubjects(
+                        ['SS 1A', 'SS 1B'],
+                        ['English Language', 'Mathematics', 'Civic Education', 'Economics', 'Biology', 'Chemistry', 'Physics', 'Government', 'Data Processing / ICT'],
+                        'add'
+                      );
+                      setIsProcessingCurriculumAction(false);
+                      setCurriculumSuccessNotice('Assigned Senior Secondary Science, Art & Commercial streams to respective classes.');
+                      setTimeout(() => setCurriculumSuccessNotice(null), 3500);
+                    }}
+                    disabled={isProcessingCurriculumAction}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+                    title="Assign specialized streams to Senior Secondary classes"
+                  >
+                    <span>Senior Streams (8 Arms)</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
@@ -1079,7 +1049,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     setInitialSubjectForBatch(undefined);
                     setIsBatchSubjectModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                   title="Open Batch Subject Allocation Suite"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
@@ -1444,38 +1414,6 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'students' && (
         <div className="space-y-4">
-          {/* Individual Student Result Hold Console Banner */}
-          <div className="p-4 sm:p-5 bg-sky-50 border border-sky-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0 mt-0.5 sm:mt-0">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 block">
-                  Individual Student Result Hold Controller
-                </span>
-                <h4 className="text-sm font-bold text-slate-900 leading-tight">
-                  Hold or Release Any Student's Result Independently
-                </h4>
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  Target a specific student by name or registration number — no class grouping required.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIndividualHoldStudent(null);
-                setIsIndividualHoldOpen(true);
-              }}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer min-h-[44px]"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Hold / Release Student</span>
-            </button>
-          </div>
-
           {/* Controls Bar */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1558,7 +1496,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                     setIsRefreshingDb(false);
                   }
                 }}
-                className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px] border border-slate-200"
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px] border border-slate-200"
                 title="Synchronize and pull latest student records from live Cloud Database"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshingDb ? 'animate-spin text-blue-600' : ''}`} />
@@ -1568,7 +1506,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRegisterStudentOpen(true)}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px]"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer min-h-[40px]"
                 title="Open Official Admission & Registration Form"
               >
                 <UserPlus className="w-3.5 h-3.5 text-white" />
@@ -1657,14 +1595,14 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         <span>{student.resultHeld ? 'WITHHELD' : 'RELEASED'}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                         <button
                           onClick={() => {
                             setIndividualHoldStudent(student);
                             setIsIndividualHoldOpen(true);
                           }}
-                          className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1 cursor-pointer min-h-[36px] ${
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] shadow-2xs active:scale-95 ${
                             student.resultHeld
                               ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
                               : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
@@ -1676,7 +1614,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                         </button>
                         <button
                           onClick={() => setReportCardStudent(student)}
-                          className="px-2.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors min-h-[36px] cursor-pointer"
+                          className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all min-h-[36px] cursor-pointer shadow-xs active:scale-95"
+                          title="Generate Official Student Report Card"
                         >
                           Report
                         </button>
@@ -1687,7 +1626,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                               notify(`Removed student: ${student.name}`);
                             }
                           }}
-                          className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors min-h-[36px] flex items-center justify-center cursor-pointer"
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all min-h-[36px] flex items-center justify-center cursor-pointer border border-rose-200 active:scale-95"
                           title="Delete Student Record"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2056,111 +1995,6 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                 Save Assignment
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: ADD TEACHER                                                        */}
-      {/* ========================================================================= */}
-      {isAddStaffOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Add New Teacher</h3>
-              <button onClick={() => setIsAddStaffOpen(false)} className="p-1 rounded-lg hover:bg-slate-100">
-                <X className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddStaffSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Title</label>
-                  <select
-                    value={newStaff.title}
-                    onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value as any })}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
-                  >
-                    <option value="Mr.">Mr.</option>
-                    <option value="Mrs.">Mrs.</option>
-                    <option value="Dr.">Dr.</option>
-                    <option value="Engr.">Engr.</option>
-                    <option value="Lady">Lady</option>
-                    <option value="Barr.">Barr.</option>
-                  </select>
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <label className="font-bold text-slate-700">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Teacher Full Name"
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Department</label>
-                  <select
-                    value={newStaff.department}
-                    onChange={(e) => setNewStaff({ ...newStaff, department: e.target.value as any })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
-                  >
-                    <option value="Sciences">Sciences</option>
-                    <option value="Arts">Arts</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="General">General</option>
-                    <option value="Administration">Administration</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Role</label>
-                  <select
-                    value={newStaff.role}
-                    onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value as any })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
-                  >
-                    <option value="Subject Tutor">Subject Tutor</option>
-                    <option value="Class Master">Class Master</option>
-                    <option value="Head of Department">HOD</option>
-                    <option value="Dean of Studies">Dean of Studies</option>
-                    <option value="Examination Officer">Exam Officer</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="e.g. k.okoli@dominatestar.edu.ng"
-                  value={newStaff.email}
-                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddStaffOpen(false)}
-                  className="px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
-                >
-                  Register Teacher
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

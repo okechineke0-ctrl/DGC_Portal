@@ -22,6 +22,8 @@ import {
   ShieldCheck,
   KeyRound,
   CheckCircle2,
+  ArrowUp,
+  ChevronUp,
 } from 'lucide-react';
 import { DGCLogo } from './components/DGCLogo';
 import { Sidebar } from './components/Sidebar';
@@ -88,6 +90,16 @@ export default function App() {
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [classes, setClasses] = useState<SchoolClassDefinition[]>(SCHOOL_CLASSES_DEFINITIONS);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+
+  // Monitor scroll position for responsive bottom-right navigation
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 240);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Initial fetch from backend API & live Firestore verification
   useEffect(() => {
@@ -171,10 +183,6 @@ export default function App() {
   }, [students]);
 
   // --- HANDLERS FOR STAFF & CEO WORKSPACES ---
-
-  const handleOpenGateway = () => {
-    setIsGatewayOpen(true);
-  };
 
   // High-precision sliding-window algorithm for rapid 6-click administrative shortcut (zero intrusive UI elements)
   const logoClicksRef = useRef<number[]>([]);
@@ -1612,7 +1620,7 @@ export default function App() {
           )}
         </main>
 
-        {/* Global Dignified Footer */}
+        {/* Global Dignified Responsive Footer */}
         <footer className="border-t border-slate-200 bg-white py-6 px-4 sm:px-8 text-xs text-slate-500 mt-12">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
@@ -1623,13 +1631,33 @@ export default function App() {
               <span className="italic text-slate-400">"{SCHOOL_MOTTO}"</span>
             </div>
 
-            <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+            {/* Institutional Registry Metadata */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 text-slate-400 text-[11px]">
               <span>6-Year Secondary Education</span>
               <span>•</span>
-              <span className="text-slate-500">Institutional Registry System</span>
+              <span className="text-slate-500 font-medium">Institutional Registry System</span>
             </div>
           </div>
         </footer>
+
+        {/* Floating Scroll to Top Widget (only shown when scrolled down) */}
+        {showScrollTop && (
+          <div
+            id="floating-bottom-right-widget"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40"
+          >
+            <button
+              type="button"
+              id="scroll-to-top-btn"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="w-10 h-10 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-md flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer group"
+              title="Scroll to top of page"
+              aria-label="Scroll to top"
+            >
+              <ArrowUp className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* GATEWAY MODAL (Passcode & administrative verification for staff/CEO) */}
