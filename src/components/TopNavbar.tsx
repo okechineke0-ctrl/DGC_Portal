@@ -30,6 +30,7 @@ interface TopNavbarProps {
     classArm: string;
     admissionNo: string;
     photoUrl?: string;
+    stream?: string;
   } | null;
   onExitToPortal?: () => void;
   staffName?: string;
@@ -131,67 +132,37 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
 
           <div className="flex flex-col min-w-0 overflow-hidden">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase truncate">
-                {isLoggedOut
-                  ? 'STUDENT PORTAL'
-                  : currentRole === 'ceo'
-                  ? 'ADMINISTRATION'
-                  : currentRole === 'staff'
-                  ? 'FACULTY CONSOLE'
-                  : portalMode === 'director'
-                  ? 'REGISTRY'
-                  : 'STUDENT PORTAL'}
-              </span>
-              {currentRole === 'ceo' && !isLoggedOut && (
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-900 text-[9px] font-bold rounded-md uppercase shrink-0">
-                  Admin
-                </span>
-              )}
-              {currentRole === 'staff' && !isLoggedOut && (
-                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 text-[9px] font-bold rounded-md uppercase shrink-0">
-                  Faculty
-                </span>
-              )}
-            </div>
-
             <h1 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 leading-tight flex items-center gap-2 truncate">
               <span className="truncate">
                 {isLoggedOut
                   ? 'Dominion Star Global College'
                   : currentRole === 'ceo'
-                  ? 'Directorate Console'
+                  ? 'Directorate Administration'
                   : currentRole === 'staff'
                   ? 'Faculty Academic Console'
                   : portalMode === 'director'
                   ? 'Academic Records'
-                  : 'Academic Portal'}
-              </span>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-md shrink-0">
-                Senior Division
+                  : 'Student Academic Portal'}
               </span>
             </h1>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium truncate mt-0.5">
+              <span>{isLoggedOut ? 'Awgu, Enugu State' : currentStudent ? `${currentStudent.classArm}${currentStudent.stream ? ` · ${currentStudent.stream} Stream` : ''}` : 'Senior Secondary Division'}</span>
+              <span className="hidden sm:inline text-slate-300">·</span>
+              <span className="hidden sm:inline text-slate-500">{CURRENT_SESSION}</span>
+            </div>
           </div>
         </div>
 
         {/* Right Controls: Session Info, Notifications, Responsive Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Current Session Badge */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 shrink-0">
-            <Calendar className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-            <div className="flex flex-col text-left">
-              <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">SESSION</span>
-              <span className="text-slate-800 font-bold leading-tight">{CURRENT_SESSION} · {CURRENT_TERM}</span>
+          {/* Current Session Indicator */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 shrink-0">
+            <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="font-semibold text-slate-900">{CURRENT_SESSION}</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-600">{CURRENT_TERM}</span>
             </div>
-          </div>
-
-          {/* Database Live Cloud Indicator */}
-          <div
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold bg-emerald-50/80 border-emerald-200/90 text-emerald-800 shrink-0"
-            title="Active Google Cloud Firestore Database Connection"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Cloud Live</span>
           </div>
 
           {/* Notifications Trigger */}

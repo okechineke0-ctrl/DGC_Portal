@@ -402,30 +402,30 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in duration-200">
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-900 via-slate-900 to-blue-950 text-white relative">
+        <div className="p-5 sm:p-6 bg-slate-900 text-white relative border-b border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors cursor-pointer"
+            className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-xl transition-colors cursor-pointer border border-slate-700"
             title="Close registration"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 text-blue-300 border border-white/20 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-800 text-amber-300 border border-slate-700 flex items-center justify-center shrink-0">
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-white bg-blue-600 px-2 py-0.5 rounded">
-                  Admin Authority Exclusive
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-amber-300 border border-slate-700">
+                  Administrative Admission
                 </span>
-                <span className="text-[10px] text-slate-300">
+                <span className="text-[11px] text-slate-400">
                   Principal & Registrar Office
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold font-serif-title tracking-tight mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold font-serif-title tracking-tight mt-1 text-white">
                 New Student Admission & Registration
               </h2>
               <p className="text-xs text-slate-300">
@@ -597,14 +597,14 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
           /* REGISTRATION FORM */
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             {/* Section Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-sky-200 bg-sky-50/60 px-3 sm:px-6 overflow-x-auto text-xs font-bold py-2 shrink-0 scrollbar-none">
+            <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-100/70 px-3 sm:px-6 overflow-x-auto text-xs font-semibold py-2 shrink-0 scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveSection('biodata')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'biodata'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-sky-100/70'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
@@ -616,8 +616,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                 onClick={() => setActiveSection('academic')}
                 className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'academic'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-sky-100/70'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -627,10 +627,10 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
               <button
                 type="button"
                 onClick={() => setActiveSection('guardian')}
-                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'guardian'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-sky-100/70'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
                 <Users className="w-3.5 h-3.5" />
@@ -640,10 +640,10 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
               <button
                 type="button"
                 onClick={() => setActiveSection('medical')}
-                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'medical'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-sky-100/70'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
                 <HeartPulse className="w-3.5 h-3.5" />
@@ -653,10 +653,10 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
               <button
                 type="button"
                 onClick={() => setActiveSection('bursary')}
-                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer min-h-[36px] ${
                   activeSection === 'bursary'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-sky-100/70'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" />
@@ -1840,7 +1840,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       else if (activeSection === 'medical') setActiveSection('guardian');
                       else if (activeSection === 'bursary') setActiveSection('medical');
                     }}
-                    className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
+                    className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer min-h-[38px]"
                   >
                     ← Previous Step
                   </button>
@@ -1857,7 +1857,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                       else if (activeSection === 'guardian') setActiveSection('medical');
                       else if (activeSection === 'medical') setActiveSection('bursary');
                     }}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[40px]"
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[38px] border border-slate-800"
                   >
                     <span>Next Step</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -1866,14 +1866,14 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50 min-h-[40px]"
+                    className="px-5 sm:px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 min-h-[38px] border border-slate-800"
                   >
                     {isSubmitting ? (
                       <span>Registering Student...</span>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Submit & Authorize Admission</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Authorize Admission</span>
                       </>
                     )}
                   </button>

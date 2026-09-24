@@ -140,11 +140,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Middle: Student Portal Core Navigation */}
         <div className="flex-1 overflow-y-auto px-3.5 py-5 space-y-4">
-          <div className="px-3 text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
-            Student Academic Services
+          <div className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+            Academic Services
           </div>
 
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -158,29 +158,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   id={`sidebar-nav-${item.id}`}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center justify-between group cursor-pointer ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/70'
                   }`}
                 >
-                  <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`p-2 rounded-xl mt-0.5 shrink-0 ${
+                      className={`p-1.5 rounded-lg shrink-0 transition-colors ${
                         isActive
-                          ? 'bg-blue-700 text-white'
-                          : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200 group-hover:text-slate-900'
+                          ? 'bg-slate-800 text-amber-300'
+                          : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-800'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0 pr-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold truncate block">{item.label}</span>
-                      </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold truncate block leading-snug">{item.label}</span>
                       <span
-                        className={`text-[10px] block truncate mt-0.5 ${
-                          isActive ? 'text-blue-100' : 'text-slate-400'
+                        className={`text-[10px] block truncate ${
+                          isActive ? 'text-slate-300' : 'text-slate-400'
                         }`}
                       >
                         {item.subtitle}
@@ -190,10 +188,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                   {item.badge && (
                     <span
-                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 tabular-nums ${
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 tabular-nums ${
                         isActive
-                          ? 'bg-white text-blue-900 font-bold'
-                          : item.badgeColor || 'bg-slate-100 text-slate-700'
+                          ? 'bg-slate-800 text-slate-200 border border-slate-700'
+                          : 'text-slate-500 group-hover:text-slate-700'
                       }`}
                     >
                       {item.badge}
@@ -206,15 +204,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom: Dignified Student Profile & Log Out */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/70">
-          <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-3">
+        <div className="p-4 border-t border-slate-200/80 bg-slate-50/60">
+          <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-2.5">
             {/* Student Identity Mini Card */}
             <div
               onClick={() => handleNavClick('settings')}
-              className="flex items-center gap-3 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-slate-50 transition-colors group"
+              className="flex items-center gap-2.5 cursor-pointer p-1 rounded-lg hover:bg-slate-50 transition-colors group"
               title="Click to manage profile & passport photo"
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-950 text-amber-300 flex items-center justify-center font-bold text-sm shadow-xs shrink-0 overflow-hidden border border-slate-200">
+              <div className="w-9 h-9 rounded-lg bg-slate-900 text-amber-300 flex items-center justify-center font-bold text-xs shadow-xs shrink-0 overflow-hidden border border-slate-300">
                 {currentStudent?.photoUrl ? (
                   <img
                     src={currentStudent.photoUrl}
@@ -228,21 +226,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     .slice(0, 2)
                     .join('')
                 ) : (
-                  <User className="w-5 h-5 text-amber-300" />
+                  <User className="w-4 h-4 text-amber-300" />
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-blue-900 truncate block">
+                  <span className="text-xs font-semibold text-slate-900 group-hover:text-blue-900 truncate block">
                     {currentStudent ? formatStudentShortName(currentStudent.name) : 'No student selected'}
                   </span>
-                  <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-900 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Settings className="w-3 h-3 text-slate-400 group-hover:text-slate-700 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono tabular-nums">
                   <span className="truncate">{currentStudent?.admissionNo || '—'}</span>
-                  <span>•</span>
-                  <span className="font-semibold text-blue-900">{currentStudent?.classArm || 'No Class'}</span>
+                  <span>·</span>
+                  <span className="font-semibold text-slate-700">{currentStudent?.classArm || 'No Class'}</span>
                 </div>
               </div>
             </div>
@@ -251,14 +249,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               id="sidebar-logout-btn"
               onClick={onLogout}
-              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+              className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer border border-slate-800"
             >
-              <LogOut className="w-4 h-4 text-white" />
-              <span>Log Out</span>
+              <LogOut className="w-3.5 h-3.5 text-slate-300" />
+              <span>Sign Out</span>
             </button>
           </div>
 
-          <div className="mt-2.5 text-center">
+          <div className="mt-2 text-center">
             <span className="text-[10px] text-slate-400 font-medium">
               Dominion Star Global College
             </span>

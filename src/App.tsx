@@ -1285,13 +1285,13 @@ export default function App() {
           {activeRole === 'portal' && (
             <>
               {isLoggedOut ? (
-                <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md max-w-lg mx-auto my-6 text-center space-y-6">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs max-w-md mx-auto my-6 sm:my-10 text-center space-y-5">
                   {/* Dominion Star Global College Official Crest Emblem with 6-Click Administrative Shortcut */}
                   <div className="inline-block mx-auto">
                     <button
                       type="button"
                       onClick={handleLogoSixClick}
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
+                      className="w-16 h-16 rounded-xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-2xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
                       title="Dominion Star Global College"
                       aria-label="Dominion Star Global College Crest"
                     >
@@ -1299,40 +1299,40 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                      Dominion Star Global College
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Dominion Star Global College · Awgu
                     </span>
-                    <h2 className="text-2xl font-bold font-serif-title text-slate-900">
-                      Student Academic Portal Sign-In
+                    <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-slate-900 tracking-tight">
+                      Student Academic Portal
                     </h2>
-                    <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-                      Official portal for returning and newly enrolled students. Log in using your College Registration Number and Password.
+                    <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                      Official portal for registered scholars. Access terminal broadsheets, curriculum records, and bursary clearance.
                     </p>
                   </div>
 
                   {/* Portal Security Note */}
-                  <div className="p-3.5 bg-blue-50/80 border border-blue-200/90 rounded-2xl text-left text-xs text-blue-950 space-y-1">
-                    <div className="flex items-center gap-2 font-bold text-blue-950">
-                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
-                      <span>Authentication Notice</span>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs text-slate-600 space-y-1">
+                    <div className="flex items-center gap-2 font-semibold text-slate-800">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                      <span>Institutional Credentials</span>
                     </div>
-                    <p className="text-[11px] text-blue-900 leading-relaxed">
-                      Your default portal password is your <strong>Registration Number</strong> (the exact same value for both). Students cannot register accounts online; accounts are provisioned exclusively by the College Administration.
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Your default portal password is your <strong>Registration Number</strong>. Accounts are provisioned exclusively by the College Administration.
                     </p>
                   </div>
 
                   {authError && (
-                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2 text-left">
-                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2 text-left">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                       <span>{authError}</span>
                     </div>
                   )}
 
-                  <form onSubmit={handleStudentLogin} className="space-y-4 pt-1 text-left">
+                  <form onSubmit={handleStudentLogin} className="space-y-3.5 pt-1 text-left">
                     {/* Reg Number Input */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-700 block">
                         Registration Number (Reg No):
                       </label>
                       <div className="relative">
@@ -1344,19 +1344,19 @@ export default function App() {
                             setAuthError('');
                           }}
                           placeholder="e.g. DGC/2026/0142"
-                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 uppercase font-mono"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all uppercase font-mono"
                         />
                       </div>
                     </div>
 
                     {/* Password Input */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-700 block">
+                        <label className="text-xs font-semibold text-slate-700 block">
                           Password:
                         </label>
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          (Default: Your Reg Number)
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          (Default: Reg Number)
                         </span>
                       </div>
                       <div className="relative">
@@ -1368,12 +1368,12 @@ export default function App() {
                             setAuthError('');
                           }}
                           placeholder="Enter your Reg Number as password"
-                          className="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20"
+                          className="w-full px-3 py-2.5 pr-10 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
                           aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-slate-500" />}
@@ -1386,25 +1386,25 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsCheckRegModalOpen(true)}
-                        className="text-blue-900 hover:text-blue-700 font-bold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                        className="text-slate-700 hover:text-slate-900 font-semibold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Search className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Forgot Reg Number? Check Here</span>
+                        <Search className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Forgot Reg Number? Look up directory</span>
                       </button>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-semibold rounded-lg text-xs transition-all shadow-xs flex items-center justify-center gap-2 mt-1 cursor-pointer border border-slate-800"
                     >
-                      <span>Sign In</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>Sign In to Academic Portal</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                     </button>
                   </form>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span className="text-[11px]">Senior Academic Division · 2026/2027</span>
-                    <span className="text-[11px] text-slate-400 font-medium">Official Portal</span>
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <span>Academic Session · {CURRENT_SESSION}</span>
+                    <span>Official Portal</span>
                   </div>
                 </div>
               ) : (

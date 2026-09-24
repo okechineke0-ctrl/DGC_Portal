@@ -296,12 +296,12 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => setIsRegisterStudentOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer min-h-[38px]"
+              className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer min-h-[38px] border border-slate-200"
               id="admin-register-student-header-btn"
               title="Register New Student: JSS 1 to SS 3"
             >
-              <UserPlus className="w-3.5 h-3.5 text-white shrink-0" />
-              <span>+ Register Student</span>
+              <UserPlus className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+              <span>Register Student</span>
             </button>
 
             <button
@@ -440,76 +440,76 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
         <button
           onClick={() => setActiveTab('classes')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'classes'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <Building className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'classes' ? 'text-amber-300' : 'text-slate-500'}`} />
           <span>Classes ({totalClassesCount})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('staff')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'staff'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Teachers ({staffList.length})</span>
+          <Briefcase className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Faculty & Staff ({staffList.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('curriculum')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'curriculum'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Subjects</span>
+          <BookOpen className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'curriculum' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Curriculum Subjects</span>
         </button>
 
         <button
           onClick={() => setActiveTab('students')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'students'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Students ({totalStudentsCount})</span>
+          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'students' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Scholars Directory ({totalStudentsCount})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-attendance-btn"
         >
-          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Attendance</span>
+          <CalendarCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'attendance' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Attendance Registers</span>
         </button>
 
         <button
           onClick={() => setActiveTab('fees')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'fees'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
           id="admin-tab-school-fees-btn"
         >
-          <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
-          <span>Bursary & Fees</span>
+          <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'fees' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Bursary & Clearances</span>
         </button>
       </div>
 

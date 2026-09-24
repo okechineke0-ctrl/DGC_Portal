@@ -352,49 +352,49 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
         {/* ========================================================================= */}
         {/* MODAL HEADER                                                              */}
         {/* ========================================================================= */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white relative shrink-0">
+        <div className="p-5 sm:p-6 bg-slate-900 text-white relative shrink-0 border-b border-slate-800">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+            className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Close"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2.5 mb-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-400 text-blue-950 shadow-xs">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-amber-300 border border-slate-700">
               Academic Administration
             </span>
-            <span className="text-xs text-blue-200 font-semibold">
+            <span className="text-xs text-slate-300 font-medium">
               Dominion Star Global College
             </span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold font-serif-title flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-amber-300 shrink-0" />
-            <span>Teacher & Staff Management</span>
+            <span>Faculty & Staff Registry</span>
           </h2>
-          <p className="text-xs sm:text-sm text-blue-200/90 mt-1">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1">
             Teacher directory, subject allocations, and Form Master/Mistress appointments.
           </p>
 
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-white/15 text-xs">
-            <div className="bg-white/10 rounded-xl px-3 py-2">
-              <span className="text-[10px] text-blue-200 block uppercase font-bold">Total Teachers</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-slate-800 text-xs">
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Total Faculty</span>
               <span className="font-mono font-bold text-lg text-white">{totalTeachers}</span>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2">
-              <span className="text-[10px] text-blue-200 block uppercase font-bold">Form Masters</span>
-              <span className="font-mono font-bold text-lg text-amber-300">{formMastersCount} Appointed</span>
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Form Masters</span>
+              <span className="font-mono font-bold text-lg text-amber-300">{formMastersCount}</span>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2">
-              <span className="text-[10px] text-blue-200 block uppercase font-bold">Form Mistresses</span>
-              <span className="font-mono font-bold text-lg text-amber-300">{formMistressesCount} Appointed</span>
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Form Mistresses</span>
+              <span className="font-mono font-bold text-lg text-amber-300">{formMistressesCount}</span>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2">
-              <span className="text-[10px] text-blue-200 block uppercase font-bold">Classes Assigned</span>
-              <span className="font-mono font-bold text-lg text-emerald-300">
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Classes Assigned</span>
+              <span className="font-mono font-bold text-lg text-emerald-400">
                 {assignedClassesCount} / {classes.length}
               </span>
             </div>
@@ -429,15 +429,15 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsAddingTeacher(!isAddingTeacher)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shadow-xs cursor-pointer border ${
                 isAddingTeacher
-                  ? 'bg-slate-800 text-white hover:bg-slate-700'
-                  : 'bg-blue-950 text-amber-300 hover:bg-blue-900'
+                  ? 'bg-slate-800 text-white hover:bg-slate-700 border-slate-700'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-900'
               }`}
               id="toggle-add-teacher-form"
             >
               {isAddingTeacher ? <ChevronUp className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-              <span>{isAddingTeacher ? 'Hide Add Teacher Form' : '+ Add New Teacher'}</span>
+              <span>{isAddingTeacher ? 'Hide Add Teacher Form' : 'Register New Teacher'}</span>
             </button>
 
             <span className="text-xs text-slate-400 hidden sm:inline-block">|</span>
@@ -966,25 +966,25 @@ export const TeacherManagementModal: React.FC<TeacherManagementModalProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => openFormMasterModal(staff)}
-                            className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-[11px] shadow-2xs transition-colors flex items-center gap-1"
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-[11px] border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
                             title="Assign Form Master or Mistress"
                           >
-                            <ShieldCheck className="w-3.5 h-3.5 text-blue-950" />
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
                             <span className="hidden sm:inline">Form Role</span>
                           </button>
 
                           <button
                             onClick={() => openClassesModal(staff)}
-                            className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-950 font-bold text-[11px] border border-blue-200 transition-colors flex items-center gap-1"
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-[11px] border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
                             title="Assign Classes"
                           >
-                            <Layers className="w-3.5 h-3.5 text-blue-800" />
+                            <Layers className="w-3.5 h-3.5 text-slate-600" />
                             <span className="hidden sm:inline">Classes</span>
                           </button>
 
                           <button
                             onClick={() => setDeletingTeacher(staff)}
-                            className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors"
+                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer"
                             title="Delete Teacher"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

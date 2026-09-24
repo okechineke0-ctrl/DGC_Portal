@@ -650,10 +650,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 <button
                   onClick={handleSaveAllClassScores}
                   disabled={savingId === 'ALL'}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[38px]"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer min-h-[38px] border border-slate-200"
                   title="Save and synchronize all currently entered student scores"
                 >
-                  <Save className="w-3.5 h-3.5 shrink-0" />
+                  <Save className="w-3.5 h-3.5 text-slate-900 shrink-0" />
                   <span>{savingId === 'ALL' ? 'Saving...' : 'Sync Class Sheet'}</span>
                 </button>
                 <button
@@ -688,12 +688,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-950 shadow-xs animate-in fade-in">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-emerald-950 shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{saveSuccessMsg}</span>
           </div>
-          <button onClick={() => setSaveSuccessMsg(null)} className="text-blue-700 font-bold hover:underline cursor-pointer">
+          <button onClick={() => setSaveSuccessMsg(null)} className="text-emerald-700 font-bold hover:underline cursor-pointer">
             Dismiss
           </button>
         </div>
@@ -703,41 +703,41 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto whitespace-nowrap scrollbar-none w-full max-w-full min-w-0">
         <button
           onClick={() => setActiveTab('grading')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'grading'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <BookOpen className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'grading' ? 'text-amber-300' : 'text-slate-500'}`} />
           <span>CA & Exam Grading</span>
         </button>
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'attendance'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
           id="tab-mark-attendance-btn"
         >
-          <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Attendance</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-100 text-blue-900 font-extrabold tabular-nums">
+          <CalendarCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'attendance' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Attendance Registers</span>
+          <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold tabular-nums ${activeTab === 'attendance' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
             {staff.assignedClasses.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('form_master')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'form_master'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'form_master' ? 'text-amber-300' : 'text-slate-500'}`} />
           <span>
             {formDesignation} {staff.formMasterOf ? `(${staff.formMasterOf})` : ''}
           </span>
@@ -745,14 +745,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('workload')}
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
             activeTab === 'workload'
-              ? 'bg-blue-600 text-white shadow-xs border border-blue-600'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>My Teaching Schedule</span>
+          <Layers className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'workload' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>Teaching Workload</span>
         </button>
       </div>
 
