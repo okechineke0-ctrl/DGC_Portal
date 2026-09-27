@@ -19,7 +19,7 @@ import { formatStaffName } from '../utils/formatters';
 interface GatewayModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectRole: (role: 'portal' | 'staff' | 'ceo', staff?: StaffMember) => void;
+  onSelectRole: (role: 'portal' | 'staff' | 'ceo', staff?: StaffMember, token?: string) => void;
   staffList?: StaffMember[];
 }
 
@@ -107,6 +107,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'select' | 'staff_verify' | 'ceo_auth'>('select');
   const [staffNameInput, setStaffNameInput] = useState<string>('');
+  const [staffPinInput, setStaffPinInput] = useState<string>('dgc-staff');
   const [ceoPasscode, setCeoPasscode] = useState<string>('dgc2026');
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -142,7 +143,7 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
   const handleVerifyStaff = async (nameToVerify?: string) => {
     const targetName = nameToVerify || staffNameInput;
     if (!targetName.trim()) {
-      setErrorMessage('Please enter your full registered name');
+      setErrorMessage('Please enter your registered instructor name');
       return;
     }
 
@@ -150,19 +151,25 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await fetch('/api/staff/verify', {
+      const res = await fetch('/api/auth/staff-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: targetName }),
+        body: JSON.stringify({ name: targetName, passcode: staffPinInput || 'dgc-staff' }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.matched && data.staff) {
-          setIsVerifying(false);
-          onSelectRole('staff', data.staff);
-          return;
-        }
+      const data = await res.json();
+      if (res.ok && data.success && data.staff) {
+        setIsVerifying(false);
+        onSelectRole('staff', data.staff, data.token);
+        return;
+      } else if (res.status === 429) {
+        setErrorMessage(data.error || 'Too many attempts. Security lockout active.');
+        setIsVerifying(false);
+        return;
+      } else if (!res.ok) {
+        setErrorMessage(data.error || 'Authentication failed. Please verify credentials.');
+        setIsVerifying(false);
+        return;
       }
     } catch {
       // Fallback to local check
@@ -185,7 +192,6 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
     if (matched) {
       onSelectRole('staff', matched);
     } else if (resemblingStaff.length > 0) {
-      // If there's a strong resembling match, suggest or select the top one
       onSelectRole('staff', resemblingStaff[0]);
     } else {
       setErrorMessage(
@@ -194,9 +200,36 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
     }
   };
 
-  const handleCeoSubmit = () => {
-    const clean = ceoPasscode.trim().toLowerCase();
-    if (clean === 'dgc2026' || clean === 'ceo' || clean === '1234') {
+  const handleCeoSubmit = async () => {
+    const clean = ceoPasscode.trim();
+    if (!clean) {
+      setErrorMessage('Please enter administrative passcode');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: clean }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.token) {
+        onSelectRole('ceo', undefined, data.token);
+        return;
+      } else if (res.status === 429) {
+        setErrorMessage(data.error || 'Rate limit active. Please wait 5 minutes.');
+        return;
+      } else if (!res.ok) {
+        setErrorMessage(data.error || 'Invalid administrative passcode.');
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (clean.toLowerCase() === 'dgc2026' || clean.toLowerCase() === 'ceo' || clean.toLowerCase() === '1234') {
       onSelectRole('ceo');
     } else {
       setErrorMessage('Invalid administrative passcode. (Default: dgc2026)');
@@ -339,12 +372,12 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
               )}
 
               {/* Name Input & Search Form */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                  Registered Faculty Name
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-1">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Registered Faculty Name
+                  </label>
+                  <div className="relative">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
@@ -365,29 +398,54 @@ export const GatewayModal: React.FC<GatewayModalProps> = ({
                           setStaffNameInput('');
                           setErrorMessage(null);
                         }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleVerifyStaff()}
-                    disabled={isVerifying || !staffNameInput.trim()}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
-                  >
-                    {isVerifying ? (
-                      'Verifying...'
-                    ) : (
-                      <>
-                        <span>Sign In</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
                 </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Faculty Security PIN / Passkey
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      (Institutional PIN: dgc-staff)
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="password"
+                      value={staffPinInput}
+                      onChange={(e) => {
+                        setStaffPinInput(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleVerifyStaff()}
+                      placeholder="Enter faculty PIN"
+                      className="w-full pl-10 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 font-mono min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyStaff()}
+                  disabled={isVerifying || !staffNameInput.trim()}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[44px] cursor-pointer"
+                >
+                  {isVerifying ? (
+                    'Authenticating with Security Shield...'
+                  ) : (
+                    <>
+                      <span>Authorize Faculty Login</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Dynamic Resemblance Results Area - NO PRE-POPULATED LIST */}

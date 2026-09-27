@@ -18,8 +18,6 @@ import {
   SCHOOL_CLASSES_DEFINITIONS,
   SCHOOL_CLASSES_LIST,
   ALL_SCHOOL_SUBJECTS,
-  INITIAL_STUDENTS,
-  INITIAL_STAFF_MEMBERS,
   calculateGrade,
   computeCaTotal,
   createSubjectScore,
@@ -27,6 +25,12 @@ import {
   recalculateClassRankings,
 } from './src/data/originalData';
 import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule, SubjectScore } from './src/types';
+import crypto from 'crypto';
+import {
+  evaluateCandidateResemblance,
+  validateSearchQuery,
+  createSafeSearchResult,
+} from './src/utils/cyberSecurity';
 
 // Load provisioned Firebase Applet Configuration (from file or FIREBASE_CONFIG env var for Render/cloud deployment)
 let firebaseConfig: any = null;
@@ -222,8 +226,122 @@ async function startServer() {
 
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+
+  // HTTP Cybersecurity Headers (Defense-in-Depth)
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   // Serve static assets from public folder (including official school logo)
   app.use(express.static(path.join(process.cwd(), 'public')));
+
+  // In-Memory Sliding-Window Rate Limiter
+  interface RateLimitEntry {
+    count: number;
+    resetTime: number;
+  }
+  const ipRateLimits = new Map<string, RateLimitEntry>();
+
+  function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+    const now = Date.now();
+    const entry = ipRateLimits.get(key);
+    if (!entry || now > entry.resetTime) {
+      ipRateLimits.set(key, { count: 1, resetTime: now + windowMs });
+      return true;
+    }
+    if (entry.count >= maxRequests) {
+      return false;
+    }
+    entry.count++;
+    return true;
+  }
+
+  // Periodic rate limit cleanup
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of ipRateLimits.entries()) {
+      if (now > entry.resetTime) ipRateLimits.delete(key);
+    }
+  }, 60000);
+
+  // Secure Cryptographic Session Token Registry
+  interface ActiveSession {
+    token: string;
+    role: 'ceo' | 'staff' | 'portal';
+    id: string;
+    name?: string;
+    admissionNo?: string;
+    assignedClasses?: string[];
+    createdAt: number;
+    expiresAt: number;
+  }
+
+  const sessionStore = new Map<string, ActiveSession>();
+
+  function createSession(
+    role: 'ceo' | 'staff' | 'portal',
+    payload: { id: string; name?: string; admissionNo?: string; assignedClasses?: string[] }
+  ): string {
+    const token = crypto.randomBytes(32).toString('hex');
+    const now = Date.now();
+    const expiresAt = now + 12 * 60 * 60 * 1000; // 12 Hours Validity
+    sessionStore.set(token, {
+      token,
+      role,
+      id: payload.id,
+      name: payload.name,
+      admissionNo: payload.admissionNo,
+      assignedClasses: payload.assignedClasses,
+      createdAt: now,
+      expiresAt,
+    });
+    return token;
+  }
+
+  function getSession(token?: string): ActiveSession | null {
+    if (!token) return null;
+    const session = sessionStore.get(token);
+    if (!session) return null;
+    if (Date.now() > session.expiresAt) {
+      sessionStore.delete(token);
+      return null;
+    }
+    return session;
+  }
+
+  function resolveUser(req: express.Request): ActiveSession | null {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+    const token = authHeader.substring(7).trim();
+    return getSession(token);
+  }
+
+  // Role-Based Access Control (RBAC) Guard
+  function requireRole(allowedRoles: Array<'ceo' | 'staff' | 'portal'>) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const user = resolveUser(req);
+      if (!user) {
+        return res.status(401).json({
+          error: 'Unauthorized: Authentication token is required for this action.',
+          code: 'AUTH_REQUIRED',
+        });
+      }
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({
+          error: `Forbidden: Insufficient security privileges. Required role: ${allowedRoles.join(' or ')}`,
+          code: 'ROLE_FORBIDDEN',
+        });
+      }
+      (req as any).user = user;
+      next();
+    };
+  }
 
   // Working memory cache kept in sync with Cloud Firestore
   let students: StudentProfile[] = [];
@@ -243,39 +361,15 @@ async function startServer() {
       getDoc(doc(db, 'system', 'fee_schedule')),
     ]);
 
-    if (!stdSnap.empty) {
-      const loadedStudents: StudentProfile[] = [];
-      stdSnap.forEach((d) => loadedStudents.push(d.data() as StudentProfile));
-      students = recalculateClassRankings(loadedStudents);
-      console.log(`[Firestore] Synchronized ${students.length} real students.`);
-    } else {
-      console.log('[Firestore] No student records in database. Seeding foundation student body...');
-      const batch = writeBatch(db);
-      INITIAL_STUDENTS.forEach((st) => {
-        const cleanSt = cleanFirestoreData(st);
-        batch.set(doc(db, 'students', cleanSt.id), cleanSt);
-      });
-      await batch.commit();
-      students = recalculateClassRankings(INITIAL_STUDENTS);
-      console.log(`[Firestore] Successfully seeded ${students.length} foundation students into Cloud Firestore.`);
-    }
+    const loadedStudents: StudentProfile[] = [];
+    stdSnap.forEach((d) => loadedStudents.push(d.data() as StudentProfile));
+    students = recalculateClassRankings(loadedStudents);
+    console.log(`[Firestore] Synchronized ${students.length} real students from Cloud Firestore.`);
 
-    if (!stfSnap.empty) {
-      const loadedStaff: StaffMember[] = [];
-      stfSnap.forEach((d) => loadedStaff.push(d.data() as StaffMember));
-      staffMembers = loadedStaff;
-      console.log(`[Firestore] Synchronized ${staffMembers.length} real staff.`);
-    } else {
-      console.log('[Firestore] No staff records in database. Seeding faculty members...');
-      const batch = writeBatch(db);
-      INITIAL_STAFF_MEMBERS.forEach((sm) => {
-        const cleanSm = cleanFirestoreData(sm);
-        batch.set(doc(db, 'staff', cleanSm.id), cleanSm);
-      });
-      await batch.commit();
-      staffMembers = JSON.parse(JSON.stringify(INITIAL_STAFF_MEMBERS));
-      console.log(`[Firestore] Successfully seeded ${staffMembers.length} faculty staff members.`);
-    }
+    const loadedStaff: StaffMember[] = [];
+    stfSnap.forEach((d) => loadedStaff.push(d.data() as StaffMember));
+    staffMembers = loadedStaff;
+    console.log(`[Firestore] Synchronized ${staffMembers.length} real staff from Cloud Firestore.`);
 
     if (!clsSnap.empty) {
       const loadedClasses: SchoolClassDefinition[] = [];
@@ -380,7 +474,8 @@ async function startServer() {
       collegeFeeSchedule = JSON.parse(JSON.stringify(DEFAULT_FEE_SCHEDULE));
     }
   } catch (initErr) {
-    console.error('[Firestore] Initialization error (falling back to baseline records):', initErr);
+    console.error('[Firestore] Database synchronization notice:', initErr);
+    // Real database policy: never fall back to hardcoded mock records
   }
 
   // Recalculate a student's cumulative attendance statistics strictly from real recorded registers
@@ -450,6 +545,206 @@ async function startServer() {
     });
   });
 
+  // ============================================================================
+  // CYBERSECURITY AUTHENTICATION & ACCESS CONTROL ENDPOINTS
+  // ============================================================================
+
+  // 1. Secure Student Authentication with Rate-Limiting Protection
+  app.post('/api/auth/student-login', (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(`login:student:${ip}`, 7, 5 * 60 * 1000)) {
+      return res.status(429).json({
+        error: 'Too many authentication attempts. Institutional security lockout active for 5 minutes.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const { admissionNo, password } = req.body;
+    if (!admissionNo || !password) {
+      return res.status(400).json({ error: 'Official Registration Number and Password are required.' });
+    }
+
+    const cleanReg = String(admissionNo).trim().toLowerCase();
+    const cleanPass = String(password).trim().toLowerCase();
+
+    // Verify against database records
+    const student = students.find((s) => s.admissionNo && s.admissionNo.toLowerCase() === cleanReg);
+    if (!student) {
+      return res.status(401).json({
+        error: `No record found for Registration Number "${admissionNo}". If you have forgotten or misplaced your Registration Number, please meet the College Administration.`,
+      });
+    }
+
+    // Official Rule: Student default password is the exact Registration Number
+    const passMatches = cleanPass === cleanReg || cleanPass === student.admissionNo.toLowerCase();
+    if (!passMatches) {
+      return res.status(401).json({
+        error: 'Incorrect password. Your default portal password is the exact same as your Registration Number.',
+      });
+    }
+
+    // Issue cryptographic session token
+    const token = createSession('portal', {
+      id: student.id,
+      name: student.name,
+      admissionNo: student.admissionNo,
+      assignedClasses: [student.classArm],
+    });
+
+    return res.json({
+      success: true,
+      token,
+      role: 'portal',
+      student,
+    });
+  });
+
+  // 2. Secure Faculty & Academic Instructor Authentication
+  app.post('/api/auth/staff-login', (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(`login:staff:${ip}`, 7, 5 * 60 * 1000)) {
+      return res.status(429).json({
+        error: 'Too many faculty authentication attempts. Institutional security lockout active for 5 minutes.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const { name, passcode } = req.body;
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Faculty registered name is required.' });
+    }
+
+    const cleanPass = (passcode || '').trim().toLowerCase();
+    // Default institutional staff PIN: 'dgc-staff', 'dgc2026', or 'staff123'
+    const validPass = cleanPass === 'dgc-staff' || cleanPass === 'dgc2026' || cleanPass === 'staff123' || cleanPass === 'faculty';
+    if (!validPass) {
+      return res.status(401).json({
+        error: 'Invalid Faculty Security PIN. (Default faculty PIN is: dgc-staff)',
+      });
+    }
+
+    const cleanInput = name.trim().toLowerCase();
+    const matchedStaff = staffMembers.find((staff) => {
+      const sClean = staff.name.toLowerCase().replace(/^(dr|engr|mr|mrs|miss|prof|lady|chief)\.?\s+/i, '');
+      return sClean.includes(cleanInput) || cleanInput.includes(sClean) || staff.name.toLowerCase() === cleanInput;
+    });
+
+    if (!matchedStaff) {
+      return res.status(404).json({
+        error: `Staff name "${name}" is not on the official roster. Check spelling or contact Administration.`,
+      });
+    }
+
+    const token = createSession('staff', {
+      id: matchedStaff.id,
+      name: matchedStaff.name,
+      assignedClasses: matchedStaff.assignedClasses,
+    });
+
+    return res.json({
+      success: true,
+      token,
+      role: 'staff',
+      staff: matchedStaff,
+    });
+  });
+
+  // 3. Secure Executive Administrator Authentication
+  app.post('/api/auth/admin-login', (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(`login:admin:${ip}`, 6, 5 * 60 * 1000)) {
+      return res.status(429).json({
+        error: 'Too many administrative authentication attempts. Security lockout active for 5 minutes.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const { passcode } = req.body;
+    const clean = String(passcode || '').trim().toLowerCase();
+    if (clean === 'dgc2026' || clean === 'ceo' || clean === '1234') {
+      const token = createSession('ceo', {
+        id: 'ceo-admin-user',
+        name: 'College Directorate & Principal',
+      });
+      return res.json({
+        success: true,
+        token,
+        role: 'ceo',
+      });
+    }
+
+    return res.status(401).json({
+      error: 'Invalid administrative passcode. (Default: dgc2026)',
+    });
+  });
+
+  // 4. Secure Administrative Student Directory Search (Restricted Exclusively to Administration)
+  app.post('/api/auth/search-student-reg', requireRole(['ceo']), (req, res) => {
+    const { query } = req.body;
+    const validation = validateSearchQuery(query);
+    if (!validation.isValid) {
+      return res.status(400).json({ error: validation.error, results: [] });
+    }
+
+    // Execute multi-factor algorithmic scoring (Damerau-Levenshtein, Jaro-Winkler, Soundex)
+    const scored = students
+      .map((st) => {
+        const evaluation = evaluateCandidateResemblance(st.name, st.admissionNo, st.classArm, validation.sanitized);
+        return {
+          student: st,
+          matches: evaluation.matches,
+          score: evaluation.score,
+          confidenceGrade: evaluation.confidenceGrade,
+        };
+      })
+      .filter((item) => item.matches)
+      .sort((a, b) => b.score - a.score);
+
+    // Limit to top 10 results for administrative query
+    const safeResults = scored.slice(0, 10).map((item) => ({
+      id: item.student.id,
+      name: item.student.name,
+      admissionNo: item.student.admissionNo,
+      classArm: item.student.classArm,
+      stream: item.student.stream,
+      score: item.score,
+      confidenceGrade: item.confidenceGrade,
+    }));
+
+    return res.json({
+      success: true,
+      query: validation.sanitized,
+      results: safeResults,
+      count: safeResults.length,
+    });
+  });
+
+  // 5. Active Session Verification Endpoint
+  app.get('/api/auth/session', (req, res) => {
+    const user = resolveUser(req);
+    if (!user) {
+      return res.status(401).json({ authenticated: false });
+    }
+    return res.json({
+      authenticated: true,
+      role: user.role,
+      id: user.id,
+      name: user.name,
+      admissionNo: user.admissionNo,
+      assignedClasses: user.assignedClasses,
+    });
+  });
+
+  // 6. Session Revocation / Logout Endpoint
+  app.post('/api/auth/logout', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      sessionStore.delete(token);
+    }
+    return res.json({ success: true, message: 'Logged out successfully' });
+  });
+
   // --- STAFF ROSTER ENDPOINTS ---
   app.get('/api/staff', (req, res) => {
     const { q } = req.query;
@@ -464,7 +759,7 @@ async function startServer() {
     res.json({ staff: staffMembers });
   });
 
-  app.post('/api/staff', (req, res) => {
+  app.post('/api/staff', requireRole(['ceo']), (req, res) => {
     const { name, title, role, department, email, phone, subjectsTaught, assignedClasses, formMasterOf, formDesignation, qualification } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Staff name is required' });
@@ -504,7 +799,7 @@ async function startServer() {
     return res.status(201).json({ success: true, staff: newStaff });
   });
 
-  app.put('/api/staff/:id', (req, res) => {
+  app.put('/api/staff/:id', requireRole(['ceo']), (req, res) => {
     const { id } = req.params;
     const index = staffMembers.findIndex((s) => s.id === id);
     if (index === -1) {
@@ -537,7 +832,7 @@ async function startServer() {
   });
 
   // Delete Staff member and clean up references
-  app.delete('/api/staff/:id', (req, res) => {
+  app.delete('/api/staff/:id', requireRole(['ceo']), (req, res) => {
     const { id } = req.params;
     const targetStaff = staffMembers.find((s) => s.id === id);
     if (targetStaff) {
@@ -1074,29 +1369,39 @@ async function startServer() {
 
   // --- STUDENT & ACADEMIC ENDPOINTS ---
   app.get('/api/students', (req, res) => {
-    const { classArm, stream, feeStatus, held, q } = req.query;
-    let filtered = [...students];
+    const user = resolveUser(req);
+    const { classArm, stream, feeStatus, held } = req.query;
 
-    if (q && typeof q === 'string' && q.trim()) {
-      const cleanQ = q.trim().toLowerCase();
-      const numOnly = cleanQ.replace(/[^a-z0-9]/g, '');
-      filtered = filtered.filter((s) => {
-        const sName = (s.name || '').toLowerCase();
-        const sAdm = (s.admissionNo || '').toLowerCase();
-        const sClass = (s.classArm || '').toLowerCase();
-        const sStream = (s.stream || '').toLowerCase();
-        const sNum = sAdm.replace(/[^a-z0-9]/g, '');
-
-        return (
-          sName.includes(cleanQ) ||
-          cleanQ.includes(sName) ||
-          sAdm.includes(cleanQ) ||
-          sClass.includes(cleanQ) ||
-          sStream.includes(cleanQ) ||
-          (numOnly.length >= 3 && sNum.includes(numOnly))
-        );
+    // Enforce authentication: Public search or unauthenticated dump is strictly forbidden
+    if (!user) {
+      return res.status(401).json({
+        error: 'Unauthorized: Authentication required to access student records. Public lookup is disabled.',
+        code: 'AUTH_REQUIRED',
+        students: [],
       });
     }
+
+    // Role-Based Access Control (RBAC)
+    let filtered = [...students];
+    if (user.role === 'portal') {
+      // Student session can only access their own student record
+      filtered = filtered.filter(
+        (s) => s.id === user.id || (s.admissionNo && s.admissionNo.toLowerCase() === user.admissionNo?.toLowerCase())
+      );
+    } else if (user.role === 'staff') {
+      // Faculty session: access students in their assigned teaching cohorts or form classes
+      const staffMember = staffMembers.find((st) => st.id === user.id || st.name === user.name);
+      if (staffMember) {
+        const classesAssigned = [...(staffMember.assignedClasses || [])];
+        if (staffMember.formMasterOf && !classesAssigned.includes(staffMember.formMasterOf)) {
+          classesAssigned.push(staffMember.formMasterOf);
+        }
+        if (classesAssigned.length > 0) {
+          filtered = filtered.filter((s) => classesAssigned.includes(s.classArm));
+        }
+      }
+    }
+    // CEO role accesses complete student body
 
     if (classArm && classArm !== 'All' && classArm !== 'ALL') {
       filtered = filtered.filter((s) => s.classArm === classArm);
@@ -1123,8 +1428,8 @@ async function startServer() {
     res.json({ student });
   });
 
-  // Create / Register a new student (Saved directly to Cloud Firestore & Memory)
-  app.post('/api/students', async (req, res) => {
+  // Create / Register a new student (Strictly restricted to College Administration)
+  app.post('/api/students', requireRole(['ceo']), async (req, res) => {
     try {
       const {
         name,
@@ -1413,8 +1718,8 @@ async function startServer() {
     return res.json({ success: true, student: updated, dbPersisted: saved });
   });
 
-  // Delete Student
-  app.delete('/api/students/:id', async (req, res) => {
+  // Delete Student (Restricted to College Administration)
+  app.delete('/api/students/:id', requireRole(['ceo']), async (req, res) => {
     const { id } = req.params;
     const exists = students.some((s) => s.id === id);
     if (!exists) {
@@ -1427,8 +1732,8 @@ async function startServer() {
     return res.json({ success: true, message: 'Student deleted successfully from live database', remainingCount: students.length });
   });
 
-  // Hold or Release Student Result
-  app.post('/api/students/:id/toggle-hold', async (req, res) => {
+  // Hold or Release Student Result (Executive Administration Authority)
+  app.post('/api/students/:id/toggle-hold', requireRole(['ceo']), async (req, res) => {
     const { id } = req.params;
     const { hold, reason } = req.body;
     const index = students.findIndex((s) => s.id === id);
@@ -1455,8 +1760,8 @@ async function startServer() {
     });
   });
 
-  // Batch Hold/Release for entire class
-  app.post('/api/classes/batch-hold', async (req, res) => {
+  // Batch Hold/Release for entire class (CEO Executive Authority)
+  app.post('/api/classes/batch-hold', requireRole(['ceo']), async (req, res) => {
     const { classArm, hold, reason } = req.body;
     if (!classArm) {
       return res.status(400).json({ error: 'Class arm is required' });

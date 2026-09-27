@@ -34,7 +34,6 @@ import { GatewayModal } from './components/GatewayModal';
 import { StaffDashboard } from './components/StaffDashboard';
 import { CeoDashboard } from './components/CeoDashboard';
 import { StudentSettingsView } from './components/StudentSettingsView';
-import { CheckRegNumberModal } from './components/CheckRegNumberModal';
 import { StudentRegistrationModal } from './components/StudentRegistrationModal';
 import {
   TODAY_DATE,
@@ -73,11 +72,11 @@ export default function App() {
   const [isDbLive, setIsDbLive] = useState<boolean>(true);
   // Default isLoggedOut to true: students have no sidebar access until authenticated
   const [isLoggedOut, setIsLoggedOut] = useState<boolean>(true);
+  const [authToken, setAuthToken] = useState<string>(() => sessionStorage.getItem('dgc_auth_token') || '');
   const [regNumberInput, setRegNumberInput] = useState<string>('');
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
-  const [isCheckRegModalOpen, setIsCheckRegModalOpen] = useState<boolean>(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
 
   // Workspaces: 'portal' (Standard Student & Guardian Portal), 'staff' (Tutor Continuous Assessment), 'ceo' (CEO & Principal Governance)
@@ -92,6 +91,18 @@ export default function App() {
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
+  // Helper for authenticated fetch requests
+  const authFetch = useCallback(
+    (url: string, options: RequestInit = {}) => {
+      const headers = new Headers(options.headers || {});
+      if (authToken) {
+        headers.set('Authorization', `Bearer ${authToken}`);
+      }
+      return fetch(url, { ...options, headers });
+    },
+    [authToken]
+  );
+
   // Monitor scroll position for responsive bottom-right navigation
   useEffect(() => {
     const handleScroll = () => {
@@ -101,6 +112,54 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Restore authenticated session on boot
+  useEffect(() => {
+    const savedToken = sessionStorage.getItem('dgc_auth_token');
+    if (!savedToken) return;
+
+    fetch('/api/auth/session', {
+      headers: { Authorization: `Bearer ${savedToken}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Session expired');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.authenticated) {
+          setAuthToken(savedToken);
+          if (data.role === 'ceo') {
+            setActiveRole('ceo');
+            setIsLoggedOut(false);
+          } else if (data.role === 'staff') {
+            setActiveRole('staff');
+            setIsLoggedOut(false);
+          } else if (data.role === 'portal') {
+            setActiveRole('portal');
+            setIsLoggedOut(false);
+            if (data.admissionNo || data.id) {
+              fetch(`/api/students/${encodeURIComponent(data.admissionNo || data.id)}`, {
+                headers: { Authorization: `Bearer ${savedToken}` },
+              })
+                .then((r) => r.json())
+                .then((stdData) => {
+                  if (stdData.student) {
+                    setSelectedStudent(stdData.student);
+                    setStudents((prev) => [stdData.student, ...prev.filter((p) => p.id !== stdData.student.id)]);
+                  }
+                })
+                .catch(() => {});
+            }
+          }
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem('dgc_auth_token');
+        sessionStorage.removeItem('dgc_auth_role');
+        setAuthToken('');
+        setIsLoggedOut(true);
+      });
+  }, []);
+
   // Initial fetch from backend API & live Firestore verification
   useEffect(() => {
     testFirestoreConnection().then((connected) => {
@@ -108,32 +167,17 @@ export default function App() {
       console.log(`[Dominion Star Global College] Firestore Connection: ${connected ? 'Active' : 'Offline'}`);
     });
 
-    fetch('/api/students')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && Array.isArray(data.students)) {
-          setStudents(data.students);
-          setSelectedStudent((prev) => {
-            if (prev && data.students.some((s: StudentProfile) => s.id === prev.id)) {
-              return data.students.find((s: StudentProfile) => s.id === prev.id) || null;
-            }
-            return data.students.length > 0 ? data.students[0] : null;
-          });
-        }
-      })
-      .catch(() => {
-        getLiveStudents().then((liveStd) => {
-          if (Array.isArray(liveStd)) {
-            setStudents(liveStd);
-            setSelectedStudent((prev) => {
-              if (prev && liveStd.some((s: StudentProfile) => s.id === prev.id)) {
-                return liveStd.find((s: StudentProfile) => s.id === prev.id) || null;
-              }
-              return liveStd.length > 0 ? liveStd[0] : null;
-            });
+    // If authenticated as CEO or Staff, load student body
+    if (authToken && (activeRole === 'ceo' || activeRole === 'staff')) {
+      authFetch('/api/students')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data.students)) {
+            setStudents(data.students);
           }
-        });
-      });
+        })
+        .catch(() => {});
+    }
 
     fetch('/api/staff')
       .then((res) => res.json())
@@ -164,7 +208,7 @@ export default function App() {
           }
         });
       });
-  }, []);
+  }, [authToken, activeRole, authFetch]);
 
   // Update selected student when students array changes
   useEffect(() => {
@@ -216,7 +260,7 @@ export default function App() {
     }, 1200);
   }, []);
 
-  // Student Authentication: Reg Number and Password (which is also the Reg Number)
+  // Student Authentication: Reg Number and Password (validated securely against the server)
   const handleStudentLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setAuthError('');
@@ -234,67 +278,50 @@ export default function App() {
       return;
     }
 
-    // 1. Match student in database state by official Registration / Admission Number
-    let match = students.find(
-      (s) => s.admissionNo.toLowerCase() === cleanReg.toLowerCase()
-    );
+    try {
+      const res = await fetch('/api/auth/student-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admissionNo: cleanReg, password: cleanPass }),
+      });
 
-    // 2. If not found in memory, query the live backend / Firestore database
-    if (!match) {
-      try {
-        const res = await fetch(`/api/students/${encodeURIComponent(cleanReg)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.student) {
-            match = data.student;
-            setStudents((prev) => [data.student, ...prev.filter((p) => p.id !== data.student.id)]);
-          }
-        }
-      } catch {
-        // live lookup fallback
+      const data = await res.json();
+      if (res.ok && data.success && data.student) {
+        setAuthToken(data.token);
+        sessionStorage.setItem('dgc_auth_token', data.token);
+        sessionStorage.setItem('dgc_auth_role', 'portal');
+        setSelectedStudent(data.student);
+        setStudents((prev) => [data.student, ...prev.filter((p) => p.id !== data.student.id)]);
+        setIsLoggedOut(false);
+        setActiveRole('portal');
+        setAuthError('');
+        return;
+      } else {
+        setAuthError(
+          data.error ||
+            `No student record found for Registration Number "${cleanReg}". If you have forgotten or misplaced your Registration Number, please meet the College Administration.`
+        );
+        return;
       }
+    } catch {
+      setAuthError('Connection error contacting database server. Please check your connection and retry.');
     }
-
-    if (!match) {
-      setAuthError(
-        `No student record found for Registration Number "${cleanReg}". If you do not remember your Reg Number, click "Check Reg Number" below to find yours.`
-      );
-      return;
-    }
-
-    // Explicit User Rule: "the login should only ask for reg number and password which is your reg number for the both"
-    const passMatches =
-      cleanPass.toLowerCase() === cleanReg.toLowerCase() ||
-      cleanPass.toLowerCase() === match.admissionNo.toLowerCase();
-
-    if (!passMatches) {
-      setAuthError(
-        'Incorrect password. Your default portal password is the exact same as your Registration Number.'
-      );
-      return;
-    }
-
-    // Successful student login
-    setSelectedStudent(match);
-    setIsLoggedOut(false);
-    setAuthError('');
   };
 
-  // Autofill login credentials when student finds their account via Check Reg Number
-  const handleSelectFoundStudent = (regNo: string) => {
-    setRegNumberInput(regNo);
-    setPasswordInput(regNo);
-    setAuthError('');
-    setIsCheckRegModalOpen(false);
-  };
-
-  const handleSelectRoleFromGateway = (role: 'staff' | 'ceo', staffData?: StaffMember) => {
+  const handleSelectRoleFromGateway = (role: 'staff' | 'ceo', staffData?: StaffMember, token?: string) => {
     setIsGatewayOpen(false);
+    if (token) {
+      setAuthToken(token);
+      sessionStorage.setItem('dgc_auth_token', token);
+      sessionStorage.setItem('dgc_auth_role', role);
+    }
     if (role === 'staff' && staffData) {
       setActiveStaff(staffData);
       setActiveRole('staff');
+      setIsLoggedOut(false);
     } else if (role === 'ceo') {
       setActiveRole('ceo');
+      setIsLoggedOut(false);
     }
   };
 
@@ -310,7 +337,7 @@ export default function App() {
     setSelectedStudent(updatedStudent);
 
     try {
-      const res = await fetch(`/api/students/${updatedStudent.id}`, {
+      const res = await authFetch(`/api/students/${updatedStudent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedStudent),
@@ -331,7 +358,7 @@ export default function App() {
   // 1. Update Student Continuous Assessment Scores (Quiz, HW, Test 1, Test 2, Exam)
   const handleUpdateStudentScore = async (studentId: string, scoreData: Partial<SubjectScore>): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/students/${studentId}/scores`, {
+      const res = await authFetch(`/api/students/${studentId}/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -424,7 +451,7 @@ export default function App() {
   // 2. Toggle Hold on Result (CEO Executive Action)
   const handleToggleHoldResult = async (studentId: string, hold: boolean, reason?: string): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/students/${studentId}/toggle-hold`, {
+      const res = await authFetch(`/api/students/${studentId}/toggle-hold`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hold, reason }),
@@ -457,13 +484,13 @@ export default function App() {
   // 3. Batch Hold Class (CEO Executive Action)
   const handleBatchHoldClass = async (classArm: string, hold: boolean, reason?: string): Promise<boolean> => {
     try {
-      const res = await fetch('/api/classes/batch-hold', {
+      const res = await authFetch('/api/classes/batch-hold', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ classArm, hold, reason }),
       });
       if (res.ok) {
-        const getRes = await fetch('/api/students');
+        const getRes = await authFetch('/api/students');
         const data = await getRes.json();
         if (data.students) setStudents(data.students);
         return true;
@@ -488,7 +515,7 @@ export default function App() {
   // 4. Register New Student (6-Year Secondary Admission: JSS1-SS3)
   const handleRegisterStudent = async (studentData: Partial<StudentProfile>): Promise<boolean> => {
     try {
-      const res = await fetch('/api/students', {
+      const res = await authFetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentData),
@@ -572,7 +599,7 @@ export default function App() {
 
   const refreshStudentsFromDb = async () => {
     try {
-      const res = await fetch('/api/students');
+      const res = await authFetch('/api/students');
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.students)) {
@@ -587,7 +614,7 @@ export default function App() {
   // 5. Update Student File (CEO Action)
   const handleUpdateStudent = async (studentId: string, updatedData: Partial<StudentProfile>): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/students/${studentId}`, {
+      const res = await authFetch(`/api/students/${studentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
@@ -619,7 +646,7 @@ export default function App() {
   const handleDeleteStudent = async (studentId: string): Promise<boolean> => {
     deleteLiveStudent(studentId).catch(() => {});
     try {
-      await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
+      await authFetch(`/api/students/${studentId}`, { method: 'DELETE' });
     } catch {
       // ignore
     }
@@ -630,7 +657,7 @@ export default function App() {
   // 7. Add Staff (Admin uploaded staff)
   const handleAddStaff = async (staffData: Partial<StaffMember>): Promise<boolean> => {
     try {
-      const res = await fetch('/api/staff', {
+      const res = await authFetch('/api/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffData),
@@ -684,7 +711,7 @@ export default function App() {
   const handleDeleteStaff = async (staffId: string): Promise<boolean> => {
     deleteLiveStaff(staffId).catch(() => {});
     try {
-      await fetch(`/api/staff/${staffId}`, { method: 'DELETE' });
+      await authFetch(`/api/staff/${staffId}`, { method: 'DELETE' });
     } catch {
       // ignore
     }
@@ -716,13 +743,13 @@ export default function App() {
   // 8b. Update / Change Staff details
   const handleUpdateStaff = async (staffId: string, updatedData: Partial<StaffMember>): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/staff/${staffId}`, {
+      const res = await authFetch(`/api/staff/${staffId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
       });
       if (res.ok) {
-        const [clsRes, stfRes] = await Promise.all([fetch('/api/classes'), fetch('/api/staff')]);
+        const [clsRes, stfRes] = await Promise.all([authFetch('/api/classes'), authFetch('/api/staff')]);
         const clsData = await clsRes.json();
         const stfData = await stfRes.json();
         if (clsData.classes) setClasses(clsData.classes);
@@ -742,13 +769,13 @@ export default function App() {
   // 9. Assign Form Master to a specific class (CEO Authority)
   const handleAssignFormMaster = async (className: string, staffName: string, staffId?: string): Promise<boolean> => {
     try {
-      const res = await fetch('/api/classes/assign-master', {
+      const res = await authFetch('/api/classes/assign-master', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ className, staffName, staffId }),
       });
       if (res.ok) {
-        const [clsRes, stfRes] = await Promise.all([fetch('/api/classes'), fetch('/api/staff')]);
+        const [clsRes, stfRes] = await Promise.all([authFetch('/api/classes'), authFetch('/api/staff')]);
         const clsData = await clsRes.json();
         const stfData = await stfRes.json();
         if (clsData.classes) setClasses(clsData.classes);
@@ -794,13 +821,13 @@ export default function App() {
   // 10. Assign Subject Teacher to a subject in a specific class
   const handleAssignSubjectTeacher = async (className: string, subjectName: string, teacherName: string): Promise<boolean> => {
     try {
-      const res = await fetch('/api/classes/assign-subject-teacher', {
+      const res = await authFetch('/api/classes/assign-subject-teacher', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ className, subjectName, teacherName }),
       });
       if (res.ok) {
-        const [clsRes, stfRes] = await Promise.all([fetch('/api/classes'), fetch('/api/staff')]);
+        const [clsRes, stfRes] = await Promise.all([authFetch('/api/classes'), authFetch('/api/staff')]);
         const clsData = await clsRes.json();
         const stfData = await stfRes.json();
         if (clsData.classes) setClasses(clsData.classes);
@@ -846,7 +873,7 @@ export default function App() {
     mode: 'add' | 'set' | 'remove' = 'add'
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/classes/batch-assign-subjects', {
+      const res = await authFetch('/api/classes/batch-assign-subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetClasses, subjects, mode, syncStudents: true }),
@@ -876,7 +903,7 @@ export default function App() {
     action: 'add' | 'set' | 'remove' = 'set'
   ): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/classes/${encodeURIComponent(className)}/curriculum`, {
+      const res = await authFetch(`/api/classes/${encodeURIComponent(className)}/curriculum`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subjects, action, syncStudents: true }),
@@ -913,13 +940,13 @@ export default function App() {
     }
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/staff/assign-allocations', {
+      const res = await authFetch('/api/staff/assign-allocations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ staffId, ...allocations }),
       });
       if (res.ok) {
-        const [clsRes, stfRes] = await Promise.all([fetch('/api/classes'), fetch('/api/staff')]);
+        const [clsRes, stfRes] = await Promise.all([authFetch('/api/classes'), authFetch('/api/staff')]);
         const clsData = await clsRes.json();
         const stfData = await stfRes.json();
         if (clsData.classes) setClasses(clsData.classes);
@@ -966,7 +993,7 @@ export default function App() {
     }
   ): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/students/${studentId}`, {
+      const res = await authFetch(`/api/students/${studentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(remarks),
@@ -1003,7 +1030,7 @@ export default function App() {
     }>
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/students/bulk-scores', {
+      const res = await authFetch('/api/students/bulk-scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1043,7 +1070,7 @@ export default function App() {
     term?: string
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/attendance/mark', {
+      const res = await authFetch('/api/attendance/mark', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1089,7 +1116,7 @@ export default function App() {
     amountPaid?: number
   ): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/students/${studentId}/fee-status`, {
+      const res = await authFetch(`/api/students/${studentId}/fee-status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feeStatus, amountPaid }),
@@ -1135,7 +1162,7 @@ export default function App() {
     feeStatus: 'Cleared' | 'Pending'
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/students/bulk-fee-status', {
+      const res = await authFetch('/api/students/bulk-fee-status', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentIds, feeStatus }),
@@ -1381,16 +1408,15 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Check Reg Number Link */}
-                    <div className="pt-0.5 flex items-center justify-between text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setIsCheckRegModalOpen(true)}
-                        className="text-slate-700 hover:text-slate-900 font-semibold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Search className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Forgot Reg Number? Look up directory</span>
-                      </button>
+                    {/* Administrative Protocol Notice: Only Administration Issues Reg Numbers */}
+                    <div className="p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl text-left space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-950 text-[11px]">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>Forgot your Registration Number?</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/90 leading-relaxed">
+                        Registration numbers are issued exclusively by the <strong>College Administration</strong>. If you forget or have misplaced your Registration Number, please meet the <strong>Directorate Administration / Principal's Office</strong> to retrieve your official credentials.
+                      </p>
                     </div>
 
                     <button
@@ -1699,10 +1725,22 @@ export default function App() {
               </button>
               <button
                 onClick={() => {
+                  if (authToken) {
+                    fetch('/api/auth/logout', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${authToken}` },
+                    }).catch(() => {});
+                  }
+                  sessionStorage.removeItem('dgc_auth_token');
+                  sessionStorage.removeItem('dgc_auth_role');
+                  setAuthToken('');
                   setIsLogoutModalOpen(false);
                   setIsLoggedOut(true);
+                  setSelectedStudent(null);
+                  setActiveRole('portal');
+                  setActiveStaff(null);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-2xs"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-2xs cursor-pointer"
               >
                 Log Out
               </button>
@@ -1716,15 +1754,6 @@ export default function App() {
         isOpen={isAnnouncementsOpen}
         onClose={() => setIsAnnouncementsOpen(false)}
       />
-
-      {/* Check Registration Number Lookup Modal (Resemblance Name Search) */}
-      {isCheckRegModalOpen && (
-        <CheckRegNumberModal
-          isOpen={isCheckRegModalOpen}
-          onClose={() => setIsCheckRegModalOpen(false)}
-          students={students}
-        />
-      )}
 
       {/* Official Administration Student Registration Form Modal */}
       {isRegisterModalOpen && (

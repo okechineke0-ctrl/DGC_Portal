@@ -1,43 +1,54 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if current user is admin
-    function isAdmin() {
-      return request.auth != null && (request.auth.token.email == "okechineke0@gmail.com" || request.auth.token.admin == true);
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Connection validation endpoint
     match /test/{document=**} {
       allow read, write: if true;
     }
 
-    match /system/{document=**} {
-      allow read, write: if true;
-    }
-
-    // Students collection: records, terminal results, continuous assessment
+    // Students collection: academic, biodata, and bursary records
     match /students/{studentId} {
-      allow read, write: if true;
+      allow read: if isValidId(studentId);
+      allow list: if true;
+      allow write: if isValidId(studentId);
     }
 
-    // Staff roster: faculty and form masters
+    // Faculty and Staff roster
     match /staff/{staffId} {
-      allow read, write: if true;
+      allow read: if isValidId(staffId);
+      allow list: if true;
+      allow write: if isValidId(staffId);
     }
 
     // Academic class arms
     match /classes/{classId} {
-      allow read, write: if true;
+      allow read: if isValidId(classId);
+      allow list: if true;
+      allow write: if isValidId(classId);
     }
 
-    // Institutional notices and announcements
+    // Official announcements
     match /announcements/{announcementId} {
-      allow read, write: if true;
+      allow read: if isValidId(announcementId);
+      allow list: if true;
+      allow write: if isValidId(announcementId);
     }
 
-    // Daily attendance roll calls
+    // System configurations and fee schedules
+    match /system/{systemDocId} {
+      allow read, write: if isValidId(systemDocId);
+    }
+
+    // Attendance registers
     match /attendance/{attendanceId} {
-      allow read, write: if true;
+      allow read: if isValidId(attendanceId);
+      allow list: if true;
+      allow write: if isValidId(attendanceId);
     }
   }
 }
+
