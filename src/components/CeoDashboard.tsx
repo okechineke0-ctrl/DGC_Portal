@@ -29,6 +29,7 @@ import {
   Award,
   UserCheck,
   CalendarCheck,
+  Calendar,
   Clock,
   Check,
   CreditCard,
@@ -38,7 +39,7 @@ import {
   CheckCheck,
   RefreshCw,
 } from 'lucide-react';
-import { StudentProfile, StaffMember, SchoolClassDefinition } from '../types';
+import { StudentProfile, StaffMember, SchoolClassDefinition, AcademicCalendarSettings } from '../types';
 import {
   SCHOOL_CLASSES_LIST,
   ALL_SCHOOL_SUBJECTS,
@@ -58,15 +59,18 @@ import { StudentRegistrationModal } from './StudentRegistrationModal';
 import { formatStudentShortName, formatStaffName } from '../utils/formatters';
 import { TeacherManagementModal } from './TeacherManagementModal';
 import { SchoolFeesManagement } from './SchoolFeesManagement';
+import { SchoolCalendarManagement } from './SchoolCalendarManagement';
 import { IndividualHoldResultModal } from './IndividualHoldResultModal';
 import { BatchSubjectAllocationModal } from './BatchSubjectAllocationModal';
-import { getHouseMeta } from '../data/originalData';
+import { getHouseMeta, DEFAULT_ACADEMIC_CALENDAR } from '../data/originalData';
 
 interface CeoDashboardProps {
   onExit: () => void;
   students: StudentProfile[];
   staffList: StaffMember[];
   classes: SchoolClassDefinition[];
+  academicCalendar?: AcademicCalendarSettings;
+  onUpdateAcademicCalendar?: (calendar: AcademicCalendarSettings) => Promise<boolean>;
   onToggleHoldResult: (studentId: string, hold: boolean, reason?: string) => Promise<boolean>;
   onBatchHoldClass: (classArm: string, hold: boolean, reason?: string) => Promise<boolean>;
   onRegisterStudent?: (studentData: Partial<StudentProfile>) => Promise<boolean>;
@@ -113,6 +117,8 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   students,
   staffList,
   classes,
+  academicCalendar: initialCalendar,
+  onUpdateAcademicCalendar,
   onToggleHoldResult,
   onBatchHoldClass,
   onRegisterStudent,
@@ -132,8 +138,27 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
 }) => {
   // Navigation Tabs (Secondary School Administration)
   const [activeTab, setActiveTab] = useState<
-    'classes' | 'staff' | 'curriculum' | 'students' | 'attendance' | 'fees'
+    'classes' | 'staff' | 'curriculum' | 'students' | 'attendance' | 'fees' | 'calendar'
   >('classes');
+
+  // Academic Calendar & School Resumption State
+  const [currentCalendar, setCurrentCalendar] = useState<AcademicCalendarSettings>(() => {
+    return initialCalendar || DEFAULT_ACADEMIC_CALENDAR;
+  });
+
+  useEffect(() => {
+    if (initialCalendar) {
+      setCurrentCalendar(initialCalendar);
+    }
+    fetch('/api/academic-calendar')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && (data.calendar || data.nextTermResumptionDate)) {
+          setCurrentCalendar(data.calendar || data);
+        }
+      })
+      .catch(() => {});
+  }, [initialCalendar]);
 
   // Curriculum Oversight & Batch Subject Allocation State
   const [isBatchSubjectModalOpen, setIsBatchSubjectModalOpen] = useState(false);
@@ -282,8 +307,18 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                   Administration
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  Academic Session 2026/2027 · Term 1
+                  Academic Session {currentCalendar.currentSession || '2026/2027'} · {currentCalendar.currentTerm || 'Term 1'}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('calendar')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 transition-all cursor-pointer shadow-2xs"
+                  title="Click to manage and change school resumption date"
+                >
+                  <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span>Resumes: <strong className="text-white">{currentCalendar.nextTermResumptionDate}</strong></span>
+                  <span className="text-[10px] text-amber-300 underline font-normal ml-0.5">Edit</span>
+                </button>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold font-serif-title tracking-tight text-white">
                 College Administration
@@ -295,6 +330,16 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className="px-3.5 py-2 bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/30 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              id="admin-calendar-resumption-header-btn"
+              title="Set when school resumes, holiday dates, and official directives"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span>Resumption Schedule</span>
+            </button>
+
             <button
               onClick={() => setIsRegisterStudentOpen(true)}
               className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer min-h-[38px] border border-slate-200"
@@ -511,6 +556,19 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
         >
           <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'fees' ? 'text-amber-300' : 'text-slate-500'}`} />
           <span>Bursary & Clearances</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 min-h-[38px] ${
+            activeTab === 'calendar'
+              ? 'bg-slate-900 text-white shadow-xs border border-slate-900'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+          }`}
+          id="admin-tab-calendar-resumption-btn"
+        >
+          <Calendar className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'calendar' ? 'text-amber-300' : 'text-slate-500'}`} />
+          <span>School Resumption & Calendar</span>
         </button>
       </div>
 
@@ -1953,6 +2011,24 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
       )}
 
       {/* ========================================================================= */}
+      {/* TAB 7: SCHOOL RESUMPTION & ACADEMIC CALENDAR MANAGEMENT                   */}
+      {/* ========================================================================= */}
+      {activeTab === 'calendar' && (
+        <SchoolCalendarManagement
+          initialCalendar={currentCalendar}
+          onUpdateCalendar={async (updated) => {
+            setCurrentCalendar(updated);
+            if (onUpdateAcademicCalendar) {
+              return onUpdateAcademicCalendar(updated);
+            }
+            return true;
+          }}
+          onNavigateToStudents={() => setActiveTab('students')}
+          onNavigateToFees={() => setActiveTab('fees')}
+        />
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL: QUICK FORM MASTER ASSIGNMENT                                       */}
       {/* ========================================================================= */}
       {quickFormMasterClass && (
@@ -2139,6 +2215,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
         <StudentReportCardModal
           student={reportCardStudent}
           classes={classes}
+          academicCalendar={currentCalendar}
           onClose={() => setReportCardStudent(null)}
         />
       )}

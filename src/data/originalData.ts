@@ -10,6 +10,7 @@ import {
   SchoolClassDefinition,
   SubjectScore,
   CollegeFeeSchedule,
+  AcademicCalendarSettings,
 } from '../types';
 
 export const CURRENT_SESSION = '2026/2027';
@@ -18,6 +19,20 @@ export const TODAY_DATE = 'Monday, 14 September 2026';
 export const SCHOOL_NAME = 'Dominion Star Global College';
 export const SCHOOL_LOCATION = 'Enugu State, Nigeria';
 export const SCHOOL_MOTTO = 'Striving for the Crown of Excellence';
+
+export const DEFAULT_ACADEMIC_CALENDAR: AcademicCalendarSettings = {
+  id: 'calendar_settings',
+  currentSession: '2026/2027',
+  currentTerm: 'First Term',
+  nextTerm: 'Second Term',
+  nextTermResumptionDate: 'Monday, 11th January, 2027',
+  resumptionDateRaw: '2027-01-11',
+  boardersResumptionDate: 'Sunday, 10th January, 2027 (by 4:00 PM)',
+  vacationDate: 'Friday, 18th December, 2026',
+  resumptionNotice: 'All students are expected to resume in full official college uniform with verified bursary clearance and term result broadsheets. No late coming will be condoned.',
+  updatedAt: '2026-09-01T08:00:00.000Z',
+  updatedBy: 'College Directorate of Academic Affairs',
+};
 
 export const DEFAULT_FEE_SCHEDULE: CollegeFeeSchedule = {
   id: 'fee-schedule-2026-t1',

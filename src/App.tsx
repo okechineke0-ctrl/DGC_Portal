@@ -47,6 +47,7 @@ import {
   getSubjectCode,
   computeCaTotal,
   calculateGrade,
+  DEFAULT_ACADEMIC_CALENDAR,
 } from './data/originalData';
 import {
   testFirestoreConnection,
@@ -59,7 +60,7 @@ import {
   deleteLiveStaff,
   saveLiveClass,
 } from './lib/firebase';
-import { StudentProfile, StaffMember, SubjectScore, SchoolClassDefinition } from './types';
+import { StudentProfile, StaffMember, SubjectScore, SchoolClassDefinition, AcademicCalendarSettings } from './types';
 import { formatStudentShortName, formatStaffName } from './utils/formatters';
 
 export default function App() {
@@ -90,6 +91,21 @@ export default function App() {
   const [classes, setClasses] = useState<SchoolClassDefinition[]>(SCHOOL_CLASSES_DEFINITIONS);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendarSettings>(DEFAULT_ACADEMIC_CALENDAR);
+
+  // Load live academic calendar on startup
+  useEffect(() => {
+    fetch('/api/academic-calendar')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && (data.calendar || data.nextTermResumptionDate)) {
+          setAcademicCalendar(data.calendar || data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load academic calendar in App:', err);
+      });
+  }, []);
 
   // Helper for authenticated fetch requests
   const authFetch = useCallback(
@@ -1289,6 +1305,11 @@ export default function App() {
               students={students}
               staffList={staffList}
               classes={classes}
+              academicCalendar={academicCalendar}
+              onUpdateAcademicCalendar={async (updated) => {
+                setAcademicCalendar(updated);
+                return true;
+              }}
               onToggleHoldResult={handleToggleHoldResult}
               onBatchHoldClass={handleBatchHoldClass}
               onRegisterStudent={handleRegisterStudent}
@@ -1449,6 +1470,7 @@ export default function App() {
                     currentStudent={selectedStudent}
                     allStudents={students}
                     classes={classes}
+                    academicCalendar={academicCalendar}
                     onSelectStudent={(std) => setSelectedStudent(std)}
                     activeSubTab={activeTab as any}
                   />

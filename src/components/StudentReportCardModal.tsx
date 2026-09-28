@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { X, Printer, ShieldCheck, Award, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { StudentProfile, SchoolClassDefinition } from '../types';
+import { StudentProfile, SchoolClassDefinition, AcademicCalendarSettings } from '../types';
 import { DGCLogo } from './DGCLogo';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
 import { getSubjectCode, calculateGrade, computeCaTotal, getHouseMeta } from '../data/originalData';
@@ -10,6 +10,7 @@ import { printElement } from '../utils/printReportCard';
 interface StudentReportCardModalProps {
   student: StudentProfile;
   classes: SchoolClassDefinition[];
+  academicCalendar?: AcademicCalendarSettings;
   onClose: () => void;
 }
 
@@ -44,6 +45,7 @@ const PSYCHOMOTOR_TRAITS = [
 export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
   student,
   classes,
+  academicCalendar,
   onClose,
 }) => {
   const reportRef = useRef<HTMLDivElement>(null);
@@ -596,10 +598,24 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
                   <p className="text-slate-900 italic font-medium leading-relaxed text-xs">
                     "{principalComment}"
                   </p>
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-700">
+                  <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] text-slate-700">
                     <span>College Seal: <strong>AFFIXED</strong></span>
-                    <span>Next Term Resumption: <strong>11th Jan, 2027</strong></span>
+                    <span>
+                      Next Term Resumption:{' '}
+                      <strong>{academicCalendar?.nextTermResumptionDate || 'Monday, 11th January, 2027'}</strong>
+                    </span>
                   </div>
+                  {academicCalendar?.boardersResumptionDate && (
+                    <div className="text-[9px] text-slate-500 font-medium">
+                      Boarders Return: <strong>{academicCalendar.boardersResumptionDate}</strong>
+                    </div>
+                  )}
+                  {academicCalendar?.resumptionNotice && (
+                    <div className="text-[9px] text-slate-600 bg-amber-50/80 p-1.5 rounded border border-amber-200/80 leading-tight">
+                      <strong className="text-amber-900 font-bold uppercase text-[8px] mr-1">Directorate Directive:</strong>
+                      {academicCalendar.resumptionNotice}
+                    </div>
+                  )}
                 </div>
               </div>
 

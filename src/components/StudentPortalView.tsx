@@ -38,9 +38,9 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { DGCLogo } from './DGCLogo';
-import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
+import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData, AcademicCalendarSettings } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
-import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE, getHouseMeta } from '../data/originalData';
+import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE, getHouseMeta, DEFAULT_ACADEMIC_CALENDAR } from '../data/originalData';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { BursaryReceiptModal } from './BursaryReceiptModal';
 import { formatStudentShortName } from '../utils/formatters';
@@ -52,6 +52,7 @@ interface StudentPortalViewProps {
   onSelectStudent?: (student: StudentProfile) => void;
   activeSubTab?: 'results' | 'analytics' | 'bursary' | 'report_card' | 'performance' | 'attendance' | 'fees' | 'subjects' | 'curriculum';
   feeSchedule?: CollegeFeeSchedule;
+  academicCalendar?: AcademicCalendarSettings;
 }
 
 type TabKey = 'report_card' | 'performance' | 'attendance' | 'fees' | 'subjects';
@@ -63,6 +64,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   onSelectStudent,
   activeSubTab = 'report_card',
   feeSchedule: initialFeeSchedule,
+  academicCalendar: initialCalendar,
 }) => {
   // Graceful empty state when no student profile is selected
   if (!currentStudent || !currentStudent.id) {
@@ -110,6 +112,28 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   );
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendanceFullData | null>(null);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState<boolean>(false);
+
+  // Live Directorate Academic Calendar & School Resumption state
+  const [liveCalendar, setLiveCalendar] = useState<AcademicCalendarSettings>(() => {
+    return initialCalendar || DEFAULT_ACADEMIC_CALENDAR;
+  });
+
+  useEffect(() => {
+    if (initialCalendar) {
+      setLiveCalendar(initialCalendar);
+    }
+    // Fetch real-time live calendar from backend
+    fetch('/api/academic-calendar')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && (data.calendar || data.nextTermResumptionDate)) {
+          setLiveCalendar(data.calendar || data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not sync live calendar on portal view:', err);
+      });
+  }, [initialCalendar]);
 
   // States for Assigned Subjects & Curriculum Explorer
   const [subjectSearch, setSubjectSearch] = useState<string>('');
@@ -476,7 +500,12 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-300">
             <div className="flex items-center gap-1.5 font-medium">
               <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>Session: {CURRENT_SESSION} · {CURRENT_TERM}</span>
+              <span>Session: {liveCalendar.currentSession || CURRENT_SESSION} · {liveCalendar.currentTerm || CURRENT_TERM}</span>
+            </div>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/25 text-amber-300 font-semibold text-[11px]">
+              <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+              <span>Resumes: <strong className="text-amber-200">{liveCalendar.nextTermResumptionDate}</strong></span>
             </div>
             <span className="text-slate-600 hidden sm:inline">•</span>
             <div className="flex items-center gap-1.5">
@@ -975,10 +1004,26 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 <p className="text-slate-900 italic font-medium leading-relaxed text-xs">
                   "{student.resultHeld ? 'Result held by administrative directive.' : 'Result approved, certified and ratified by the College Academic Directorate. Promoted in excellent standing.'}"
                 </p>
-                <div className="flex items-center justify-between text-[10px] text-slate-700 pt-2 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] text-slate-700 pt-2 border-t border-slate-200">
                   <span>College Seal: <strong>AFFIXED</strong></span>
-                  <span>Next Term Resumption: <strong>11th Jan, 2027</strong></span>
+                  <span>
+                    Next Term Resumption:{' '}
+                    <strong className="text-blue-950 font-bold">{liveCalendar.nextTermResumptionDate}</strong>
+                  </span>
                 </div>
+                {liveCalendar.boardersResumptionDate && (
+                  <div className="text-[9px] text-slate-500 font-medium">
+                    Boarders Return: <strong>{liveCalendar.boardersResumptionDate}</strong>
+                  </div>
+                )}
+                {liveCalendar.resumptionNotice && (
+                  <div className="mt-2 p-2 bg-amber-50/90 rounded border border-amber-300 text-[10px] text-slate-700 leading-tight">
+                    <strong className="text-amber-900 block uppercase font-bold text-[9px] mb-0.5">
+                      Directorate Resumption Directive:
+                    </strong>
+                    <span>{liveCalendar.resumptionNotice}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2283,6 +2328,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         <StudentReportCardModal
           student={student}
           classes={classes || []}
+          academicCalendar={liveCalendar}
           onClose={() => setIsReportCardOpen(false)}
         />
       )}

@@ -23,8 +23,9 @@ import {
   createSubjectScore,
   getSubjectCode,
   recalculateClassRankings,
+  DEFAULT_ACADEMIC_CALENDAR,
 } from './src/data/originalData';
-import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule, SubjectScore } from './src/types';
+import { StudentProfile, StaffMember, SchoolClassDefinition, FeeItem, CollegeFeeSchedule, SubjectScore, AcademicCalendarSettings } from './src/types';
 import crypto from 'crypto';
 import {
   evaluateCandidateResemblance,
@@ -146,6 +147,17 @@ async function dbSaveFeeSchedule(schedule: CollegeFeeSchedule): Promise<boolean>
     return true;
   } catch (err) {
     console.error('[Firestore Error] Failed to persist fee schedule:', err);
+    return false;
+  }
+}
+
+async function dbSaveAcademicCalendar(calendar: AcademicCalendarSettings): Promise<boolean> {
+  try {
+    const cleanData = cleanFirestoreData(calendar);
+    await setDoc(doc(db, 'system', 'academic_calendar'), cleanData, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('[Firestore Error] Failed to persist academic calendar:', err);
     return false;
   }
 }
@@ -349,16 +361,18 @@ async function startServer() {
   let schoolClasses: SchoolClassDefinition[] = JSON.parse(JSON.stringify(SCHOOL_CLASSES_DEFINITIONS));
   let attendanceRecordsList: any[] = [];
   let collegeFeeSchedule: CollegeFeeSchedule = JSON.parse(JSON.stringify(DEFAULT_FEE_SCHEDULE));
+  let academicCalendarSettings: AcademicCalendarSettings = JSON.parse(JSON.stringify(DEFAULT_ACADEMIC_CALENDAR));
 
   // Initialize and synchronize with live Cloud Firestore
   try {
     console.log('[Firestore] Synchronizing database state...');
-    const [stdSnap, stfSnap, clsSnap, attSnap, feeSnap] = await Promise.all([
+    const [stdSnap, stfSnap, clsSnap, attSnap, feeSnap, calSnap] = await Promise.all([
       getDocs(collection(db, 'students')),
       getDocs(collection(db, 'staff')),
       getDocs(collection(db, 'classes')),
       getDocs(collection(db, 'attendance')),
       getDoc(doc(db, 'system', 'fee_schedule')),
+      getDoc(doc(db, 'system', 'academic_calendar')),
     ]);
 
     const loadedStudents: StudentProfile[] = [];
@@ -472,6 +486,18 @@ async function startServer() {
       console.log('[Firestore] Initializing baseline college fee schedule...');
       await setDoc(doc(db, 'system', 'fee_schedule'), DEFAULT_FEE_SCHEDULE);
       collegeFeeSchedule = JSON.parse(JSON.stringify(DEFAULT_FEE_SCHEDULE));
+    }
+
+    if (calSnap.exists()) {
+      academicCalendarSettings = {
+        ...academicCalendarSettings,
+        ...(calSnap.data() as AcademicCalendarSettings),
+      };
+      console.log(`[Firestore] Synchronized academic calendar: Resumes ${academicCalendarSettings.nextTermResumptionDate}`);
+    } else {
+      console.log('[Firestore] Initializing baseline academic calendar...');
+      await setDoc(doc(db, 'system', 'academic_calendar'), DEFAULT_ACADEMIC_CALENDAR);
+      academicCalendarSettings = JSON.parse(JSON.stringify(DEFAULT_ACADEMIC_CALENDAR));
     }
   } catch (initErr) {
     console.error('[Firestore] Database synchronization notice:', initErr);
@@ -2388,6 +2414,133 @@ async function startServer() {
       schedule: collegeFeeSchedule,
       ...collegeFeeSchedule,
     });
+  });
+
+  // --- ACADEMIC CALENDAR & SCHOOL RESUMPTION SCHEDULE ENDPOINTS ---
+  app.get('/api/academic-calendar', (req, res) => {
+    return res.json({
+      success: true,
+      calendar: academicCalendarSettings,
+      ...academicCalendarSettings,
+    });
+  });
+
+  app.post('/api/academic-calendar', async (req, res) => {
+    try {
+      const {
+        currentSession,
+        currentTerm,
+        nextTerm,
+        nextTermResumptionDate,
+        resumptionDateRaw,
+        boardersResumptionDate,
+        vacationDate,
+        resumptionNotice,
+        updatedBy,
+      } = req.body;
+
+      let formattedDate = nextTermResumptionDate;
+      if (!formattedDate && resumptionDateRaw) {
+        try {
+          const d = new Date(resumptionDateRaw);
+          formattedDate = d.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          });
+        } catch {
+          formattedDate = resumptionDateRaw;
+        }
+      }
+
+      academicCalendarSettings = {
+        ...academicCalendarSettings,
+        currentSession: currentSession || academicCalendarSettings.currentSession,
+        currentTerm: currentTerm || academicCalendarSettings.currentTerm,
+        nextTerm: nextTerm || academicCalendarSettings.nextTerm,
+        nextTermResumptionDate: formattedDate || academicCalendarSettings.nextTermResumptionDate,
+        resumptionDateRaw: resumptionDateRaw || academicCalendarSettings.resumptionDateRaw,
+        boardersResumptionDate: boardersResumptionDate !== undefined ? boardersResumptionDate : academicCalendarSettings.boardersResumptionDate,
+        vacationDate: vacationDate !== undefined ? vacationDate : academicCalendarSettings.vacationDate,
+        resumptionNotice: resumptionNotice !== undefined ? resumptionNotice : academicCalendarSettings.resumptionNotice,
+        updatedAt: new Date().toISOString(),
+        updatedBy: updatedBy || 'College Directorate of Academic Affairs',
+      };
+
+      await dbSaveAcademicCalendar(academicCalendarSettings);
+
+      console.log(`[Academic Calendar] Directorate saved resumption date: ${academicCalendarSettings.nextTermResumptionDate}`);
+
+      return res.json({
+        success: true,
+        message: 'School resumption date and academic calendar successfully updated and synchronized.',
+        calendar: academicCalendarSettings,
+        ...academicCalendarSettings,
+      });
+    } catch (calErr: any) {
+      console.error('[Academic Calendar] Failed to save calendar:', calErr);
+      return res.status(500).json({ error: calErr?.message || 'Failed to save academic calendar' });
+    }
+  });
+
+  app.put('/api/academic-calendar', async (req, res) => {
+    try {
+      const {
+        currentSession,
+        currentTerm,
+        nextTerm,
+        nextTermResumptionDate,
+        resumptionDateRaw,
+        boardersResumptionDate,
+        vacationDate,
+        resumptionNotice,
+        updatedBy,
+      } = req.body;
+
+      let formattedDate = nextTermResumptionDate;
+      if (!formattedDate && resumptionDateRaw) {
+        try {
+          const d = new Date(resumptionDateRaw);
+          formattedDate = d.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          });
+        } catch {
+          formattedDate = resumptionDateRaw;
+        }
+      }
+
+      academicCalendarSettings = {
+        ...academicCalendarSettings,
+        currentSession: currentSession || academicCalendarSettings.currentSession,
+        currentTerm: currentTerm || academicCalendarSettings.currentTerm,
+        nextTerm: nextTerm || academicCalendarSettings.nextTerm,
+        nextTermResumptionDate: formattedDate || academicCalendarSettings.nextTermResumptionDate,
+        resumptionDateRaw: resumptionDateRaw || academicCalendarSettings.resumptionDateRaw,
+        boardersResumptionDate: boardersResumptionDate !== undefined ? boardersResumptionDate : academicCalendarSettings.boardersResumptionDate,
+        vacationDate: vacationDate !== undefined ? vacationDate : academicCalendarSettings.vacationDate,
+        resumptionNotice: resumptionNotice !== undefined ? resumptionNotice : academicCalendarSettings.resumptionNotice,
+        updatedAt: new Date().toISOString(),
+        updatedBy: updatedBy || 'College Directorate of Academic Affairs',
+      };
+
+      await dbSaveAcademicCalendar(academicCalendarSettings);
+
+      console.log(`[Academic Calendar] Directorate saved resumption date (PUT): ${academicCalendarSettings.nextTermResumptionDate}`);
+
+      return res.json({
+        success: true,
+        message: 'School resumption date and academic calendar successfully updated and synchronized.',
+        calendar: academicCalendarSettings,
+        ...academicCalendarSettings,
+      });
+    } catch (calErr: any) {
+      console.error('[Academic Calendar] Failed to save calendar:', calErr);
+      return res.status(500).json({ error: calErr?.message || 'Failed to save academic calendar' });
+    }
   });
 
   // Mark single student fee status (Paid / Not Paid / Cleared / Pending)

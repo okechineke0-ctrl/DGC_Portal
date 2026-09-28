@@ -19,6 +19,7 @@ import {
   StaffMember,
   SchoolClassDefinition,
   Announcement,
+  AcademicCalendarSettings,
 } from '../types';
 
 // Initialize Firebase App
@@ -226,6 +227,28 @@ export async function recordLiveAttendance(
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `attendance/${recordId}`);
+  }
+}
+
+export async function getLiveAcademicCalendar(): Promise<AcademicCalendarSettings | null> {
+  try {
+    const snap = await getDoc(doc(db, 'system', 'academic_calendar'));
+    if (snap.exists()) {
+      return snap.data() as AcademicCalendarSettings;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Could not fetch academic calendar from Firestore directly:', error);
+    return null;
+  }
+}
+
+export async function saveLiveAcademicCalendar(calendar: AcademicCalendarSettings): Promise<void> {
+  try {
+    const cleaned = cleanFirestoreData(calendar);
+    await setDoc(doc(db, 'system', 'academic_calendar'), cleaned, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'system/academic_calendar');
   }
 }
 

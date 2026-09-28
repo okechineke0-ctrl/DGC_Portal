@@ -274,3 +274,17 @@ export interface StudentAttendanceFullData {
   };
 }
 
+export interface AcademicCalendarSettings {
+  id?: string;
+  currentSession: string; // e.g. "2026/2027"
+  currentTerm: string;    // e.g. "First Term"
+  nextTerm: string;       // e.g. "Second Term"
+  nextTermResumptionDate: string; // Formatted date e.g. "Monday, 11th January, 2027"
+  resumptionDateRaw?: string;    // ISO YYYY-MM-DD
+  boardersResumptionDate?: string; // e.g. "Sunday, 10th January, 2027 (by 4:00 PM)"
+  vacationDate?: string;          // e.g. "Friday, 18th December, 2026"
+  resumptionNotice?: string;      // Directorate instructions for parents & students
+  updatedAt: string;
+  updatedBy: string;
+}
+
