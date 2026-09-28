@@ -66,6 +66,7 @@ import { getHouseMeta, DEFAULT_ACADEMIC_CALENDAR } from '../data/originalData';
 
 interface CeoDashboardProps {
   onExit: () => void;
+  onLogout?: () => void;
   students: StudentProfile[];
   staffList: StaffMember[];
   classes: SchoolClassDefinition[];
@@ -114,6 +115,7 @@ interface CeoDashboardProps {
 
 export const CeoDashboard: React.FC<CeoDashboardProps> = ({
   onExit,
+  onLogout,
   students,
   staffList,
   classes,
@@ -364,11 +366,13 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
             </button>
 
             <button
-              onClick={onExit}
-              className="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80 font-medium text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              onClick={onLogout || onExit}
+              className="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              id="admin-logout-header-btn"
+              title="Log out of College Administration"
             >
-              <LogOut className="w-3.5 h-3.5 shrink-0" />
-              <span>Exit Admin</span>
+              <LogOut className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+              <span>Log Out</span>
             </button>
           </div>
         </div>
