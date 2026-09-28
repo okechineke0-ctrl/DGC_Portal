@@ -331,16 +331,6 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <button
-              onClick={() => setActiveTab('calendar')}
-              className="px-3.5 py-2 bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/30 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px]"
-              id="admin-calendar-resumption-header-btn"
-              title="Set when school resumes, holiday dates, and official directives"
-            >
-              <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span>Resumption Schedule</span>
-            </button>
-
-            <button
               onClick={() => setIsRegisterStudentOpen(true)}
               className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer min-h-[38px] border border-slate-200"
               id="admin-register-student-header-btn"
@@ -2007,6 +1997,7 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
           classes={classes}
           onUpdateStudentFeeStatus={onUpdateStudentFeeStatus}
           onBulkUpdateStudentFeeStatus={onBulkUpdateStudentFeeStatus}
+          onRefreshData={onRefreshStudents}
         />
       )}
 

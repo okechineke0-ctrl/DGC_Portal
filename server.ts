@@ -2346,74 +2346,81 @@ async function startServer() {
     });
   });
 
-  app.post('/api/fees/schedule', (req, res) => {
-    const {
-      baseSchoolFee,
-      items,
-      bankName,
-      accountNumber,
-      accountName,
-      paymentInstructions,
-      session,
-      term,
-      updatedBy,
-    } = req.body;
+  app.post('/api/fees/schedule', async (req, res) => {
+    try {
+      const {
+        baseSchoolFee,
+        items,
+        bankName,
+        accountNumber,
+        accountName,
+        paymentInstructions,
+        session,
+        term,
+        updatedBy,
+      } = req.body;
 
-    const validBase = Number(baseSchoolFee) >= 0 ? Number(baseSchoolFee) : (collegeFeeSchedule.baseSchoolFee || 85000);
+      const validBase = Number(baseSchoolFee) >= 0 ? Number(baseSchoolFee) : (collegeFeeSchedule.baseSchoolFee || 85000);
 
-    let processedItems: FeeItem[] = Array.isArray(items) ? [...items] : [...collegeFeeSchedule.items];
+      let processedItems: FeeItem[] = Array.isArray(items) ? [...items] : [...collegeFeeSchedule.items];
 
-    // Ensure the primary Tuition entry stays synced with baseSchoolFee
-    const tuitionIdx = processedItems.findIndex((it) => it.id === 'fee-tuition' || it.category === 'Tuition');
-    if (tuitionIdx !== -1) {
-      processedItems[tuitionIdx] = {
-        ...processedItems[tuitionIdx],
-        amount: validBase,
+      // Ensure the primary Tuition entry stays synced with baseSchoolFee
+      const tuitionIdx = processedItems.findIndex((it) => it.id === 'fee-tuition' || it.category === 'Tuition');
+      if (tuitionIdx !== -1) {
+        processedItems[tuitionIdx] = {
+          ...processedItems[tuitionIdx],
+          amount: validBase,
+        };
+      } else {
+        processedItems.unshift({
+          id: 'fee-tuition',
+          name: 'Base School Fees & Tuition',
+          amount: validBase,
+          category: 'Tuition',
+          applicableLevel: 'All',
+          description: 'Approved statutory secondary academic instruction and teacher scheme',
+          isMandatory: true,
+        });
+      }
+
+      const computedTotal = processedItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+
+      collegeFeeSchedule = {
+        ...collegeFeeSchedule,
+        session: session || collegeFeeSchedule.session,
+        term: term || collegeFeeSchedule.term,
+        baseSchoolFee: validBase,
+        items: processedItems,
+        totalFee: computedTotal,
+        bankName: bankName !== undefined ? bankName : collegeFeeSchedule.bankName,
+        accountNumber: accountNumber !== undefined ? accountNumber : collegeFeeSchedule.accountNumber,
+        accountName: accountName !== undefined ? accountName : collegeFeeSchedule.accountName,
+        paymentInstructions: paymentInstructions !== undefined ? paymentInstructions : collegeFeeSchedule.paymentInstructions,
+        updatedAt: new Date().toISOString(),
+        updatedBy: updatedBy || 'College Administrator / Bursar',
       };
-    } else {
-      processedItems.unshift({
-        id: 'fee-tuition',
-        name: 'Base School Fees & Tuition',
-        amount: validBase,
-        category: 'Tuition',
-        applicableLevel: 'All',
-        description: 'Approved statutory secondary academic instruction and teacher scheme',
-        isMandatory: true,
+
+      await dbSaveFeeSchedule(collegeFeeSchedule);
+
+      // Also update totalFeeDue for students in memory
+      students = students.map((std) => ({
+        ...std,
+        totalFeeDue: computedTotal,
+        amountPaid: std.feeStatus === 'Cleared' ? computedTotal : (std.amountPaid || 0),
+      }));
+
+      console.log(`[Bursary] Updated fee schedule: Base ₦${validBase}, Total ₦${computedTotal}`);
+
+      return res.json({
+        success: true,
+        message: 'Official School Fees Schedule updated and persisted to Cloud Firestore.',
+        schedule: collegeFeeSchedule,
+        ...collegeFeeSchedule,
       });
+    } catch (saveErr: any) {
+      console.error('[Bursary] Failed to update fee schedule:', saveErr);
+      return res.status(500).json({ error: saveErr?.message || 'Failed to update fee schedule' });
     }
-
-    const computedTotal = processedItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-
-    collegeFeeSchedule = {
-      ...collegeFeeSchedule,
-      session: session || collegeFeeSchedule.session,
-      term: term || collegeFeeSchedule.term,
-      baseSchoolFee: validBase,
-      items: processedItems,
-      totalFee: computedTotal,
-      bankName: bankName !== undefined ? bankName : collegeFeeSchedule.bankName,
-      accountNumber: accountNumber !== undefined ? accountNumber : collegeFeeSchedule.accountNumber,
-      accountName: accountName !== undefined ? accountName : collegeFeeSchedule.accountName,
-      paymentInstructions: paymentInstructions !== undefined ? paymentInstructions : collegeFeeSchedule.paymentInstructions,
-      updatedAt: new Date().toISOString(),
-      updatedBy: updatedBy || 'College Administrator / Bursar',
-    };
-
-    dbSaveFeeSchedule(collegeFeeSchedule);
-
-    // Also update totalFeeDue for students in memory
-    students = students.map((std) => ({
-      ...std,
-      totalFeeDue: computedTotal,
-      amountPaid: std.feeStatus === 'Cleared' ? computedTotal : (std.amountPaid || 0),
-    }));
-
-    return res.json({
-      success: true,
-      message: 'Official School Fees Schedule updated and persisted to Cloud Firestore.',
-      schedule: collegeFeeSchedule,
-      ...collegeFeeSchedule,
-    });
   });
 
   // --- ACADEMIC CALENDAR & SCHOOL RESUMPTION SCHEDULE ENDPOINTS ---

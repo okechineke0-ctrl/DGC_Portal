@@ -123,9 +123,11 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
 }) => {
   // Fee Schedule State
   const [feeSchedule, setFeeSchedule] = useState<CollegeFeeSchedule>(DEFAULT_SCHEDULE);
-  const [baseSchoolFeeInput, setBaseSchoolFeeInput] = useState<number>(85000);
+  const [baseSchoolFeeInput, setBaseSchoolFeeInput] = useState<string | number>(85000);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
+  const [isUpdatingBaseFee, setIsUpdatingBaseFee] = useState(false);
+  const [baseFeeSuccess, setBaseFeeSuccess] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
   // New Fee Item Form
@@ -207,31 +209,77 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
   };
 
   // Update Base School Fee
-  const handleSaveBaseFee = async () => {
-    const updatedItems = feeSchedule.items.map((it) => {
-      if (it.id === 'fee-tuition' || it.category === 'Tuition') {
-        return { ...it, amount: Number(baseSchoolFeeInput) || 0 };
+  const handleSaveBaseFee = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    const rawVal = typeof baseSchoolFeeInput === 'string'
+      ? parseFloat(baseSchoolFeeInput.replace(/[^0-9.]/g, ''))
+      : baseSchoolFeeInput;
+    const numericAmount = isNaN(rawVal) || rawVal < 0 ? 0 : rawVal;
+
+    setIsUpdatingBaseFee(true);
+    setBaseFeeSuccess(false);
+
+    try {
+      let found = false;
+      const updatedItems = (feeSchedule.items || []).map((it) => {
+        if (
+          it.id === 'fee-tuition' ||
+          it.category === 'Tuition' ||
+          it.name.toLowerCase().includes('tuition') ||
+          it.name.toLowerCase().includes('base school')
+        ) {
+          found = true;
+          return { ...it, id: 'fee-tuition', amount: numericAmount };
+        }
+        return it;
+      });
+
+      if (!found) {
+        updatedItems.unshift({
+          id: 'fee-tuition',
+          name: 'Base Tuition & Academic Instruction',
+          amount: numericAmount,
+          category: 'Tuition',
+          applicableLevel: 'All',
+          description: 'Approved statutory secondary curriculum instruction & scheme of work',
+          isMandatory: true,
+        });
       }
-      return it;
-    });
 
-    const newTotal = updatedItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+      const newTotal = updatedItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
 
-    const updatedSchedule: CollegeFeeSchedule = {
-      ...feeSchedule,
-      baseSchoolFee: Number(baseSchoolFeeInput) || 0,
-      items: updatedItems,
-      totalFee: newTotal,
-      bankName,
-      accountNumber,
-      accountName,
-      updatedAt: new Date().toISOString(),
-      updatedBy: 'College Administrator',
-    };
+      const updatedSchedule: CollegeFeeSchedule = {
+        ...feeSchedule,
+        baseSchoolFee: numericAmount,
+        items: updatedItems,
+        totalFee: newTotal,
+        bankName,
+        accountNumber,
+        accountName,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'College Administrator / Bursar',
+      };
 
-    setFeeSchedule(updatedSchedule);
-    await persistFeeSchedule(updatedSchedule);
-    showToast(`Base School Fee set to ₦${(Number(baseSchoolFeeInput) || 0).toLocaleString()}. Total fee: ₦${newTotal.toLocaleString()}`);
+      setFeeSchedule(updatedSchedule);
+      setBaseSchoolFeeInput(numericAmount);
+
+      await persistFeeSchedule(updatedSchedule);
+
+      setBaseFeeSuccess(true);
+      setTimeout(() => setBaseFeeSuccess(false), 3500);
+
+      showToast(`Base School Fee set to ₦${numericAmount.toLocaleString()}. Total fee: ₦${newTotal.toLocaleString()}`);
+
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (err: any) {
+      console.error('Error saving base fee:', err);
+      showToast('Error saving base fee. Please try again.', 'info');
+    } finally {
+      setIsUpdatingBaseFee(false);
+    }
   };
 
   // Add Other / Custom Fee (e.g. Project Fee, Practical Fee, etc.)
@@ -338,10 +386,17 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
         const data = await res.json();
         if (data && data.schedule) {
           setFeeSchedule(data.schedule);
+          if (data.schedule.baseSchoolFee !== undefined) {
+            setBaseSchoolFeeInput(data.schedule.baseSchoolFee);
+          }
         }
+        onRefreshData?.();
+      } else {
+        throw new Error('Server returned error while updating fee schedule');
       }
     } catch (err) {
       console.error('Error saving fee schedule:', err);
+      throw err;
     } finally {
       setIsScheduleSaving(false);
     }
@@ -699,44 +754,84 @@ export const SchoolFeesManagement: React.FC<SchoolFeesManagementProps> = ({
         </div>
 
         {/* Base School Fee Direct Input Card */}
-        <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
-              Official Primary Tuition
-            </span>
-            <h4 className="text-base font-bold text-blue-950">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-50/90 via-slate-50 to-blue-50/80 rounded-2xl border-2 border-blue-200/90 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-blue-900 text-white">
+                Core Statutory Tuition
+              </span>
+              <span className="text-xs font-bold text-blue-900 font-mono">
+                Current: ₦{(feeSchedule.baseSchoolFee || 85000).toLocaleString()}.00
+              </span>
+            </div>
+            <h4 className="text-base sm:text-lg font-bold text-blue-950 font-serif-title">
               Base School Fee & Academic Instruction
             </h4>
-            <p className="text-xs text-slate-600 max-w-xl">
-              This amount represents the core statutory tuition across academic departments. It displays directly on every student's portal bill.
+            <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+              This amount is the primary statutory tuition across all departments. Updating this recalculates prescribed fees and refreshes student clearance balances across the college.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-950">
+          <form
+            onSubmit={handleSaveBaseFee}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto shrink-0"
+          >
+            <div className="relative flex-1 sm:w-52">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-950 pointer-events-none select-none">
                 ₦
               </span>
               <input
                 type="number"
                 min="0"
-                step="1000"
+                step="500"
                 value={baseSchoolFeeInput}
-                onChange={(e) => setBaseSchoolFeeInput(Math.max(0, Number(e.target.value)))}
-                className="w-40 sm:w-48 pl-8 pr-3 py-2.5 rounded-xl bg-white border border-blue-300 text-blue-950 font-mono font-bold text-base focus:outline-hidden focus:ring-2 focus:ring-blue-600"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBaseSchoolFeeInput(val === '' ? '' : Math.max(0, Number(val)));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveBaseFee();
+                  }
+                }}
+                placeholder="Enter base tuition..."
+                required
+                className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-white border-2 border-blue-300 text-blue-950 font-mono font-bold text-base focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs transition-all min-h-[44px]"
                 id="base-school-fee-input"
+                aria-label="Base School Fee Input"
               />
             </div>
+
             <button
-              onClick={handleSaveBaseFee}
-              disabled={isScheduleSaving}
-              className="px-4 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap"
+              type="submit"
+              disabled={isUpdatingBaseFee || isScheduleSaving}
+              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs whitespace-nowrap min-h-[44px] active:scale-[0.98] disabled:opacity-60 ${
+                baseFeeSuccess
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-blue-900 hover:bg-blue-800 text-amber-300'
+              }`}
               id="save-base-school-fee-btn"
+              title="Save & update the base tuition across all students"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Update Base Fee</span>
+              {isUpdatingBaseFee || isScheduleSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <span>Updating Base Fee...</span>
+                </>
+              ) : baseFeeSuccess ? (
+                <>
+                  <Check className="w-4 h-4 text-white" />
+                  <span>Base Fee Updated!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 text-amber-300" />
+                  <span>Update Base Fee</span>
+                </>
+              )}
             </button>
-          </div>
+          </form>
         </div>
 
         {/* Add New Custom Fee Form (Collapsible) */}
