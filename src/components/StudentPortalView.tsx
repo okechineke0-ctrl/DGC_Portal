@@ -40,7 +40,7 @@ import {
 import { DGCLogo } from './DGCLogo';
 import { StudentProfile, SchoolClassDefinition, CollegeFeeSchedule, StudentAttendanceFullData } from '../types';
 import { CURRENT_SESSION, CURRENT_TERM, SCHOOL_NAME, SCHOOL_MOTTO, SCHOOL_LOCATION } from '../data/mockData';
-import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE } from '../data/originalData';
+import { getSubjectCategory, getSubjectCode, calculateGrade, computeCaTotal, DEFAULT_FEE_SCHEDULE, getHouseMeta } from '../data/originalData';
 import { StudentReportCardModal } from './StudentReportCardModal';
 import { BursaryReceiptModal } from './BursaryReceiptModal';
 import { formatStudentShortName } from '../utils/formatters';
@@ -394,6 +394,15 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
                 <span className="text-xs text-slate-400 font-medium">
                   {student.stream} Stream · Secondary
                 </span>
+                {(() => {
+                  const houseMeta = getHouseMeta(student.houseAllocation || student.house);
+                  return (
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold ${houseMeta.badgeBg} text-white border ${houseMeta.badgeBorder} shadow-2xs`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      <span>{houseMeta.name}</span>
+                    </span>
+                  );
+                })()}
                 {student.feeStatus === 'Cleared' ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 shadow-2xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -558,211 +567,437 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
       {/* 1. PRINT REPORT CARD VIEW                                                */}
       {/* ========================================================================= */}
       {activeTab === 'report_card' && (
-        <div className={`bg-white rounded-2xl p-5 sm:p-7 border border-slate-200 shadow-xs space-y-5 w-full max-w-full min-w-0 ${student.resultHeld ? 'relative' : ''}`}>
+        <div className={`report-card-container relative bg-white rounded-2xl p-4 sm:p-8 border-2 border-slate-700 shadow-md space-y-5 w-full max-w-full min-w-0 overflow-hidden ${student.resultHeld ? 'relative' : ''}`}>
+          {/* OFFICIAL SCHOOL CREST SECURITY WATERMARK (CENTERED IN BACKGROUND) */}
+          <div
+            className="report-card-watermark absolute inset-0 pointer-events-none select-none flex items-center justify-center overflow-hidden z-0"
+            aria-hidden="true"
+          >
+            <img
+              src="/1789397544433.jpg"
+              alt="Dominion Star Crest Official Watermark"
+              className="w-[420px] h-[420px] max-w-[85%] max-h-[85%] object-contain opacity-[0.06] select-none pointer-events-none"
+              style={{ filter: 'grayscale(15%)' }}
+            />
+          </div>
+
           {student.resultHeld && (
-            <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-20 rounded-3xl flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center p-6 text-center">
               <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mb-3 shadow-xs">
                 <Lock className="w-8 h-8" />
               </div>
-              <h4 className="font-bold text-slate-900 text-xl font-serif-title">Report Card Locked</h4>
+              <h4 className="font-bold text-slate-900 text-xl font-serif-title">Report Card Withheld</h4>
               <p className="text-xs text-slate-600 max-w-md mt-1.5 leading-relaxed">
-                The academic report card for <strong>{formatStudentShortName(student.name)}</strong> has been withheld by the Administration. To unlock and view detailed scores, please complete bursary clearance.
+                The academic broadsheet for <strong>{formatStudentShortName(student.name)}</strong> has been withheld by the Administration pending clearance.
               </p>
               <div className="mt-4 px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold">
-                Stated Hold Reason: {student.holdReason || 'Outstanding Fees Clearance'}
+                Hold Reason: {student.holdReason || 'Outstanding Fees Clearance'}
               </div>
             </div>
           )}
 
-          {/* Broadsheet Formal Heading */}
-          <div className="text-center pb-5 border-b border-slate-200 space-y-1">
-            <div className="flex items-center justify-center gap-3">
-              <DGCLogo size="md" showText={false} />
-              <div className="text-left">
-                <h2 className="text-xl sm:text-2xl font-extrabold text-blue-950 tracking-tight">
-                  {SCHOOL_NAME}
-                </h2>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {SCHOOL_LOCATION} · Secondary Campus
-                </p>
-                <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
-                  MOTTO: {SCHOOL_MOTTO}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px]">
-                TERMINAL CONTINUOUS ASSESSMENT & EXAMINATION REPORT SHEET
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 bg-blue-50 text-blue-950 font-bold rounded-md border border-blue-100">
-                  {CURRENT_SESSION} Academic Session
-                </span>
-                <span className="px-2.5 py-0.5 bg-amber-50 text-amber-900 font-bold rounded-md border border-amber-100">
-                  {CURRENT_TERM}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Student Broadsheet Biodata Matrix with Official Uniform Passport */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs flex-1">
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Student Name</span>
-                <span className="font-bold text-slate-900 block">{formatStudentShortName(student.name)}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Admission No</span>
-                <span className="font-mono font-bold text-slate-900 block">{student.admissionNo}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Class Arm</span>
-                <span className="font-bold text-blue-950 block">{student.classArm}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Term GPA / Position</span>
-                <span className="font-bold text-emerald-800 block">
-                  {student.termGpa}% ({student.termRank})
-                </span>
-              </div>
-            </div>
-
-            {/* Official Uniform Passport Photo on Report Card */}
-            <div className="shrink-0 flex items-center justify-center sm:pl-4 sm:border-l border-slate-200">
-              <div className="w-16 h-20 rounded-lg border-2 border-slate-300 bg-white p-0.5 shadow-2xs relative overflow-hidden flex flex-col items-center justify-center text-center">
-                {student.photoUrl ? (
-                  <img
-                    src={student.photoUrl}
-                    alt={student.name}
-                    className="w-full h-full object-cover rounded-sm"
-                  />
-                ) : (
-                  <div className="p-1 text-[8px] text-slate-400 font-bold leading-tight uppercase flex flex-col items-center justify-center h-full">
-                    <span>Uniform</span>
-                    <span>Passport</span>
-                    <span>Photo</span>
+          {/* CONTENT LAYER */}
+          <div className="report-card-content relative z-10 space-y-4">
+            {/* School Header */}
+            <div className="border-b-2 border-slate-800 pb-3.5">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-18 h-18 sm:w-20 sm:h-20 p-1 rounded-2xl bg-white border border-slate-300 shadow-2xs shrink-0 flex items-center justify-center overflow-hidden">
+                    <img
+                      src="/1789397544433.jpg"
+                      alt="Dominion Star Crest Logo"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                )}
-                <div className="absolute bottom-0 inset-x-0 bg-blue-950/90 text-[6px] font-mono text-amber-300 py-0.2 text-center uppercase tracking-widest">
-                  DOMINATE STAR COLLEGE
+                  <div className="space-y-0.5">
+                    <h2 className="text-xl sm:text-2xl font-black font-serif-title tracking-tight text-slate-950 uppercase leading-none">
+                      {SCHOOL_NAME}
+                    </h2>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                      Government Approved · Co-Educational Boarding & Day Secondary Institution
+                    </p>
+                    <p className="text-[11px] text-amber-800 font-bold italic">
+                      "{SCHOOL_MOTTO}"
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Permanent Campus: Awgu, Enugu State, Nigeria · Tel: +234 803 000 0000
+                    </p>
+                  </div>
+                </div>
+
+                {/* Uniform Passport Frame */}
+                <div className="shrink-0 flex items-center justify-center">
+                  <div className="w-20 h-24 rounded-lg border-2 border-slate-700 bg-white p-0.5 shadow-xs relative overflow-hidden flex flex-col items-center justify-center text-center">
+                    {student.photoUrl ? (
+                      <img
+                        src={student.photoUrl}
+                        alt={student.name}
+                        className="w-full h-full object-cover rounded-sm"
+                      />
+                    ) : (
+                      <div className="p-1 text-[8px] text-slate-400 font-bold leading-tight uppercase flex flex-col items-center justify-center h-full">
+                        <span>Uniform</span>
+                        <span>Passport</span>
+                        <span>Photo</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-slate-900 text-[6px] font-mono font-bold text-amber-300 py-0.5 text-center uppercase tracking-widest">
+                      ORIGINAL COPY
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Broadsheet Formal Title Banner */}
+              <div className="mt-3 bg-slate-900 text-white rounded-lg p-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center sm:text-left shadow-xs">
+                <div>
+                  <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-300 block">
+                    OFFICIAL CONTINUOUS ASSESSMENT & TERMINAL EXAMINATION REPORT SHEET
+                  </span>
+                  <span className="text-[10px] text-slate-300 font-medium">
+                    Senior & Junior Secondary Academic Transcript · Master Copy
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase">
+                  <span className="px-2 py-0.5 bg-white/10 rounded border border-white/20">
+                    SESSION: {CURRENT_SESSION}
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded font-black">
+                    {CURRENT_TERM}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Official Scores Table with 40% CA + 60% Exam */}
-          <div className="overflow-x-auto w-full max-w-full -mx-1 sm:mx-0 px-1 sm:px-0">
-            <table className="w-full text-left text-xs border-collapse min-w-[780px] whitespace-nowrap">
-              <thead>
-                <tr className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
-                  <th className="py-3 px-3">Subject</th>
-                  <th className="py-3 px-2">Code</th>
-                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Homework out of 10">HW (10)</th>
-                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Test 1 out of 10">Test 1 (10)</th>
-                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Test 2 out of 10">Test 2 (10)</th>
-                  <th className="py-3 px-2 text-center" title="Continuous Assessment: Practical out of 10">Prac (10)</th>
-                  <th className="py-3 px-2 text-center bg-blue-50/70 text-blue-950 font-extrabold">CA (40)</th>
-                  <th className="py-3 px-2 text-center">Exam (60)</th>
-                  <th className="py-3 px-2 text-center font-bold text-slate-900 bg-slate-100/60">Total (100)</th>
-                  <th className="py-3 px-2 text-center">Grade</th>
-                  <th className="py-3 px-3 text-right">Remark</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {resolvedStudentSubjects.map((sub, idx) => {
-                  const isAssessed = sub.isAssessed;
-                  return (
-                    <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-900">
-                        {sub.name}
-                        <span className="ml-1 text-[10px] font-mono text-slate-400">({sub.code})</span>
-                      </td>
-                      <td className="py-3 px-2 font-mono text-slate-400 text-[11px]">{sub.code}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.homework : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.test1 : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-slate-700 tabular-nums">{isAssessed ? sub.test2 : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono text-blue-950 font-semibold tabular-nums">{isAssessed ? sub.practical : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono font-bold text-blue-900 bg-blue-50/30 tabular-nums">
-                        {isAssessed ? sub.caTotal : '—'}
-                      </td>
-                      <td className="py-3 px-2 text-center font-mono font-semibold text-slate-800 tabular-nums">{isAssessed ? sub.exam : '—'}</td>
-                      <td className="py-3 px-2 text-center font-mono font-black text-blue-950 text-sm bg-slate-100/40 tabular-nums">
-                        {isAssessed ? sub.total : '—'}
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        {isAssessed ? (
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded font-mono font-black text-[11px] ${
+            {/* Student Bio-Data Certificate Grid */}
+            <div className="border border-slate-400 rounded-lg overflow-hidden bg-white/90 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-300 border-b border-slate-300">
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Student Full Name</span>
+                  <span className="font-black text-slate-950 text-xs sm:text-sm block truncate uppercase">
+                    {student.name}
+                  </span>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Admission / Reg No</span>
+                  <span className="font-mono font-black text-blue-950 text-xs sm:text-sm block">
+                    {student.admissionNo}
+                  </span>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Class & Stream</span>
+                  <span className="font-bold text-slate-950 text-xs block">
+                    {student.classArm} ({student.stream || 'General'})
+                  </span>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Gender & DOB</span>
+                  <span className="font-bold text-slate-800 text-xs block">
+                    {student.gender} · {student.dateOfBirth || '2011-04-15'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-300 border-b border-slate-300 bg-slate-50/70">
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Sport / College House</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {(() => {
+                      const meta = getHouseMeta(student.houseAllocation || student.house);
+                      return (
+                        <>
+                          <span className={`w-2.5 h-2.5 rounded-full ${meta.dotColor} shrink-0`} />
+                          <span className="font-black text-slate-900 text-xs">
+                            {meta.name}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Boarding Status</span>
+                  <span className="font-bold text-slate-800 text-xs block">
+                    {student.boardingStatus || 'Day Student'}
+                  </span>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Assigned Form Master</span>
+                  <span className="font-bold text-slate-900 text-xs block truncate">
+                    {assignedFormMaster}
+                  </span>
+                </div>
+                <div className="p-2 sm:p-2.5">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 block">Academic Standing</span>
+                  <span className="font-black text-emerald-800 text-xs block">
+                    {student.termRank} ({student.termGpa}% Avg)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-300 text-[11px]">
+                <div className="p-1.5 sm:p-2">
+                  <span className="text-slate-500 font-semibold">Times School Opened: </span>
+                  <strong className="text-slate-900 font-mono">{liveOpenDays || 116}</strong>
+                </div>
+                <div className="p-1.5 sm:p-2">
+                  <span className="text-slate-500 font-semibold">Times Present: </span>
+                  <strong className="text-slate-900 font-mono">{livePresentDays || 112}</strong>
+                </div>
+                <div className="p-1.5 sm:p-2">
+                  <span className="text-slate-500 font-semibold">Attendance Rate: </span>
+                  <strong className="text-emerald-800 font-mono">{liveAttendanceRate}%</strong>
+                </div>
+                <div className="p-1.5 sm:p-2">
+                  <span className="text-slate-500 font-semibold">Certification: </span>
+                  <strong className={student.resultHeld ? 'text-rose-700' : 'text-emerald-700'}>
+                    {student.resultHeld ? 'HOLD ACTIVE' : 'OFFICIALLY RATIFIED'}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Academic Broadsheet Results Table */}
+            <div className="border border-slate-700 rounded-lg overflow-x-auto shadow-2xs bg-white/95">
+              <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider border-b border-slate-700">
+                    <th className="py-2 px-2 text-center w-8 border-r border-slate-700">S/N</th>
+                    <th className="py-2 px-3 border-r border-slate-700">Subject Course Title</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700" title="Homework (Max 10)">HW (10)</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700" title="Test 1 (Max 10)">T1 (10)</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700" title="Test 2 (Max 10)">T2 (10)</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700" title="Practical (Max 10)">PRAC (10)</th>
+                    <th className="py-2 px-2 text-center bg-blue-900/90 text-amber-300 font-black border-r border-slate-700" title="Total CA (Max 40)">CA (40)</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700" title="Terminal Exam (Max 60)">EXAM (60)</th>
+                    <th className="py-2 px-2 text-center bg-slate-800 text-white font-black border-r border-slate-700" title="Total (Max 100)">TOTAL (100)</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700">GRADE</th>
+                    <th className="py-2 px-2 text-center border-r border-slate-700">POS</th>
+                    <th className="py-2 px-3 text-right">REMARK</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-300 text-slate-800">
+                  {resolvedStudentSubjects.map((sub, idx) => {
+                    const isAssessed = sub.isAssessed;
+                    const subjectPosition = sub.total >= 80 ? '1st' : sub.total >= 70 ? '2nd' : sub.total >= 60 ? '3rd' : '4th';
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-2 px-2 text-center font-mono text-[11px] text-slate-500 border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2 px-3 font-bold text-slate-950 border-r border-slate-200">
+                          {sub.name}
+                          <span className="ml-1 text-[10px] font-mono text-slate-500">({sub.code})</span>
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono tabular-nums text-slate-700 border-r border-slate-200">
+                          {isAssessed ? sub.homework : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono tabular-nums text-slate-700 border-r border-slate-200">
+                          {isAssessed ? sub.test1 : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono tabular-nums text-slate-700 border-r border-slate-200">
+                          {isAssessed ? sub.test2 : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono tabular-nums text-slate-700 border-r border-slate-200">
+                          {isAssessed ? sub.practical : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono font-black text-blue-950 bg-blue-50/60 border-r border-slate-200">
+                          {isAssessed ? sub.caTotal : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-slate-900 border-r border-slate-200">
+                          {isAssessed ? sub.exam : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono font-black text-slate-950 bg-slate-100/80 border-r border-slate-200 text-xs">
+                          {isAssessed ? sub.total : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono font-black border-r border-slate-200">
+                          {isAssessed ? (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${
                               sub.grade === 'A1'
                                 ? 'bg-blue-900 text-white'
                                 : sub.grade.startsWith('B')
-                                ? 'bg-blue-100 text-blue-900'
+                                ? 'bg-blue-100 text-blue-950'
                                 : sub.grade.startsWith('C')
-                                ? 'bg-emerald-100 text-emerald-900'
-                                : 'bg-amber-100 text-amber-900'
-                            }`}
-                          >
-                            {sub.grade}
-                          </span>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-right font-medium text-slate-600 text-[11px]">
-                        {isAssessed ? sub.remark : 'Pending Assessment'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                                ? 'bg-emerald-100 text-emerald-950'
+                                : 'bg-amber-100 text-amber-950'
+                            }`}>
+                              {sub.grade}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-normal">Pending</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono text-[10px] font-bold text-slate-600 border-r border-slate-200">
+                          {isAssessed ? subjectPosition : '—'}
+                        </td>
+                        <td className="py-2 px-3 text-right text-[11px] font-semibold text-slate-700">
+                          {isAssessed ? sub.remark : 'Pending Assessment'}
+                        </td>
+                      </tr>
+                    );
+                  })}
 
-          {/* Form Teacher & Principal Evaluation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 block">
-                Class Master's Evaluation
-              </span>
-              <p className="text-slate-800 font-medium italic">
-                "{student.formMasterRemark || (student.termGpa >= 75 ? 'An exceptional, highly focused student who demonstrates academic brilliance and moral discipline. Recommended for academic honors.' : 'A good and regular student. Encouraged to allocate more time to continuous assessment revisions.')}"
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-200/60 mt-2">
-                <span>Class Master: <strong>{assignedFormMaster}</strong></span>
-                <span className="text-emerald-700 font-bold">Signature: Verified</span>
+                  {/* Table Footer: Marks & Terminal Average Summary */}
+                  {(() => {
+                    const assessed = resolvedStudentSubjects.filter((s) => s.isAssessed);
+                    const totalObt = assessed.reduce((acc, curr) => acc + (curr.total || 0), 0);
+                    const totalMax = (assessed.length || resolvedStudentSubjects.length) * 100;
+                    const avgScore = assessed.length > 0 ? Number((totalObt / assessed.length).toFixed(1)) : student.termGpa;
+                    const gradeInfo = calculateGrade(avgScore);
+
+                    return (
+                      <tr className="bg-slate-100 font-bold border-t-2 border-slate-700 text-slate-900">
+                        <td colSpan={6} className="py-2.5 px-3 text-right uppercase text-[10px] font-black border-r border-slate-300">
+                          Total Marks Obtained:
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono font-black text-blue-950 bg-blue-100/70 border-r border-slate-300 text-xs">
+                          {totalObt} / {totalMax}
+                        </td>
+                        <td className="py-2.5 px-2 text-right uppercase text-[10px] font-black border-r border-slate-300">
+                          Term Average:
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono font-black text-slate-950 bg-slate-200 border-r border-slate-300 text-sm">
+                          {avgScore}%
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono font-black bg-blue-950 text-white border-r border-slate-300">
+                          {gradeInfo.grade}
+                        </td>
+                        <td colSpan={2} className="py-2.5 px-3 text-right text-[11px] font-black text-emerald-800">
+                          {gradeInfo.remark}
+                        </td>
+                      </tr>
+                    );
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Cognitive Grading Interpretation & Behavioral Traits Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs">
+              {/* 1. Official Grading Scale Reference Table */}
+              <div className="border border-slate-400 rounded-lg p-2.5 bg-white/90 space-y-1.5">
+                <span className="text-[10px] font-black uppercase text-slate-900 block border-b border-slate-200 pb-1">
+                  Grading Scale (National Secondary Standard)
+                </span>
+                <div className="grid grid-cols-3 gap-1 text-[10px]">
+                  {[
+                    { grade: 'A1', range: '75-100%' },
+                    { grade: 'B2', range: '70-74%' },
+                    { grade: 'B3', range: '65-69%' },
+                    { grade: 'C4', range: '60-64%' },
+                    { grade: 'C5', range: '55-59%' },
+                    { grade: 'C6', range: '50-54%' },
+                    { grade: 'D7', range: '45-49%' },
+                    { grade: 'E8', range: '40-44%' },
+                    { grade: 'F9', range: '0-39%' },
+                  ].map((g) => (
+                    <div key={g.grade} className="p-1 rounded bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <strong className="font-mono text-slate-900">{g.grade}</strong>
+                      <span className="text-slate-500 font-mono text-[9px]">{g.range}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Affective Domain Assessment */}
+              <div className="border border-slate-400 rounded-lg p-2.5 bg-white/90 space-y-1.5">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                  <span className="text-[10px] font-black uppercase text-slate-900">
+                    Affective Domain Rating (1-5)
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-bold">5 = Excellent</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                  {[
+                    { trait: 'Punctuality', score: 5 },
+                    { trait: 'Neatness & Dress', score: 5 },
+                    { trait: 'Honesty & Integrity', score: 5 },
+                    { trait: 'Staff Respect', score: 5 },
+                    { trait: 'Class Attentiveness', score: 5 },
+                    { trait: 'Peer Relationship', score: 4 },
+                  ].map((t) => (
+                    <div key={t.trait} className="flex items-center justify-between py-0.5 border-b border-slate-100">
+                      <span className="text-slate-700 truncate pr-1">{t.trait}</span>
+                      <span className="font-mono font-bold text-slate-950 px-1 rounded bg-slate-100">
+                        {t.score}/5
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Psychomotor Skills */}
+              <div className="border border-slate-400 rounded-lg p-2.5 bg-white/90 space-y-1.5">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                  <span className="text-[10px] font-black uppercase text-slate-900">
+                    Psychomotor Skills (1-5)
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-bold">5 = Excellent</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                  {[
+                    { trait: 'Penmanship', score: 4 },
+                    { trait: 'Sports & Games', score: 4 },
+                    { trait: 'Practical Skills', score: 5 },
+                    { trait: 'Club Activity', score: 5 },
+                  ].map((p) => (
+                    <div key={p.trait} className="flex items-center justify-between py-0.5 border-b border-slate-100">
+                      <span className="text-slate-700 truncate pr-1">{p.trait}</span>
+                      <span className="font-mono font-bold text-slate-950 px-1 rounded bg-slate-100">
+                        {p.score}/5
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-blue-900 block">
-                Principal & Academic Board Endorsement
-              </span>
-              <p className="text-blue-950 font-medium italic">
-                "{student.resultHeld ? 'Result held by administrative directive.' : 'Result approved and certified by the College Academic Directorate. Promoted in good standing.'}"
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-blue-800 pt-2 border-t border-blue-200/60 mt-2">
-                <span>College Seal: <strong>AFFIXED</strong></span>
-                <span>Next Term Resumption: <strong>11th Jan, 2027</strong></span>
+            {/* Form Master & Principal Evaluation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+              <div className="p-3 bg-white/90 rounded-lg border border-slate-400 space-y-1.5">
+                <span className="text-[10px] font-black uppercase text-slate-600 block">
+                  Class Master's Evaluation & Recommendation:
+                </span>
+                <p className="text-slate-900 italic font-medium leading-relaxed text-xs">
+                  "{student.formMasterRemark || (student.termGpa >= 75 ? 'An exceptional, highly focused student who demonstrates academic brilliance, moral discipline and leadership capability. Recommended for academic honors.' : 'A good and regular student. Commended for steady academic progress; encouraged to maintain dedication in all continuous assessments.')}"
+                </p>
+                <div className="flex items-center justify-between text-[10px] text-slate-600 pt-2 border-t border-slate-200">
+                  <span>Class Master: <strong>{assignedFormMaster}</strong></span>
+                  <span className="text-emerald-800 font-mono font-bold">Signature: Verified ✓</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50/90 rounded-lg border border-slate-400 space-y-1.5">
+                <span className="text-[10px] font-black uppercase text-blue-950 block">
+                  Principal & Directorate Endorsement:
+                </span>
+                <p className="text-slate-900 italic font-medium leading-relaxed text-xs">
+                  "{student.resultHeld ? 'Result held by administrative directive.' : 'Result approved, certified and ratified by the College Academic Directorate. Promoted in excellent standing.'}"
+                </p>
+                <div className="flex items-center justify-between text-[10px] text-slate-700 pt-2 border-t border-slate-200">
+                  <span>College Seal: <strong>AFFIXED</strong></span>
+                  <span>Next Term Resumption: <strong>11th Jan, 2027</strong></span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Print Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
-            <span className="text-xs text-slate-500">
-              Official document issued by Dominion Star Global College.
-            </span>
-            <button
-              onClick={handlePrintReportCard}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print Results</span>
-            </button>
+            {/* Print Action Banner */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t-2 border-slate-700 bg-slate-50/80 p-3 rounded-lg border">
+              <div className="text-xs text-slate-600 text-center sm:text-left">
+                <span className="font-bold text-slate-900 block">Official Academic Broadsheet Transcript</span>
+                <span>Includes continuous assessment breakdown, background watermark, signatures and Directorate security seal.</span>
+              </div>
+              <button
+                type="button"
+                id="student-print-results-tab-btn"
+                onClick={handlePrintReportCard}
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-amber-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer min-h-[42px] active:scale-[0.99]"
+              >
+                <Printer className="w-4 h-4 text-amber-300" />
+                <span>Print Official Results (PDF)</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

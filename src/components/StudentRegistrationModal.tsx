@@ -43,6 +43,7 @@ import {
 } from '../data/mockData';
 import { DGCLogo } from './DGCLogo';
 import { compressPassportPhoto } from '../utils/imageCompressor';
+import { SPORT_HOUSES_LIST, getHouseMeta } from '../data/originalData';
 import {
   calculateAdmissionYear,
   generateNextRegNumber,
@@ -96,12 +97,7 @@ const NIGERIAN_STATES = [
   'Other State',
 ];
 
-const SPORT_HOUSES = [
-  { name: 'St. Thomas Aquinas House', color: 'Blue' },
-  { name: 'St. Dominic House', color: 'Gold' },
-  { name: 'St. Catherine of Siena House', color: 'Green' },
-  { name: 'St. Martin de Porres House', color: 'Red' },
-];
+const SPORT_HOUSES = SPORT_HOUSES_LIST;
 
 export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> = ({
   isOpen,
@@ -325,6 +321,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
       term: entryTerm,
       boardingStatus,
       houseAllocation,
+      house: houseAllocation,
       previousSchool: previousSchool.trim() || undefined,
       lastClassPassed: lastClassPassed.trim() || undefined,
       entranceExamScore: Number(entranceExamScore),
@@ -521,9 +518,18 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                     Sport House & Status
                   </span>
-                  <span className="text-xs font-semibold text-slate-800">
-                    {houseAllocation} · {boardingStatus}
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {(() => {
+                      const meta = getHouseMeta(registeredStudent.houseAllocation || registeredStudent.house || houseAllocation);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${meta.cardActiveBg} border ${meta.badgeBorder}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${meta.badgeBg}`} />
+                          <span>{meta.name}</span>
+                        </span>
+                      );
+                    })()}
+                    <span className="text-xs font-semibold text-slate-700">· {boardingStatus}</span>
+                  </div>
                 </div>
                 <div>
                   <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
@@ -841,6 +847,60 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         placeholder="+234 800 000 0000"
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950"
                       />
+                    </div>
+                  </div>
+
+                  {/* Sport / College House Options (Red, Blue, Green, Orange) */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block uppercase tracking-wider">
+                          Sport / College House Allocation *
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          Select the student's official house (Red House, Blue House, Green House, or Orange House):
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-blue-950 px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-200">
+                        {houseAllocation}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {SPORT_HOUSES.map((h) => {
+                        const isSelected = houseAllocation === h.name;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => setHouseAllocation(h.name)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? `${h.cardActiveBg} ${h.cardActiveBorder} shadow-xs font-bold`
+                                : `bg-white border-slate-200 ${h.cardHoverBg} hover:border-slate-300 text-slate-700`
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <span className={`w-3 h-3 rounded-full ${h.dotColor} shrink-0`} />
+                              <span
+                                className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                  isSelected ? `${h.dotColor} border-transparent` : 'border-slate-300'
+                                }`}
+                              >
+                                {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-900 block">
+                                {h.name}
+                              </span>
+                              <span className={`text-[10px] uppercase font-bold tracking-wider ${h.badgeText}`}>
+                                {h.color}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1465,51 +1525,97 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                     </div>
                   </div>
 
-                  {/* 7. BOARDING, SPORT HOUSE & ENTRANCE SCORE */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Boarding / Day Enrolment Type *
-                      </label>
-                      <select
-                        value={boardingStatus}
-                        onChange={(e) => setBoardingStatus(e.target.value as any)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
-                      >
-                        <option value="Day Student">Day Student (Commuter)</option>
-                        <option value="Boarder">Boarding House Resident</option>
-                      </select>
+                  {/* 7. SPORT / COLLEGE HOUSE ALLOCATION & ENROLMENT STATUS */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-200 pb-2.5">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            College Sport House Allocation *
+                          </h4>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-900 text-white">
+                            {houseAllocation}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Select one of the four official Dominion Star Global College houses: <strong>Red House</strong>, <strong>Blue House</strong>, <strong>Green House</strong>, or <strong>Orange House</strong>.
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Sport / College House Allocation
-                      </label>
-                      <select
-                        value={houseAllocation}
-                        onChange={(e) => setHouseAllocation(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
-                      >
-                        {SPORT_HOUSES.map((h) => (
-                          <option key={h.name} value={h.name}>
-                            {h.name} ({h.color})
-                          </option>
-                        ))}
-                      </select>
+                    {/* 4 Interactive House Options Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {SPORT_HOUSES.map((h) => {
+                        const isSelected = houseAllocation === h.name;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => setHouseAllocation(h.name)}
+                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[96px] ${
+                              isSelected
+                                ? `${h.cardActiveBg} ${h.cardActiveBorder} shadow-sm`
+                                : `bg-white border-slate-200 ${h.cardHoverBg} hover:border-slate-300 text-slate-700`
+                            }`}
+                          >
+                            <div className="flex items-start justify-between w-full">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-3.5 h-3.5 rounded-full ${h.dotColor} shrink-0 shadow-2xs`} />
+                                <span className={`text-[10px] font-extrabold uppercase tracking-wider ${h.badgeText}`}>
+                                  {h.color}
+                                </span>
+                              </div>
+                              <span
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                  isSelected ? `${h.dotColor} border-white shadow-2xs` : 'border-slate-300'
+                                }`}
+                              >
+                                {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                              </span>
+                            </div>
+
+                            <div className="mt-2">
+                              <span className="text-xs sm:text-sm font-black text-slate-900 block tracking-tight">
+                                {h.name}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block leading-tight font-medium">
+                                {h.tagline}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Entrance / Placement Aggregate (%)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={entranceExamScore}
-                        onChange={(e) => setEntranceExamScore(Number(e.target.value))}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
-                      />
+                    {/* Supporting Enrolment Details: Boarding Status & Placement Score */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">
+                          Boarding / Day Enrolment Type *
+                        </label>
+                        <select
+                          value={boardingStatus}
+                          onChange={(e) => setBoardingStatus(e.target.value as any)}
+                          className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
+                        >
+                          <option value="Day Student">Day Student (Commuter)</option>
+                          <option value="Boarder">Boarding House Resident</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">
+                          Entrance / Placement Aggregate (%)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={entranceExamScore}
+                          onChange={(e) => setEntranceExamScore(Number(e.target.value))}
+                          className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-950 bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

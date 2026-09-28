@@ -56,6 +56,94 @@ export const SCHOOL_CLASSES_LIST = [
   'SS 3 Commercial',
 ] as const;
 
+export interface SportHouseDefinition {
+  id: string;
+  name: string; // 'Red House', 'Blue House', 'Green House', 'Orange House'
+  color: string; // 'Red', 'Blue', 'Green', 'Orange'
+  tagline: string;
+  motto: string;
+  badgeBg: string;
+  badgeBorder: string;
+  badgeText: string;
+  cardActiveBorder: string;
+  cardActiveBg: string;
+  cardHoverBg: string;
+  dotColor: string;
+  hex: string;
+}
+
+export const SPORT_HOUSES_LIST: SportHouseDefinition[] = [
+  {
+    id: 'red',
+    name: 'Red House',
+    color: 'Red',
+    tagline: 'Courage & Strength',
+    motto: 'Strength through Integrity',
+    badgeBg: 'bg-red-600',
+    badgeBorder: 'border-red-700',
+    badgeText: 'text-red-700',
+    cardActiveBorder: 'border-red-600 ring-2 ring-red-500/30',
+    cardActiveBg: 'bg-red-50/90 text-red-950',
+    cardHoverBg: 'hover:bg-red-50/50',
+    dotColor: 'bg-red-500',
+    hex: '#ef4444',
+  },
+  {
+    id: 'blue',
+    name: 'Blue House',
+    color: 'Blue',
+    tagline: 'Wisdom & Honor',
+    motto: 'Excellence in Diligence',
+    badgeBg: 'bg-blue-600',
+    badgeBorder: 'border-blue-700',
+    badgeText: 'text-blue-700',
+    cardActiveBorder: 'border-blue-600 ring-2 ring-blue-500/30',
+    cardActiveBg: 'bg-blue-50/90 text-blue-950',
+    cardHoverBg: 'hover:bg-blue-50/50',
+    dotColor: 'bg-blue-500',
+    hex: '#3b82f6',
+  },
+  {
+    id: 'green',
+    name: 'Green House',
+    color: 'Green',
+    tagline: 'Growth & Resilience',
+    motto: 'Forward in Knowledge',
+    badgeBg: 'bg-emerald-600',
+    badgeBorder: 'border-emerald-700',
+    badgeText: 'text-emerald-700',
+    cardActiveBorder: 'border-emerald-600 ring-2 ring-emerald-500/30',
+    cardActiveBg: 'bg-emerald-50/90 text-emerald-950',
+    cardHoverBg: 'hover:bg-emerald-50/50',
+    dotColor: 'bg-emerald-500',
+    hex: '#10b981',
+  },
+  {
+    id: 'orange',
+    name: 'Orange House',
+    color: 'Orange',
+    tagline: 'Energy & Leadership',
+    motto: 'Leadership with Distinction',
+    badgeBg: 'bg-orange-500',
+    badgeBorder: 'border-orange-600',
+    badgeText: 'text-orange-700',
+    cardActiveBorder: 'border-orange-500 ring-2 ring-orange-500/30',
+    cardActiveBg: 'bg-orange-50/90 text-orange-950',
+    cardHoverBg: 'hover:bg-orange-50/50',
+    dotColor: 'bg-orange-500',
+    hex: '#f97316',
+  },
+];
+
+export const getHouseMeta = (houseName?: string): SportHouseDefinition => {
+  if (!houseName) return SPORT_HOUSES_LIST[1]; // default Blue House
+  const clean = houseName.toLowerCase().trim();
+  const found = SPORT_HOUSES_LIST.find(
+    (h) => h.name.toLowerCase() === clean || h.color.toLowerCase() === clean || clean.includes(h.color.toLowerCase())
+  );
+  return found || SPORT_HOUSES_LIST[1];
+};
+
 export const ALL_SCHOOL_SUBJECTS = [
   'Mathematics',
   'English Language',

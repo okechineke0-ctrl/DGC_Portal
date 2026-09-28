@@ -60,6 +60,7 @@ import { TeacherManagementModal } from './TeacherManagementModal';
 import { SchoolFeesManagement } from './SchoolFeesManagement';
 import { IndividualHoldResultModal } from './IndividualHoldResultModal';
 import { BatchSubjectAllocationModal } from './BatchSubjectAllocationModal';
+import { getHouseMeta } from '../data/originalData';
 
 interface CeoDashboardProps {
   onExit: () => void;
@@ -1570,7 +1571,16 @@ export const CeoDashboard: React.FC<CeoDashboardProps> = ({
                       <span className="text-[10px] text-slate-400">{student.guardianName || 'Guardian'}</span>
                     </td>
                     <td className="py-3 px-3 font-semibold text-slate-800">
-                      {student.classArm}
+                      <div>{student.classArm}</div>
+                      {(() => {
+                        const hMeta = getHouseMeta(student.houseAllocation || student.house);
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${hMeta.badgeBg} text-white mt-0.5`}>
+                            <span className="w-1 h-1 rounded-full bg-white" />
+                            <span>{hMeta.name}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span

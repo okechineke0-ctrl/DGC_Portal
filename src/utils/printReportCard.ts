@@ -113,6 +113,42 @@ export function printElement(element: HTMLElement | null, options: PrintOptions 
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                background: #ffffff !important;
+              }
+              .report-card-container {
+                position: relative !important;
+                background-color: #ffffff !important;
+                overflow: hidden !important;
+                border: 2px solid #0f172a !important;
+                box-shadow: none !important;
+              }
+              .report-card-watermark {
+                position: absolute !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 440px !important;
+                height: 440px !important;
+                max-width: 85% !important;
+                max-height: 85% !important;
+                opacity: 0.07 !important;
+                z-index: 0 !important;
+                pointer-events: none !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+              }
+              .report-card-watermark img {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: contain !important;
+                opacity: 0.07 !important;
+                -webkit-filter: grayscale(15%) !important;
+                filter: grayscale(15%) !important;
+              }
+              .report-card-content {
+                position: relative !important;
+                z-index: 10 !important;
               }
             }
           </style>

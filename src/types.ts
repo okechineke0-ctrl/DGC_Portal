@@ -157,6 +157,7 @@ export interface StudentProfile {
   transferClassJoined?: string;
   boardingStatus?: 'Day Student' | 'Boarder';
   houseAllocation?: string;
+  house?: string; // Sport house alias (Red House, Blue House, Green House, Orange House)
   scholarshipStatus?: string;
   tellerNumber?: string;
   entranceExamScore?: number;
