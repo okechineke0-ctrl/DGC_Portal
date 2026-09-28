@@ -24,9 +24,6 @@ import {
   CheckCircle2,
   ArrowUp,
   ChevronUp,
-  UserCheck,
-  GraduationCap,
-  Briefcase,
 } from 'lucide-react';
 import { DGCLogo } from './components/DGCLogo';
 import { Sidebar } from './components/Sidebar';
@@ -38,7 +35,6 @@ import { StaffDashboard } from './components/StaffDashboard';
 import { CeoDashboard } from './components/CeoDashboard';
 import { StudentSettingsView } from './components/StudentSettingsView';
 import { StudentRegistrationModal } from './components/StudentRegistrationModal';
-import { InstitutionalLoginGateway } from './components/InstitutionalLoginGateway';
 import {
   TODAY_DATE,
   CURRENT_SESSION,
@@ -84,32 +80,8 @@ export default function App() {
   const [authError, setAuthError] = useState<string>('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
 
-  // Remembered Workspace state ('ceo' | 'staff' | 'portal')
-  const [rememberedWorkspace, setRememberedWorkspace] = useState<'portal' | 'staff' | 'ceo'>(() => {
-    const saved = localStorage.getItem('dgc_remembered_workspace');
-    if (saved === 'ceo' || saved === 'staff' || saved === 'portal') return saved;
-    return 'ceo';
-  });
-
-  // Track target role for logout confirmation
-  const [logoutTargetRole, setLogoutTargetRole] = useState<'portal' | 'staff' | 'ceo'>('ceo');
-
-  // Direct login credentials for Administration & Faculty on Gateway
-  const [adminPasscodeInput, setAdminPasscodeInput] = useState<string>('dgc2026');
-  const [showAdminPasscode, setShowAdminPasscode] = useState<boolean>(false);
-  const [staffNameInput, setStaffNameInput] = useState<string>('');
-  const [staffPinInput, setStaffPinInput] = useState<string>('dgc-staff');
-  const [showStaffPin, setShowStaffPin] = useState<boolean>(false);
-  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
-
   // Workspaces: 'portal' (Standard Student & Guardian Portal), 'staff' (Tutor Continuous Assessment), 'ceo' (CEO & Principal Governance)
-  const [activeRole, setActiveRole] = useState<'portal' | 'staff' | 'ceo'>(() => {
-    const savedRole = sessionStorage.getItem('dgc_auth_role');
-    if (savedRole === 'ceo' || savedRole === 'staff' || savedRole === 'portal') return savedRole;
-    const last = localStorage.getItem('dgc_remembered_workspace');
-    if (last === 'ceo' || last === 'staff' || last === 'portal') return last;
-    return 'ceo';
-  });
+  const [activeRole, setActiveRole] = useState<'portal' | 'staff' | 'ceo'>('portal');
   const [isGatewayOpen, setIsGatewayOpen] = useState<boolean>(false);
   const [activeStaff, setActiveStaff] = useState<StaffMember | null>(null);
 
@@ -159,14 +131,7 @@ export default function App() {
   // Restore authenticated session on boot
   useEffect(() => {
     const savedToken = sessionStorage.getItem('dgc_auth_token');
-    if (!savedToken) {
-      const last = localStorage.getItem('dgc_remembered_workspace') as 'portal' | 'staff' | 'ceo' | null;
-      if (last === 'ceo' || last === 'staff' || last === 'portal') {
-        setRememberedWorkspace(last);
-        setActiveRole(last);
-      }
-      return;
-    }
+    if (!savedToken) return;
 
     fetch('/api/auth/session', {
       headers: { Authorization: `Bearer ${savedToken}` },
@@ -180,21 +145,12 @@ export default function App() {
           setAuthToken(savedToken);
           if (data.role === 'ceo') {
             setActiveRole('ceo');
-            setRememberedWorkspace('ceo');
-            localStorage.setItem('dgc_remembered_workspace', 'ceo');
             setIsLoggedOut(false);
           } else if (data.role === 'staff') {
             setActiveRole('staff');
-            setRememberedWorkspace('staff');
-            localStorage.setItem('dgc_remembered_workspace', 'staff');
             setIsLoggedOut(false);
-            if (data.staff) {
-              setActiveStaff(data.staff);
-            }
           } else if (data.role === 'portal') {
             setActiveRole('portal');
-            setRememberedWorkspace('portal');
-            localStorage.setItem('dgc_remembered_workspace', 'portal');
             setIsLoggedOut(false);
             if (data.admissionNo || data.id) {
               fetch(`/api/students/${encodeURIComponent(data.admissionNo || data.id)}`, {
@@ -270,21 +226,21 @@ export default function App() {
       });
   }, [authToken, activeRole, authFetch]);
 
-  // Update selected student when students array changes (ONLY when authenticated in student portal)
+  // Update selected student when students array changes
   useEffect(() => {
     if (selectedStudent) {
       const updated = students.find((s) => s.id === selectedStudent.id);
       if (updated) {
         setSelectedStudent(updated);
-      } else if (!isLoggedOut && activeRole === 'portal' && students.length > 0) {
+      } else if (students.length > 0) {
         setSelectedStudent(students[0]);
       } else {
         setSelectedStudent(null);
       }
-    } else if (!isLoggedOut && activeRole === 'portal' && students.length > 0) {
+    } else if (students.length > 0) {
       setSelectedStudent(students[0]);
     }
-  }, [students, activeRole, isLoggedOut]);
+  }, [students]);
 
   // --- HANDLERS FOR STAFF & CEO WORKSPACES ---
 
@@ -350,13 +306,10 @@ export default function App() {
         setAuthToken(data.token);
         sessionStorage.setItem('dgc_auth_token', data.token);
         sessionStorage.setItem('dgc_auth_role', 'portal');
-        localStorage.setItem('dgc_remembered_workspace', 'portal');
-        setRememberedWorkspace('portal');
         setSelectedStudent(data.student);
         setStudents((prev) => [data.student, ...prev.filter((p) => p.id !== data.student.id)]);
         setIsLoggedOut(false);
         setActiveRole('portal');
-        setActiveStaff(null);
         setAuthError('');
         return;
       } else {
@@ -371,165 +324,26 @@ export default function App() {
     }
   };
 
-  // Administration Directorate Direct Login (from Institutional Gateway)
-  const handleAdminDirectLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setAuthError('');
-    const cleanPass = adminPasscodeInput.trim();
-    if (!cleanPass) {
-      setAuthError('Please enter your Administrative Passcode.');
-      return;
-    }
-
-    setIsLoggingIn(true);
-    try {
-      const res = await fetch('/api/auth/admin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: cleanPass }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.token) {
-        setAuthToken(data.token);
-        sessionStorage.setItem('dgc_auth_token', data.token);
-        sessionStorage.setItem('dgc_auth_role', 'ceo');
-        localStorage.setItem('dgc_remembered_workspace', 'ceo');
-        setRememberedWorkspace('ceo');
-        setActiveRole('ceo');
-        setIsLoggedOut(false);
-        setSelectedStudent(null);
-        setActiveStaff(null);
-        setAuthError('');
-      } else {
-        setAuthError(data.error || 'Invalid administrative passcode. Please verify your credentials.');
-      }
-    } catch {
-      setAuthError('Connection error contacting administrative server.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Academic Faculty Direct Login (from Institutional Gateway)
-  const handleStaffDirectLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setAuthError('');
-    const targetName = staffNameInput.trim();
-    if (!targetName) {
-      setAuthError('Please select or enter your instructor name.');
-      return;
-    }
-
-    setIsLoggingIn(true);
-    try {
-      const res = await fetch('/api/auth/staff-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: targetName, passcode: staffPinInput.trim() || 'dgc-staff' }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.staff) {
-        setAuthToken(data.token);
-        sessionStorage.setItem('dgc_auth_token', data.token);
-        sessionStorage.setItem('dgc_auth_role', 'staff');
-        localStorage.setItem('dgc_remembered_workspace', 'staff');
-        setRememberedWorkspace('staff');
-        setActiveStaff(data.staff);
-        setActiveRole('staff');
-        setIsLoggedOut(false);
-        setSelectedStudent(null);
-        setAuthError('');
-      } else {
-        // Fallback local match against staffList
-        const matched = staffList.find((s) => s.name.toLowerCase() === targetName.toLowerCase());
-        if (matched) {
-          setActiveStaff(matched);
-          setActiveRole('staff');
-          setIsLoggedOut(false);
-          setSelectedStudent(null);
-          setRememberedWorkspace('staff');
-          localStorage.setItem('dgc_remembered_workspace', 'staff');
-          setAuthError('');
-        } else {
-          setAuthError(data.error || `Instructor "${targetName}" is not on the official faculty roster.`);
-        }
-      }
-    } catch {
-      setAuthError('Connection error contacting faculty server.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleSelectRoleFromGateway = (role: 'staff' | 'ceo' | 'portal', staffData?: StaffMember, token?: string) => {
+  const handleSelectRoleFromGateway = (role: 'staff' | 'ceo', staffData?: StaffMember, token?: string) => {
     setIsGatewayOpen(false);
     if (token) {
       setAuthToken(token);
       sessionStorage.setItem('dgc_auth_token', token);
       sessionStorage.setItem('dgc_auth_role', role);
     }
-    localStorage.setItem('dgc_remembered_workspace', role);
-    setRememberedWorkspace(role);
-
     if (role === 'staff' && staffData) {
       setActiveStaff(staffData);
       setActiveRole('staff');
       setIsLoggedOut(false);
-      setSelectedStudent(null);
     } else if (role === 'ceo') {
       setActiveRole('ceo');
       setIsLoggedOut(false);
-      setSelectedStudent(null);
-      setActiveStaff(null);
-    } else if (role === 'portal') {
-      setActiveRole('portal');
-      if (token) {
-        setIsLoggedOut(false);
-      } else {
-        setIsLoggedOut(true);
-        setSelectedStudent(null);
-      }
     }
   };
 
-  // Exit from Admin or Staff workspace to Student Portal (NEVER auto-signs into a student account)
   const handleExitToPortal = () => {
     setActiveRole('portal');
     setActiveStaff(null);
-    setSelectedStudent(null);
-    setIsLoggedOut(true);
-    setRememberedWorkspace('portal');
-    localStorage.setItem('dgc_remembered_workspace', 'portal');
-  };
-
-  // Role-aware logout modal open
-  const handleOpenLogoutModal = (role?: 'portal' | 'staff' | 'ceo') => {
-    const target = role || activeRole;
-    setLogoutTargetRole(target);
-    setIsLogoutModalOpen(true);
-  };
-
-  // Complete institutional log out: clears active auth, remembers workspace, returns to login screen
-  const handleConfirmLogout = () => {
-    if (authToken) {
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}` },
-      }).catch(() => {});
-    }
-    sessionStorage.removeItem('dgc_auth_token');
-    sessionStorage.removeItem('dgc_auth_role');
-    setAuthToken('');
-    setIsLogoutModalOpen(false);
-    setIsLoggedOut(true);
-    setSelectedStudent(null);
-    setActiveStaff(null);
-
-    // Persist remembered workspace so login screen defaults to this role
-    const target = logoutTargetRole || activeRole;
-    setRememberedWorkspace(target);
-    localStorage.setItem('dgc_remembered_workspace', target);
-    setActiveRole(target);
   };
 
   // Update Student Profile Settings (passport photograph, optional phone, contact details)
@@ -1432,13 +1246,12 @@ export default function App() {
           isDbLive={isDbLive}
           currentStudent={selectedStudent}
           onExitToPortal={handleExitToPortal}
-          onLogout={() => handleOpenLogoutModal(activeRole)}
           staffName={activeStaff?.name}
           staffTitle={activeStaff?.title}
         />
 
         {/* Operational Workspace Banner (When in Staff or CEO mode) */}
-        {!isLoggedOut && activeRole !== 'portal' && (
+        {activeRole !== 'portal' && (
           <div className="bg-slate-900 text-white px-3 sm:px-4 py-2 flex items-center justify-between text-xs border-b border-slate-800 shadow-xs">
             <div className="flex items-center gap-2 min-w-0">
               <span
@@ -1459,119 +1272,190 @@ export default function App() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleExitToPortal}
-                className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
-                title="Switch to Student Academic Portal"
-              >
-                <span>Student Portal</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenLogoutModal(activeRole)}
-                className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer border border-rose-500/30"
-                title="Log out of this workspace"
-                id="banner-workspace-logout-btn"
-              >
-                <LogOut className="w-3 h-3 text-rose-300" />
-                <span>Log Out</span>
-              </button>
-            </div>
+            <button
+              onClick={handleExitToPortal}
+              className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+            >
+              <span>Student Portal</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
         {/* Main Content Area */}
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 min-w-0 overflow-x-hidden">
-          {/* A. LOGGED-OUT STATE: UNIFIED INSTITUTIONAL LOGIN GATEWAY (REMEMBERS WORKSPACE) */}
-          {isLoggedOut ? (
-            <InstitutionalLoginGateway
-              rememberedWorkspace={rememberedWorkspace}
-              onWorkspaceChange={(ws) => {
-                setRememberedWorkspace(ws);
-                localStorage.setItem('dgc_remembered_workspace', ws);
-                setActiveRole(ws);
-              }}
-              regNumberInput={regNumberInput}
-              setRegNumberInput={setRegNumberInput}
-              passwordInput={passwordInput}
-              setPasswordInput={setPasswordInput}
-              showPassword={showPassword}
-              setShowPassword={setShowPassword}
-              onStudentLogin={handleStudentLogin}
-              adminPasscodeInput={adminPasscodeInput}
-              setAdminPasscodeInput={setAdminPasscodeInput}
-              showAdminPasscode={showAdminPasscode}
-              setShowAdminPasscode={setShowAdminPasscode}
-              onAdminLogin={handleAdminDirectLogin}
-              staffList={staffList}
-              staffNameInput={staffNameInput}
-              setStaffNameInput={setStaffNameInput}
-              staffPinInput={staffPinInput}
-              setStaffPinInput={setStaffPinInput}
-              showStaffPin={showStaffPin}
-              setShowStaffPin={setShowStaffPin}
-              onStaffLogin={handleStaffDirectLogin}
-              authError={authError}
-              setAuthError={setAuthError}
-              isLoggingIn={isLoggingIn}
-              onLogoSixClick={handleLogoSixClick}
-              onOpenGatewayModal={() => setIsGatewayOpen(true)}
+          {/* 1. STAFF WORKSPACE (Grading Console, Form Master Oversight, Teaching Workload) */}
+          {activeRole === 'staff' && activeStaff && (
+            <StaffDashboard
+              staff={activeStaff}
+              onExit={handleExitToPortal}
+              students={students}
+              classes={classes}
+              onUpdateStudentScore={handleUpdateStudentScore}
+              onBulkUpdateStudentScores={handleBulkUpdateStudentScores}
+              onUpdateStudentRemarks={handleUpdateStudentRemarks}
+              onUpdateStudentAttendance={handleUpdateStudentAttendance}
             />
-          ) : (
+          )}
+
+          {/* 2. CEO EXECUTIVE WORKSPACE (Classes & Subject Teachers, Staff Allocations, Result Holds, Admissions) */}
+          {activeRole === 'ceo' && (
+            <CeoDashboard
+              onExit={handleExitToPortal}
+              students={students}
+              staffList={staffList}
+              classes={classes}
+              academicCalendar={academicCalendar}
+              onUpdateAcademicCalendar={async (updated) => {
+                setAcademicCalendar(updated);
+                return true;
+              }}
+              onToggleHoldResult={handleToggleHoldResult}
+              onBatchHoldClass={handleBatchHoldClass}
+              onRegisterStudent={handleRegisterStudent}
+              onUpdateStudent={handleUpdateStudent}
+              onDeleteStudent={handleDeleteStudent}
+              onAddStaff={handleAddStaff}
+              onDeleteStaff={handleDeleteStaff}
+              onAssignFormMaster={handleAssignFormMaster}
+              onAssignSubjectTeacher={handleAssignSubjectTeacher}
+              onAssignStaffAllocations={handleAssignStaffAllocations}
+              onUpdateStaff={handleUpdateStaff}
+              onUpdateStudentFeeStatus={handleUpdateStudentFeeStatus}
+              onBulkUpdateStudentFeeStatus={handleBulkUpdateStudentFeeStatus}
+              onBatchAssignSubjects={handleBatchAssignSubjects}
+              onUpdateClassCurriculum={handleUpdateClassCurriculum}
+              onRefreshStudents={refreshStudentsFromDb}
+            />
+          )}
+
+          {/* 3. MATURE, PROFESSIONAL SECONDARY SCHOOL STUDENT PORTAL */}
+          {activeRole === 'portal' && (
             <>
-              {/* 1. STAFF WORKSPACE (Grading Console, Form Master Oversight, Teaching Workload) */}
-              {activeRole === 'staff' && activeStaff && (
-                <StaffDashboard
-                  staff={activeStaff}
-                  onExit={handleExitToPortal}
-                  onLogout={() => handleOpenLogoutModal('staff')}
-                  students={students}
-                  classes={classes}
-                  onUpdateStudentScore={handleUpdateStudentScore}
-                  onBulkUpdateStudentScores={handleBulkUpdateStudentScores}
-                  onUpdateStudentRemarks={handleUpdateStudentRemarks}
-                  onUpdateStudentAttendance={handleUpdateStudentAttendance}
-                />
-              )}
+              {isLoggedOut ? (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs max-w-md mx-auto my-6 sm:my-10 text-center space-y-5">
+                  {/* Dominion Star Global College Official Crest Emblem with 6-Click Administrative Shortcut */}
+                  <div className="inline-block mx-auto">
+                    <button
+                      type="button"
+                      onClick={handleLogoSixClick}
+                      className="w-16 h-16 rounded-xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center shadow-2xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
+                      title="Dominion Star Global College"
+                      aria-label="Dominion Star Global College Crest"
+                    >
+                      <DGCLogo size="md" showText={false} />
+                    </button>
+                  </div>
 
-              {/* 2. CEO EXECUTIVE WORKSPACE (Classes & Subject Teachers, Staff Allocations, Result Holds, Admissions) */}
-              {activeRole === 'ceo' && (
-                <CeoDashboard
-                  onExit={handleExitToPortal}
-                  onLogout={() => handleOpenLogoutModal('ceo')}
-                  students={students}
-                  staffList={staffList}
-                  classes={classes}
-                  academicCalendar={academicCalendar}
-                  onUpdateAcademicCalendar={async (updated) => {
-                    setAcademicCalendar(updated);
-                    return true;
-                  }}
-                  onToggleHoldResult={handleToggleHoldResult}
-                  onBatchHoldClass={handleBatchHoldClass}
-                  onRegisterStudent={handleRegisterStudent}
-                  onUpdateStudent={handleUpdateStudent}
-                  onDeleteStudent={handleDeleteStudent}
-                  onAddStaff={handleAddStaff}
-                  onDeleteStaff={handleDeleteStaff}
-                  onAssignFormMaster={handleAssignFormMaster}
-                  onAssignSubjectTeacher={handleAssignSubjectTeacher}
-                  onAssignStaffAllocations={handleAssignStaffAllocations}
-                  onUpdateStaff={handleUpdateStaff}
-                  onUpdateStudentFeeStatus={handleUpdateStudentFeeStatus}
-                  onBulkUpdateStudentFeeStatus={handleBulkUpdateStudentFeeStatus}
-                  onBatchAssignSubjects={handleBatchAssignSubjects}
-                  onUpdateClassCurriculum={handleUpdateClassCurriculum}
-                  onRefreshStudents={refreshStudentsFromDb}
-                />
-              )}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Dominion Star Global College · Awgu
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold font-serif-title text-slate-900 tracking-tight">
+                      Student Academic Portal
+                    </h2>
+                    <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                      Official portal for registered scholars. Access terminal broadsheets, curriculum records, and bursary clearance.
+                    </p>
+                  </div>
 
-              {/* 3. MATURE, PROFESSIONAL SECONDARY SCHOOL STUDENT PORTAL */}
-              {activeRole === 'portal' && selectedStudent && (
+                  {/* Portal Security Note */}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs text-slate-600 space-y-1">
+                    <div className="flex items-center gap-2 font-semibold text-slate-800">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                      <span>Institutional Credentials</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Your default portal password is your <strong>Registration Number</strong>. Accounts are provisioned exclusively by the College Administration.
+                    </p>
+                  </div>
+
+                  {authError && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2 text-left">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                      <span>{authError}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleStudentLogin} className="space-y-3.5 pt-1 text-left">
+                    {/* Reg Number Input */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-700 block">
+                        Registration Number (Reg No):
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={regNumberInput}
+                          onChange={(e) => {
+                            setRegNumberInput(e.target.value);
+                            setAuthError('');
+                          }}
+                          placeholder="e.g. DGC/2026/0142"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all uppercase font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Password Input */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 block">
+                          Password:
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          (Default: Reg Number)
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordInput}
+                          onChange={(e) => {
+                            setPasswordInput(e.target.value);
+                            setAuthError('');
+                          }}
+                          placeholder="Enter your Reg Number as password"
+                          className="w-full px-3 py-2.5 pr-10 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-slate-500" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Administrative Protocol Notice: Only Administration Issues Reg Numbers */}
+                    <div className="p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl text-left space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-950 text-[11px]">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>Forgot your Registration Number?</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/90 leading-relaxed">
+                        Registration numbers are issued exclusively by the <strong>College Administration</strong>. If you forget or have misplaced your Registration Number, please meet the <strong>Directorate Administration / Principal's Office</strong> to retrieve your official credentials.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-semibold rounded-lg text-xs transition-all shadow-xs flex items-center justify-center gap-2 mt-1 cursor-pointer border border-slate-800"
+                    >
+                      <span>Sign In to Academic Portal</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                    </button>
+                  </form>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <span>Academic Session · {CURRENT_SESSION}</span>
+                    <span>Official Portal</span>
+                  </div>
+                </div>
+              ) : (
+                /* PRIMARY STUDENT VIEWS: Assigned Subjects, Report Card, Performance, Attendance, Fees Clearance */
                 (activeTab === 'subjects' ||
                   activeTab === 'curriculum' ||
                   activeTab === 'results' ||
@@ -1591,38 +1475,6 @@ export default function App() {
                     activeSubTab={activeTab as any}
                   />
                 )
-              )}
-
-              {/* Fallback if in student portal mode but no student selected */}
-              {activeRole === 'portal' && !selectedStudent && (
-                <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center max-w-lg mx-auto space-y-4 my-8 shadow-sm">
-                  <GraduationCap className="w-12 h-12 text-blue-900 mx-auto" />
-                  <h3 className="text-lg font-bold text-slate-900">Student Portal Session Ended</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    No active student account is currently signed in. Please sign in with your official Registration Number or switch to the Administration Console.
-                  </p>
-                  <div className="flex items-center justify-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsLoggedOut(true)}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
-                    >
-                      Open Portal Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveRole('ceo');
-                        setRememberedWorkspace('ceo');
-                        localStorage.setItem('dgc_remembered_workspace', 'ceo');
-                        setIsLoggedOut(true);
-                      }}
-                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
-                    >
-                      Administration Console
-                    </button>
-                  </div>
-                </div>
               )}
 
               {/* STUDENT PROFILE & PASSPORT PHOTO SETTINGS */}

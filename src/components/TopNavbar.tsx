@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Sparkles,
   Database,
-  LogOut,
 } from 'lucide-react';
 import { DGCLogo } from './DGCLogo';
 import { ANNOUNCEMENTS, CURRENT_SESSION, CURRENT_TERM } from '../data/originalData';
@@ -34,7 +33,6 @@ interface TopNavbarProps {
     stream?: string;
   } | null;
   onExitToPortal?: () => void;
-  onLogout?: () => void;
   staffName?: string;
   staffTitle?: string;
 }
@@ -50,7 +48,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   isDbLive = true,
   currentStudent,
   onExitToPortal,
-  onLogout,
   staffName,
   staffTitle,
 }) => {
@@ -239,26 +236,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             )}
           </div>
 
-          {/* Direct Log Out Button */}
-          {!isLoggedOut && onLogout && (
-            <button
-              type="button"
-              onClick={onLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all cursor-pointer shadow-2xs shrink-0"
-              title={
-                currentRole === 'ceo'
-                  ? 'Log out of Administration'
-                  : currentRole === 'staff'
-                  ? 'Log out of Faculty Console'
-                  : 'Log out of Student Portal'
-              }
-              id="topnavbar-logout-btn"
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span className="hidden sm:inline">Log Out</span>
-            </button>
-          )}
-
           {/* Interactive Responsive Profile & Gateway Menu */}
           <div className="relative shrink-0" ref={profileMenuRef}>
             <button
@@ -343,6 +320,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
                 {/* Quick Switch Actions */}
                 <div className="py-2.5 space-y-1.5">
+                  {currentRole !== 'portal' && onExitToPortal && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onExitToPortal();
+                      }}
+                      className="w-full flex items-center justify-between p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold text-xs transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4 text-blue-700 shrink-0" />
+                        <span>Return to Student Portal</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-blue-600" />
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
@@ -358,30 +351,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                       {ANNOUNCEMENTS.length}
                     </span>
                   </button>
-
-                  {onLogout && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        onLogout();
-                      }}
-                      className="w-full flex items-center justify-between p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs transition-colors cursor-pointer border border-rose-200/80 mt-1"
-                      id="profile-dropdown-logout-btn"
-                    >
-                      <div className="flex items-center gap-2">
-                        <LogOut className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                        <span>
-                          {currentRole === 'ceo'
-                            ? 'Log Out (Admin)'
-                            : currentRole === 'staff'
-                            ? 'Log Out (Faculty)'
-                            : 'Log Out (Student)'}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
-                    </button>
-                  )}
                 </div>
 
                 {/* Cloud DB Connection Status */}
