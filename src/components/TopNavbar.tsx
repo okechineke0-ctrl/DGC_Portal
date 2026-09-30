@@ -11,6 +11,7 @@ import {
   GraduationCap,
   Sparkles,
   Database,
+  LogOut,
 } from 'lucide-react';
 import { DGCLogo } from './DGCLogo';
 import { ANNOUNCEMENTS, CURRENT_SESSION, CURRENT_TERM } from '../data/originalData';
@@ -33,6 +34,7 @@ interface TopNavbarProps {
     stream?: string;
   } | null;
   onExitToPortal?: () => void;
+  onLogout?: () => void;
   staffName?: string;
   staffTitle?: string;
 }
@@ -48,6 +50,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   isDbLive = true,
   currentStudent,
   onExitToPortal,
+  onLogout,
   staffName,
   staffTitle,
 }) => {
@@ -115,7 +118,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       <div className="flex items-center justify-between gap-2 sm:gap-4 w-full max-w-full min-w-0">
         {/* Left: Mobile Menu Trigger + Breadcrumb / Brand Logo */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
-          {!isLoggedOut && (
+          {!isLoggedOut && currentRole === 'portal' && (
             <button
               id="mobile-menu-toggle-btn"
               onClick={onOpenMobileMenu}
@@ -318,24 +321,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   </div>
                 </div>
 
-                {/* Quick Switch Actions */}
+                {/* Quick Actions & Session Management */}
                 <div className="py-2.5 space-y-1.5">
-                  {currentRole !== 'portal' && onExitToPortal && (
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        onExitToPortal();
-                      }}
-                      className="w-full flex items-center justify-between p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold text-xs transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4 text-blue-700 shrink-0" />
-                        <span>Return to Student Portal</span>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-blue-600" />
-                    </button>
-                  )}
-
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
@@ -351,6 +338,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                       {ANNOUNCEMENTS.length}
                     </span>
                   </button>
+
+                  {!isLoggedOut && onLogout && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onLogout();
+                      }}
+                      className="w-full flex items-center justify-between p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 font-bold text-xs transition-colors cursor-pointer border border-rose-200/80 mt-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Log Out Entirely</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-rose-500" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Cloud DB Connection Status */}

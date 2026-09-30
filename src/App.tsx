@@ -226,19 +226,15 @@ export default function App() {
       });
   }, [authToken, activeRole, authFetch]);
 
-  // Update selected student when students array changes
+  // Keep active student profile in sync if student is legitimately logged in
   useEffect(() => {
     if (selectedStudent) {
       const updated = students.find((s) => s.id === selectedStudent.id);
       if (updated) {
         setSelectedStudent(updated);
-      } else if (students.length > 0) {
-        setSelectedStudent(students[0]);
       } else {
         setSelectedStudent(null);
       }
-    } else if (students.length > 0) {
-      setSelectedStudent(students[0]);
     }
   }, [students]);
 
@@ -331,20 +327,43 @@ export default function App() {
       sessionStorage.setItem('dgc_auth_token', token);
       sessionStorage.setItem('dgc_auth_role', role);
     }
+    // Explicitly reset selected student to prevent any student profile leaking into Admin/Staff session
+    setSelectedStudent(null);
     if (role === 'staff' && staffData) {
       setActiveStaff(staffData);
       setActiveRole('staff');
       setIsLoggedOut(false);
     } else if (role === 'ceo') {
+      setActiveStaff(null);
       setActiveRole('ceo');
       setIsLoggedOut(false);
     }
   };
 
-  const handleExitToPortal = () => {
+  // Complete system logout: revokes tokens, clears storage, resets active roles & models to clean sign-in screen
+  const handleLogout = useCallback(() => {
+    if (authToken) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem('dgc_auth_token');
+    sessionStorage.removeItem('dgc_auth_role');
+    setAuthToken('');
+    setIsLogoutModalOpen(false);
+    setIsLoggedOut(true);
+    setSelectedStudent(null);
     setActiveRole('portal');
     setActiveStaff(null);
-  };
+    setRegNumberInput('');
+    setPasswordInput('');
+    setAuthError('');
+  }, [authToken]);
+
+  const handleExitToPortal = useCallback(() => {
+    handleLogout();
+  }, [handleLogout]);
 
   // Update Student Profile Settings (passport photograph, optional phone, contact details)
   const handleSaveStudentProfile = async (updatedStudent: StudentProfile) => {
@@ -1219,8 +1238,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-sky-50 flex text-slate-800 w-full max-w-full overflow-x-hidden">
-      {/* Navigation Sidebar (Only rendered when user is logged into their portal session) */}
-      {!isLoggedOut && (
+      {/* Navigation Sidebar (Only rendered when student is logged into their student portal session) */}
+      {!isLoggedOut && activeRole === 'portal' && (
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -1233,7 +1252,7 @@ export default function App() {
       )}
 
       {/* Main Content Viewport */}
-      <div className={`flex-1 ${!isLoggedOut ? 'lg:pl-72' : ''} flex flex-col min-w-0 transition-all w-full max-w-full overflow-x-hidden`}>
+      <div className={`flex-1 ${!isLoggedOut && activeRole === 'portal' ? 'lg:pl-72' : ''} flex flex-col min-w-0 transition-all w-full max-w-full overflow-x-hidden`}>
         {/* Top Navbar */}
         <TopNavbar
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
@@ -1245,7 +1264,7 @@ export default function App() {
           isLoggedOut={isLoggedOut}
           isDbLive={isDbLive}
           currentStudent={selectedStudent}
-          onExitToPortal={handleExitToPortal}
+          onLogout={() => setIsLogoutModalOpen(true)}
           staffName={activeStaff?.name}
           staffTitle={activeStaff?.title}
         />
@@ -1273,11 +1292,12 @@ export default function App() {
             </div>
 
             <button
-              onClick={handleExitToPortal}
-              className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="px-2.5 py-1 bg-rose-900/40 hover:bg-rose-800/60 text-rose-200 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ml-2 cursor-pointer border border-rose-700/50"
+              title="Log out of session completely"
             >
-              <span>Student Portal</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-rose-300" />
+              <span>Log Out</span>
             </button>
           </div>
         )}
@@ -1288,7 +1308,8 @@ export default function App() {
           {activeRole === 'staff' && activeStaff && (
             <StaffDashboard
               staff={activeStaff}
-              onExit={handleExitToPortal}
+              onExit={() => setIsLogoutModalOpen(true)}
+              onLogout={() => setIsLogoutModalOpen(true)}
               students={students}
               classes={classes}
               onUpdateStudentScore={handleUpdateStudentScore}
@@ -1301,7 +1322,8 @@ export default function App() {
           {/* 2. CEO EXECUTIVE WORKSPACE (Classes & Subject Teachers, Staff Allocations, Result Holds, Admissions) */}
           {activeRole === 'ceo' && (
             <CeoDashboard
-              onExit={handleExitToPortal}
+              onExit={() => setIsLogoutModalOpen(true)}
+              onLogout={() => setIsLogoutModalOpen(true)}
               students={students}
               staffList={staffList}
               classes={classes}
@@ -1726,45 +1748,54 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Confirm Portal Session Log Out
+                  {activeRole === 'ceo'
+                    ? 'Confirm Admin Session Log Out'
+                    : activeRole === 'staff'
+                    ? 'Confirm Faculty Session Log Out'
+                    : 'Confirm Portal Session Log Out'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Student Academic Portal
+                  {activeRole === 'ceo'
+                    ? 'College Directorate Console'
+                    : activeRole === 'staff'
+                    ? `Faculty: ${activeStaff?.title || ''} ${activeStaff?.name || ''}`
+                    : 'Student Academic Portal'}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-              You are currently signed into the student academic portal as <strong>{selectedStudent?.name}</strong> ({selectedStudent?.admissionNo}, {selectedStudent?.classArm}). Are you sure you wish to end your active session?
+              {activeRole === 'ceo' ? (
+                <>
+                  Are you sure you wish to log out of the <strong>College Administration Console</strong>? You will be completely signed out and returned to the official sign-in screen.
+                </>
+              ) : activeRole === 'staff' ? (
+                <>
+                  Are you sure you wish to log out of the <strong>Faculty Academic Console</strong> as <strong>{activeStaff?.title} {activeStaff?.name}</strong>? You will be completely signed out and returned to the official sign-in screen.
+                </>
+              ) : selectedStudent ? (
+                <>
+                  You are currently signed into the student academic portal as <strong>{selectedStudent.name}</strong> ({selectedStudent.admissionNo}, {selectedStudent.classArm}). Are you sure you wish to end your active session?
+                </>
+              ) : (
+                <>
+                  Are you sure you wish to log out of your session? You will be completely signed out and returned to the official sign-in screen.
+                </>
+              )}
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setIsLogoutModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 Stay Signed In
               </button>
               <button
-                onClick={() => {
-                  if (authToken) {
-                    fetch('/api/auth/logout', {
-                      method: 'POST',
-                      headers: { Authorization: `Bearer ${authToken}` },
-                    }).catch(() => {});
-                  }
-                  sessionStorage.removeItem('dgc_auth_token');
-                  sessionStorage.removeItem('dgc_auth_role');
-                  setAuthToken('');
-                  setIsLogoutModalOpen(false);
-                  setIsLoggedOut(true);
-                  setSelectedStudent(null);
-                  setActiveRole('portal');
-                  setActiveStaff(null);
-                }}
+                onClick={handleLogout}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-2xs cursor-pointer"
               >
-                Log Out
+                Log Out Entirely
               </button>
             </div>
           </div>
