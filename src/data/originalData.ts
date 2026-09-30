@@ -858,7 +858,16 @@ export function matchesSubjectCategory(subjectName: string, categoryFilter: stri
   return false;
 }
 
-/* Class Broadsheet & Ranking Algorithm: Computes exact ordinal positions (1st, 2nd, 3rd) within class arm */
+export function getOrdinalSuffix(num: number): string {
+  const mod10 = num % 10;
+  const mod100 = num % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'st';
+  if (mod10 === 2 && mod100 !== 12) return 'nd';
+  if (mod10 === 3 && mod100 !== 13) return 'rd';
+  return 'th';
+}
+
+/* Class Broadsheet & Ranking Algorithm: Computes exact ordinal positions (1st, 2nd, 3rd, 21st, 22nd...) within class arm */
 export function recalculateClassRankings(studentList: StudentProfile[]): StudentProfile[] {
   // Group by classArm
   const classArmGroups = new Map<string, StudentProfile[]>();
@@ -903,22 +912,29 @@ export function recalculateClassRankings(studentList: StudentProfile[]): Student
     const totalInArm = computedGroup.length;
     const totalAssessed = computedGroup.filter((s) => s._hasAssessments).length;
 
-    // 3. Assign ordinal rank (1st, 2nd, 3rd...) for assessed students
-    let currentRank = 1;
-    computedGroup.forEach((std) => {
+    // 3. Assign ordinal rank (1st, 2nd, 3rd, 21st, 22nd...) for assessed students with tie handling
+    let previousGpa: number | null = null;
+    let previousTotal: number | null = null;
+    let rankToAssign = 1;
+
+    computedGroup.forEach((std, index) => {
       let termRank = 'Pending Assessment';
       if (std._hasAssessments) {
-        const rankNum = currentRank;
-        currentRank++;
-        const suffix =
-          rankNum === 1
-            ? 'st'
-            : rankNum === 2
-            ? 'nd'
-            : rankNum === 3
-            ? 'rd'
-            : 'th';
-        termRank = `${rankNum}${suffix} out of ${totalAssessed || totalInArm}`;
+        if (
+          previousGpa !== null &&
+          previousTotal !== null &&
+          std.termGpa === previousGpa &&
+          std._totalMarks === previousTotal
+        ) {
+          // Exact tie in GPA and total marks: preserve joint rank
+        } else {
+          rankToAssign = index + 1;
+        }
+        previousGpa = std.termGpa;
+        previousTotal = std._totalMarks;
+
+        const suffix = getOrdinalSuffix(rankToAssign);
+        termRank = `${rankToAssign}${suffix} out of ${totalAssessed || totalInArm}`;
       }
 
       const { _totalMarks, _hasAssessments, ...rest } = std;
